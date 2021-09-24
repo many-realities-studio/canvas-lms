@@ -15,11 +15,13 @@ function set_service_util {
 }
 
 function start_docker_daemon {
-  eval "$service_manager docker status &> /dev/null" && return 0
-  prompt 'The docker daemon is not running. Start it? [y/n]' confirm
-  [[ ${confirm:-n} == 'y' ]] || return 1
-  eval "$start_docker"
-  sleep 1 # wait for docker daemon to start
+  message 'Skipping service start' 
+  return 0
+  # eval "$service_manager docker status &> /dev/null" && return 0
+  # prompt 'The docker daemon is not running. Start it? [y/n]' confirm
+  # [[ ${confirm:-n} == 'y' ]] || return 1
+  # eval "$start_docker"
+  # sleep 1 # wait for docker daemon to start
 }
 
 function setup_docker_as_nonroot {
