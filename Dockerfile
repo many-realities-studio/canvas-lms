@@ -68,15 +68,25 @@ ENV PULSAR_CLIENT_DEV_SHA512=fc3b5ecb0a69c0fbebd177fbb9c8c22273a81df48430f9175f7
 # pulsar installs 4 versions of this library, but we only need
 # one, so at the end we remove the others to minimize the image size
 RUN cd "$(mktemp -d)" && \
-    curl -SLO 'https://mirror.cogentco.com/pub/apache/pulsar/pulsar-'$PULSAR_VERSION'/DEB/apache-pulsar-client.deb' && \
-    curl -SLO 'https://mirror.cogentco.com/pub/apache/pulsar/pulsar-'$PULSAR_VERSION'/DEB/apache-pulsar-client-dev.deb' && \
-    echo $PULSAR_CLIENT_SHA512 '*apache-pulsar-client.deb' | shasum -a 512 -c -s - && \
-    echo $PULSAR_CLIENT_DEV_SHA512 '*apache-pulsar-client-dev.deb' | shasum -a 512 -c -s - && \
-    apt install ./apache-pulsar-client*.deb && \
-    rm ./apache-pulsar-client*.deb && \
-    rm /usr/lib/libpulsarnossl.so* && \
-    rm /usr/lib/libpulsar.a && \
-    rm /usr/lib/libpulsarwithdeps.a
+  curl -SLO 'http://archive.apache.org/dist/pulsar/pulsar-'$PULSAR_VERSION'/DEB/apache-pulsar-client.deb' && \
+  curl -SLO 'http://archive.apache.org/dist/pulsar/pulsar-'$PULSAR_VERSION'/DEB/apache-pulsar-client-dev.deb' && \
+  echo $PULSAR_CLIENT_SHA512 '*apache-pulsar-client.deb' | shasum -a 512 -c -s - && \
+  echo $PULSAR_CLIENT_DEV_SHA512 '*apache-pulsar-client-dev.deb' | shasum -a 512 -c -s - && \
+  apt install ./apache-pulsar-client*.deb && \
+  rm ./apache-pulsar-client*.deb && \
+  rm /usr/lib/libpulsarnossl.so* && \
+  rm /usr/lib/libpulsar.a && \
+  rm /usr/lib/libpulsarwithdeps.a
+# RUN cd "$(mktemp -d)" && \
+#     curl -SLO 'https://mirror.cogentco.com/pub/apache/pulsar/pulsar-'$PULSAR_VERSION'/DEB/apache-pulsar-client.deb' && \
+#     curl -SLO 'https://mirror.cogentco.com/pub/apache/pulsar/pulsar-'$PULSAR_VERSION'/DEB/apache-pulsar-client-dev.deb' && \
+#     echo $PULSAR_CLIENT_SHA512 '*apache-pulsar-client.deb' | shasum -a 512 -c -s - && \
+#     echo $PULSAR_CLIENT_DEV_SHA512 '*apache-pulsar-client-dev.deb' | shasum -a 512 -c -s - && \
+#     apt install ./apache-pulsar-client*.deb && \
+#     rm ./apache-pulsar-client*.deb && \
+#     rm /usr/lib/libpulsarnossl.so* && \
+#     rm /usr/lib/libpulsar.a && \
+#     rm /usr/lib/libpulsarwithdeps.a
 
 RUN if [ -e /var/lib/gems/$RUBY_MAJOR.0/gems/bundler-* ]; then BUNDLER_INSTALL="-i /var/lib/gems/$RUBY_MAJOR.0"; fi \
   && gem uninstall --all --ignore-dependencies --force $BUNDLER_INSTALL bundler \
