@@ -16,10 +16,14 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import I18n from 'i18n!assignments_2_submission_helpers'
+import {useScope as useI18nScope} from '@canvas/i18n'
+
+const I18n = useI18nScope('assignments_2_submission_helpers')
 
 export function friendlyTypeName(type) {
   switch (type) {
+    case 'basic_lti_launch':
+      return I18n.t('External Tool')
     case 'media_recording':
       return I18n.t('Media')
     case 'online_text_entry':
@@ -42,6 +46,7 @@ export function isSubmitted({state, attempt}) {
 export function multipleTypesDrafted(submission) {
   const submissionDraft = submission?.submissionDraft
   const matchingCriteria = [
+    submissionDraft?.meetsBasicLtiLaunchCriteria,
     submissionDraft?.meetsTextEntryCriteria,
     submissionDraft?.meetsUploadCriteria,
     submissionDraft?.meetsUrlCriteria

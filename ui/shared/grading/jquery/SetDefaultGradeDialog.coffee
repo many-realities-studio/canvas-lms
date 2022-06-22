@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU Affero General Public License along
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 
-import I18n from 'i18n!sharedSetDefaultGradeDialog'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import $ from 'jquery'
 import setDefaultGradeDialogTemplate from '../jst/SetDefaultGradeDialog.handlebars'
 import _ from 'underscore'
@@ -29,6 +29,8 @@ import '@canvas/util/jquery/fixDialogButtons'
 # this is a partial needed by the 'SetDefaultGradeDialog' template
 # since you cant declare a dependency in a handlebars file, we need to do it here
 import '../jst/_grading_box.handlebars'
+
+I18n = useI18nScope('sharedSetDefaultGradeDialog')
 
 noop = ->
 alertProxy = (message) -> alert(message)
@@ -98,7 +100,8 @@ export default class SetDefaultGradeDialog
           prefix = "submissions[submission_#{s.id}]"
           [["#{prefix}[assignment_id]", @assignment.id],
           ["#{prefix}[user_id]", s.id],
-          ["#{prefix}[grade]", grade]]
+          ["#{prefix}[grade]", grade],
+          ["#{prefix}[set_by_default_grade]", true]]
         .flatten(true)
         .object()
         .value()

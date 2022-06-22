@@ -30,10 +30,10 @@ module Lti
 
       def memberships
         @memberships ||= begin
-          ActiveRecord::Associations::Preloader.new.preload(users, :pseudonym)
-          ActiveRecord::Associations::Preloader.new.preload(users, :communication_channels, CommunicationChannel.email.unretired)
-          ActiveRecord::Associations::Preloader.new.preload(users, :not_ended_enrollments, Enrollment.where(course_id: context))
-          ActiveRecord::Associations::Preloader.new.preload(users, :past_lti_ids, UserPastLtiId.where(context: context))
+          ActiveRecord::Associations.preload(users, :pseudonym)
+          ActiveRecord::Associations.preload(users, :communication_channels, CommunicationChannel.email.unretired)
+          ActiveRecord::Associations.preload(users, :not_ended_enrollments, Enrollment.where(course_id: context))
+          ActiveRecord::Associations.preload(users, :past_lti_ids, UserPastLtiId.where(context: context))
           users.map do |user|
             generate_membership(user)
           end
@@ -52,7 +52,7 @@ module Lti
 
       def generate_member(user)
         user_id = Lti::Asset.opaque_identifier_for(user, context: context)
-        IMS::LTI::Models::MembershipService::LISPerson.new(
+        ::IMS::LTI::Models::MembershipService::LISPerson.new(
           name: user.name,
           given_name: user.first_name,
           family_name: user.last_name,
@@ -65,14 +65,14 @@ module Lti
       end
 
       def generate_membership(user)
-        IMS::LTI::Models::MembershipService::Membership.new(
-          status: IMS::LIS::Statuses::SimpleNames::Active,
+        ::IMS::LTI::Models::MembershipService::Membership.new(
+          status: ::IMS::LIS::Statuses::SimpleNames::Active,
           member: generate_member(user),
           role: generate_roles(user)
         )
       end
 
-      def generate_roles(user)
+      def generate_roles(_user)
         []
       end
     end

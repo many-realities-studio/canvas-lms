@@ -19,7 +19,7 @@
 #
 module Types
   class LearningOutcomeGroupType < ApplicationObjectType
-    description 'Learning Outcome Group'
+    description "Learning Outcome Group"
 
     implements GraphQL::Types::Relay::Node
     implements Interfaces::LegacyIDInterface
@@ -60,8 +60,16 @@ module Types
       learning_outcome_group_children_service.total_outcomes(object.id, args)
     end
 
+    field :not_imported_outcomes_count, Integer, null: true do
+      argument :target_group_id, ID, required: false
+    end
+    def not_imported_outcomes_count(**args)
+      learning_outcome_group_children_service.not_imported_outcomes(object.id, args)
+    end
+
     field :outcomes, Types::ContentTagConnection, null: false do
       argument :search_query, String, required: false
+      argument :filter, String, required: false
     end
     def outcomes(**args)
       learning_outcome_group_children_service.suboutcomes_by_group_id(object.id, args)

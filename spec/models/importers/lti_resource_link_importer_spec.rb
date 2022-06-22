@@ -18,46 +18,45 @@
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-require 'spec_helper'
-
 describe Importers::LtiResourceLinkImporter do
   subject { described_class.process_migration(hash, migration) }
 
   let!(:source_course) { course_model }
   let!(:destination_course) { course_model }
   let!(:migration) { ContentMigration.create(context: destination_course, source_course: source_course) }
-  let!(:tool) { external_tool_model(context: destination_course) }
+  let!(:tool) { external_tool_1_3_model(context: destination_course) }
 
-  context 'when `lti_resource_links` is not given' do
+  context "when `lti_resource_links` is not given" do
     let(:hash) { { lti_resource_links: nil } }
 
-    it 'does not import lti resource links' do
+    it "does not import lti resource links" do
       expect(subject).to eq false
     end
   end
 
-  context 'when `lti_resource_links` is given' do
+  context "when `lti_resource_links` is given" do
     let(:custom_params) do
-      { 'param1' => 'value1 ' }
+      { "param1" => "value1 " }
     end
-    let(:lookup_uuid) { '1b302c1e-c0a2-42dc-88b6-c029699a7c7a' }
+    let(:lookup_uuid) { "1b302c1e-c0a2-42dc-88b6-c029699a7c7a" }
     let(:hash) do
       {
-        'lti_resource_links' => [
+        "lti_resource_links" => [
           {
-            'custom' => custom_params,
-            'lookup_uuid' => lookup_uuid,
-            'launch_url' => tool.url
+            "custom" => custom_params,
+            "lookup_uuid" => lookup_uuid,
+            "launch_url" => tool.url
           }
         ]
       }
     end
 
-    context 'when the Lti::ResourceLink.context_type is an Assignment' do
+    context "when the Lti::ResourceLink.context_type is an Assignment" do
       let!(:assignment) do
         destination_course.assignments.create!(
-          submission_types: 'external_tool',
-          external_tool_tag_attributes: { content: tool }
+          submission_types: "external_tool",
+          external_tool_tag_attributes: { content: tool },
+          points_possible: 10
         )
       end
       let!(:resource_link) do
@@ -65,11 +64,12 @@ describe Importers::LtiResourceLinkImporter do
           context_external_tool: tool,
           context: assignment,
           lookup_uuid: lookup_uuid,
-          custom: nil
+          custom: nil,
+          url: "http://www.example.com/launch"
         )
       end
 
-      it 'update the custom params' do
+      it "update the custom params" do
         expect(resource_link.custom).to be_nil
 
         expect(subject).to eq true
@@ -80,9 +80,9 @@ describe Importers::LtiResourceLinkImporter do
       end
     end
 
-    context 'when the Lti::ResourceLink.context_type is a Course' do
-      context 'and the resource link was not recorded' do
-        it 'create the new resource link' do
+    context "when the Lti::ResourceLink.context_type is a Course" do
+      context "and the resource link was not recorded" do
+        it "create the new resource link" do
           expect(subject).to eq true
 
           expect(destination_course.lti_resource_links.size).to eq 1
@@ -91,7 +91,7 @@ describe Importers::LtiResourceLinkImporter do
         end
       end
 
-      context 'and the resource link was recorded' do
+      context "and the resource link was recorded" do
         before do
           destination_course.lti_resource_links.create!(
             context_external_tool: tool,
@@ -100,7 +100,7 @@ describe Importers::LtiResourceLinkImporter do
           )
         end
 
-        it 'update the custom params' do
+        it "update the custom params" do
           expect(subject).to eq true
 
           expect(destination_course.lti_resource_links.size).to eq 1

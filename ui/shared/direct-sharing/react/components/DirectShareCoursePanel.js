@@ -16,16 +16,19 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import I18n from 'i18n!direct_share_course_panel'
+import {useScope as useI18nScope} from '@canvas/i18n'
 
 import React, {useState} from 'react'
 import {func, string} from 'prop-types'
+import {Alert} from '@instructure/ui-alerts'
 
 import doFetchApi from '@canvas/do-fetch-api-effect'
 import contentSelectionShape from '../proptypes/contentSelection'
 import ConfirmActionButtonBar from './ConfirmActionButtonBar'
 import CourseAndModulePicker from './CourseAndModulePicker'
 import DirectShareOperationStatus from './DirectShareOperationStatus'
+
+const I18n = useI18nScope('direct_share_course_panel')
 
 // eventually this will have options for where to place the item in the new course.
 // for now, it just has the selector plus some buttons
@@ -81,7 +84,14 @@ export default function DirectShareCoursePanel({sourceCourseId, contentSelection
         setSelectedModule={setSelectedModule}
         setModuleItemPosition={setSelectedPosition}
         disableModuleInsertion={contentSelection && 'modules' in contentSelection}
+        moduleFilteringOpts={{per_page: 50}}
+        courseFilteringOpts={{enforce_manage_grant_requirement: true}}
       />
+      <Alert variant="warning" hasShadow={false}>
+        {I18n.t(
+          'Importing the same course content more than once will overwrite any existing content in the course.'
+        )}
+      </Alert>
       <ConfirmActionButtonBar
         padding="small 0 0 0"
         primaryLabel={startCopyOperationPromise ? null : I18n.t('Copy')}

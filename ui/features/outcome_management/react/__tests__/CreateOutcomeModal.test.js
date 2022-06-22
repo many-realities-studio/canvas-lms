@@ -27,7 +27,8 @@ import {
   accountMocks,
   smallOutcomeTree,
   setFriendlyDescriptionOutcomeMock,
-  createLearningOutcomeMock
+  createLearningOutcomeMock,
+  createOutcomeGroupMocks
 } from '@canvas/outcomes/mocks/Management'
 import * as FlashAlert from '@canvas/alerts/react/FlashAlert'
 
@@ -50,14 +51,25 @@ describe('CreateOutcomeModal', () => {
       contextType = 'Account',
       contextId = '1',
       friendlyDescriptionFF = true,
+      accountLevelMasteryScalesFF = true,
       mocks = accountMocks({childGroupsCount: 0}),
       isMobileView = false,
-      renderer = rtlRender
+      renderer = rtlRender,
+      treeBrowserRootGroupId = '1'
     } = {}
   ) => {
     return renderer(
       <OutcomesContext.Provider
-        value={{env: {contextType, contextId, friendlyDescriptionFF, isMobileView}}}
+        value={{
+          env: {
+            contextType,
+            contextId,
+            friendlyDescriptionFF,
+            accountLevelMasteryScalesFF,
+            isMobileView,
+            treeBrowserRootGroupId
+          }
+        }}
       >
         <MockedProvider cache={cache} mocks={mocks}>
           {children}
@@ -106,44 +118,53 @@ describe('CreateOutcomeModal', () => {
         expect(onCloseHandlerMock).toHaveBeenCalledTimes(1)
       })
 
-      it('does not show error message below Name field on initial load and disables Create button', async () => {
-        const {getByText, queryByText} = render(<CreateOutcomeModal {...getProps()} />)
+      it('does not show error message below Name field on initial load', async () => {
+        const {queryByText} = render(<CreateOutcomeModal {...getProps()} />)
         await act(async () => jest.runOnlyPendingTimers())
-        expect(getByText('Create').closest('button')).toHaveAttribute('disabled')
         expect(queryByText('Cannot be blank')).not.toBeInTheDocument()
       })
 
-      it('shows error message below Name field if no name after user makes changes to name and disables Create button', async () => {
+      it('shows error message below Name field if no name after user makes changes to name', async () => {
         const {getByText, getByLabelText} = render(<CreateOutcomeModal {...getProps()} />)
         await act(async () => jest.runOnlyPendingTimers())
         fireEvent.change(getByLabelText('Name'), {target: {value: '123'}})
         fireEvent.change(getByLabelText('Name'), {target: {value: ''}})
-        expect(getByText('Create').closest('button')).toHaveAttribute('disabled')
         expect(getByText('Cannot be blank')).toBeInTheDocument()
       })
 
-      it('shows error message below Name field if name includes only spaces and disables Create button', async () => {
+      it('shows error message below Name field if name includes only spaces', async () => {
         const {getByText, getByLabelText} = render(<CreateOutcomeModal {...getProps()} />)
         await act(async () => jest.runOnlyPendingTimers())
         fireEvent.change(getByLabelText('Name'), {target: {value: '  '}})
-        expect(getByText('Create').closest('button')).toHaveAttribute('disabled')
         expect(getByText('Cannot be blank')).toBeInTheDocument()
       })
 
-      it('shows error message below Name field if name > 255 characters and disables Create button', async () => {
+      it('shows error message below Name field if name > 255 characters', async () => {
         const {getByText, getByLabelText} = render(<CreateOutcomeModal {...getProps()} />)
         await act(async () => jest.runOnlyPendingTimers())
         fireEvent.change(getByLabelText('Name'), {target: {value: 'a'.repeat(256)}})
         expect(getByText('Must be 255 characters or less')).toBeInTheDocument()
-        expect(getByText('Create').closest('button')).toHaveAttribute('disabled')
       })
 
-      it('shows error message below displayName field if displayName > 255 characters and disables Create button', async () => {
+      it('shows error message below displayName field if displayName > 255 characters', async () => {
         const {getByText, getByLabelText} = render(<CreateOutcomeModal {...getProps()} />)
         await act(async () => jest.runOnlyPendingTimers())
         fireEvent.change(getByLabelText('Friendly Name'), {target: {value: 'a'.repeat(256)}})
         expect(getByText('Must be 255 characters or less')).toBeInTheDocument()
-        expect(getByText('Create').closest('button')).toHaveAttribute('disabled')
+      })
+
+      it('shows error message if friendly description > 255 characters', async () => {
+        const {getByText, getByLabelText} = render(<CreateOutcomeModal {...defaultProps()} />, {
+          mocks: [...smallOutcomeTree()]
+        })
+        await act(async () => jest.runOnlyPendingTimers())
+        fireEvent.change(getByLabelText('Name'), {target: {value: 'Outcome 123'}})
+        fireEvent.change(getByLabelText('Friendly Name'), {target: {value: 'Display name'}})
+        fireEvent.change(getByLabelText('Friendly description (for parent/student display)'), {
+          target: {value: 'a'.repeat(256)}
+        })
+        fireEvent.click(getByText('Root account folder'))
+        expect(getByText('Must be 255 characters or less')).toBeInTheDocument()
       })
 
       it('calls onCloseHandler & onSuccess on Create button click', async () => {
@@ -177,16 +198,6 @@ describe('CreateOutcomeModal', () => {
         expect(queryByText('Root account folder')).not.toBeInTheDocument()
         expect(queryByText('Account folder 0')).toBeInTheDocument()
         expect(queryByText('Group 100 folder 0')).toBeInTheDocument()
-      })
-
-      it('enables Create button when name is entered and group is selected', async () => {
-        const {getByLabelText, getByRole} = render(<CreateOutcomeModal {...defaultProps()} />, {
-          mocks: [...smallOutcomeTree()]
-        })
-        await act(async () => jest.runOnlyPendingTimers())
-        expect(within(getByRole('dialog')).getByText('Create').closest('button')).toBeDisabled()
-        fireEvent.change(getByLabelText('Name'), {target: {value: 'Outcome 123'}})
-        expect(within(getByRole('dialog')).getByText('Create').closest('button')).not.toBeDisabled()
       })
 
       it('calls onSuccess if create request succeeds', async () => {
@@ -392,6 +403,66 @@ describe('CreateOutcomeModal', () => {
         })
       })
 
+      it('does not submit form if error in form and click on Create button', async () => {
+        const {getByText, getByLabelText} = render(<CreateOutcomeModal {...defaultProps()} />)
+        await act(async () => jest.runOnlyPendingTimers())
+        fireEvent.change(getByLabelText('Name'), {target: {value: 'Outcome 123'}})
+        const friendlyName = getByLabelText('Friendly Name')
+        fireEvent.change(friendlyName, {target: {value: 'a'.repeat(256)}})
+        expect(getByText('Must be 255 characters or less')).toBeInTheDocument()
+        fireEvent.click(getByText('Create'))
+        expect(onCloseHandlerMock).not.toHaveBeenCalled()
+      })
+
+      it('sets focus on first field with error if multiple errors in form and click on Create button', async () => {
+        const {getByText, getByLabelText, queryAllByText} = render(
+          <CreateOutcomeModal {...defaultProps()} />
+        )
+        await act(async () => jest.runOnlyPendingTimers())
+        const name = getByLabelText('Name')
+        const friendlyName = getByLabelText('Friendly Name')
+        const friendlyDescription = getByLabelText(
+          'Friendly description (for parent/student display)'
+        )
+        fireEvent.change(name, {target: {value: 'a'.repeat(256)}})
+        fireEvent.change(friendlyName, {target: {value: 'b'.repeat(256)}})
+        fireEvent.change(friendlyDescription, {target: {value: 'c'.repeat(256)}})
+        expect(queryAllByText('Must be 255 characters or less').length).toBe(3)
+        fireEvent.click(getByText('Create'))
+        expect(friendlyDescription).not.toBe(document.activeElement)
+        expect(friendlyName).not.toBe(document.activeElement)
+        expect(name).toBe(document.activeElement)
+      })
+
+      it('sets focus on create button after creation of a new group', async () => {
+        const showFlashAlertSpy = jest.spyOn(FlashAlert, 'showFlashAlert')
+        const {getByText, getByLabelText, getByTestId} = render(
+          <CreateOutcomeModal {...defaultProps()} />,
+          {
+            friendlyDescriptionFF: false,
+            mocks: [
+              ...accountMocks({childGroupsCount: 0}),
+              ...createOutcomeGroupMocks({
+                parentOutcomeGroupId: '1',
+                title: 'test'
+              })
+            ]
+          }
+        )
+        await act(async () => jest.runOnlyPendingTimers())
+        fireEvent.click(getByText('Create New Group'))
+        fireEvent.change(getByLabelText('Enter new group name'), {target: {value: 'test'}})
+        fireEvent.click(getByText('Create new group'))
+        await waitFor(() => {
+          expect(showFlashAlertSpy).toHaveBeenCalledWith({
+            message: '"test" was successfully created.',
+            type: 'success'
+          })
+        })
+        await act(async () => jest.runOnlyPendingTimers())
+        expect(getByTestId('create-button')).toHaveFocus()
+      })
+
       describe('with Friendly Description Feature Flag disabled', () => {
         it('does not display Friendly Description field in modal', async () => {
           const {queryByLabelText} = render(<CreateOutcomeModal {...defaultProps()} />, {
@@ -428,6 +499,118 @@ describe('CreateOutcomeModal', () => {
               message: '"Outcome 123" was successfully created.',
               type: 'success'
             })
+          })
+        })
+      })
+
+      describe('Account Level Mastery Scales Feature Flag', () => {
+        describe('when feature flag disabled', () => {
+          it('displays Calculation Method selection form', async () => {
+            const {getByLabelText} = render(<CreateOutcomeModal {...defaultProps()} />, {
+              accountLevelMasteryScalesFF: false
+            })
+            await act(async () => jest.runOnlyPendingTimers())
+            expect(getByLabelText('Calculation Method')).toBeInTheDocument()
+          })
+
+          it('displays Proficiency Ratings selection form', async () => {
+            const {getByTestId} = render(<CreateOutcomeModal {...defaultProps()} />, {
+              accountLevelMasteryScalesFF: false
+            })
+            await act(async () => jest.runOnlyPendingTimers())
+            expect(getByTestId('outcome-management-ratings')).toBeInTheDocument()
+          })
+
+          it('creates outcome with calculation method and proficiency ratings', async () => {
+            const showFlashAlertSpy = jest.spyOn(FlashAlert, 'showFlashAlert')
+            const {getByText, getByLabelText, getByDisplayValue} = render(
+              <CreateOutcomeModal {...defaultProps()} />,
+              {
+                accountLevelMasteryScalesFF: false,
+                mocks: [
+                  ...smallOutcomeTree(),
+                  createLearningOutcomeMock({
+                    title: 'Outcome 123',
+                    displayName: 'Display name',
+                    description: '',
+                    groupId: '1',
+                    calculationMethod: 'n_mastery',
+                    calculationInt: 5,
+                    individualCalculation: true,
+                    individualRatings: true
+                  })
+                ]
+              }
+            )
+            await act(async () => jest.runOnlyPendingTimers())
+            fireEvent.change(getByLabelText('Name'), {target: {value: 'Outcome 123'}})
+            fireEvent.change(getByLabelText('Friendly Name'), {
+              target: {value: 'Display name'}
+            })
+            fireEvent.click(getByDisplayValue('Decaying Average'))
+            fireEvent.click(getByText('n Number of Times'))
+            fireEvent.click(getByText('Create'))
+            await act(async () => jest.runOnlyPendingTimers())
+            await waitFor(() => {
+              expect(showFlashAlertSpy).toHaveBeenCalledWith({
+                message: '"Outcome 123" was successfully created.',
+                type: 'success'
+              })
+            })
+          })
+
+          it('displays horizontal divider between ratings and calculation method which is hidden from screen readers', async () => {
+            const {getByTestId} = render(<CreateOutcomeModal {...defaultProps()} />, {
+              accountLevelMasteryScalesFF: false
+            })
+            await act(async () => jest.runOnlyPendingTimers())
+            expect(getByTestId('outcome-create-modal-horizontal-divider')).toBeInTheDocument()
+          })
+
+          it('sets focus on rating description if error in both description and points and click on Create button', () => {
+            const {getByText, getByLabelText} = render(<CreateOutcomeModal {...defaultProps()} />, {
+              accountLevelMasteryScalesFF: false
+            })
+            fireEvent.change(getByLabelText('Name'), {target: {value: 'Outcome 123'}})
+            const ratingDescription = getByLabelText('Change description for mastery level 2')
+            fireEvent.change(ratingDescription, {target: {value: ''}})
+            const ratingPoints = getByLabelText('Change points for mastery level 2')
+            fireEvent.change(ratingPoints, {target: {value: '-1'}})
+            expect(getByText('Missing required description')).toBeInTheDocument()
+            expect(getByText('Negative points')).toBeInTheDocument()
+            fireEvent.click(getByText('Create'))
+            expect(ratingPoints).not.toBe(document.activeElement)
+            expect(ratingDescription).toBe(document.activeElement)
+          })
+
+          it('sets focus on mastery points if error in mastery points and calculation method and click on Create button', () => {
+            const {getByText, getByLabelText} = render(<CreateOutcomeModal {...defaultProps()} />, {
+              accountLevelMasteryScalesFF: false
+            })
+            fireEvent.change(getByLabelText('Name'), {target: {value: 'Outcome 123'}})
+            const masteryPoints = getByLabelText('Change mastery points')
+            fireEvent.change(masteryPoints, {target: {value: '-1'}})
+            const calcInt = getByLabelText('Proficiency Calculation')
+            fireEvent.change(calcInt, {target: {value: '999'}})
+            expect(getByText('Negative points')).toBeInTheDocument()
+            expect(getByText('Must be between 1 and 99')).not.toBeNull()
+            fireEvent.click(getByText('Create'))
+            expect(calcInt).not.toBe(document.activeElement)
+            expect(masteryPoints).toBe(document.activeElement)
+          })
+        })
+
+        describe('when feature flag enabled', () => {
+          it('does not display Calculation Method selection form', async () => {
+            const {queryByLabelText} = render(<CreateOutcomeModal {...defaultProps()} />)
+            await act(async () => jest.runOnlyPendingTimers())
+            expect(queryByLabelText('Calculation Method')).not.toBeInTheDocument()
+          })
+
+          it('does not display Proficiency Ratings selection form', async () => {
+            const {queryByTestId} = render(<CreateOutcomeModal {...defaultProps()} />)
+            await act(async () => jest.runOnlyPendingTimers())
+            expect(queryByTestId('outcome-management-ratings')).not.toBeInTheDocument()
           })
         })
       })

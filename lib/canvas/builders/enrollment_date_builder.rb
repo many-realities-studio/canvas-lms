@@ -39,13 +39,13 @@ module Canvas::Builders
       preload_state(enrollments)
 
       courses_loaded = enrollments.first.association(:course).loaded?
-      ActiveRecord::Associations::Preloader.new.preload(enrollments, :course) unless courses_loaded
+      ActiveRecord::Associations.preload(enrollments, :course) unless courses_loaded
 
       to_preload = use_cache ? enrollments.reject { |e| fetch(e) } : enrollments
       return if to_preload.empty?
 
-      ActiveRecord::Associations::Preloader.new.preload(to_preload, :course_section)
-      ActiveRecord::Associations::Preloader.new.preload(to_preload.map(&:course).uniq, :enrollment_term)
+      ActiveRecord::Associations.preload(to_preload, :course_section)
+      ActiveRecord::Associations.preload(to_preload.map(&:course).uniq, :enrollment_term)
       to_preload.each { |e| build(e, use_cache) }
     end
 
@@ -54,16 +54,16 @@ module Canvas::Builders
       return if enrollments.empty?
 
       unless enrollments.first.association(:enrollment_state).loaded?
-        ActiveRecord::Associations::Preloader.new.preload(enrollments, :enrollment_state)
+        ActiveRecord::Associations.preload(enrollments, :enrollment_state)
       end
     end
 
     def self.cache_key(enrollment)
-      [enrollment, enrollment.course, 'enrollment_date_ranges'].cache_key
+      [enrollment, enrollment.course, "enrollment_date_ranges"].cache_key
     end
 
     def self.fetch(enrollment)
-      result = RequestCache.cache('enrollment_dates', enrollment) do
+      result = RequestCache.cache("enrollment_dates", enrollment) do
         Rails.cache.read(cache_key(enrollment))
       end
       enrollment.instance_variable_set(:@enrollment_dates, result)
@@ -92,7 +92,7 @@ module Canvas::Builders
         @enrollment_dates << default_dates
       end
 
-      RequestCache.cache('enrollment_dates', self) do
+      RequestCache.cache("enrollment_dates", self) do
         @enrollment_dates
       end
 
@@ -117,11 +117,11 @@ module Canvas::Builders
     end
 
     def course_is_restricted?
-      @course && @course.restrict_enrollments_to_course_dates
+      @course&.restrict_enrollments_to_course_dates
     end
 
     def section_is_restricted?
-      @section && @section.restrict_enrollments_to_section_dates
+      @section&.restrict_enrollments_to_section_dates
     end
 
     def enrollment_is_restricted?

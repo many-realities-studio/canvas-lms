@@ -20,6 +20,7 @@
 
 @import "base/environment";
 @import "components/rubric";
+@import "components/emoji";
 
 .submission_details {
   .bold { font-weight: bold; }
@@ -40,6 +41,12 @@
   @include breakpoint(tablet) {
     display: flex;
     align-items: center;
+  }
+
+  .submission-details-header__grade-summary {
+    label {
+      font-size: 1rem;
+    }
   }
 }
 .submission-details-header__heading {
@@ -104,7 +111,11 @@
   .comments {
     height: 300px;
     overflow: auto;
-    background-color: $ic-bg-light-neutral;
+    @if $use_high_contrast {
+      background-color: #FFF;
+    } @else {
+      background-color: $ic-bg-light-neutral;
+    }
     @include breakpoint(desktop) { border-#{direction(left)}: 1px solid $ic-border-light; }
   }
 
@@ -114,6 +125,22 @@
     } @else {
       color: #888888;
     }
+  }
+}
+
+.unread_indicator {
+  color: var(--ic-brand-button--primary-bgd);
+  font-size: x-large;
+  vertical-align: 1px;
+  &::after {
+    font-family: 'Lato Extended';
+    content: "\2022";
+  }
+  &.submission_annotation {
+    margin-#{direction(left)}: -4px;
+  }
+  &.rubric_comment {
+    margin-#{direction(left)}: -13px;
   }
 }
 
@@ -189,4 +216,25 @@
   .turnitin_similarity_score, .turnitin_similarity_score:hover {
     color: $ic-color-dark;
   }
+}
+
+#add_comment_form {
+  label.add_a_comment {
+    font-size: 1rem;
+  }
+}
+
+#emoji-picker-container {
+  position: absolute;
+  bottom: 0;
+  #{direction(right)}: 5px;
+}
+
+#emoji-quick-picker-container {
+  margin: 6px 0;
+}
+
+#textarea-container {
+  position: relative;
+  margin-bottom: 8px;
 }

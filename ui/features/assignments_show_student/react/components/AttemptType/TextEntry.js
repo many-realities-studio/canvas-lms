@@ -21,6 +21,9 @@ import React, {createRef} from 'react'
 import CanvasRce from '@canvas/rce/react/CanvasRce'
 import TinyMCEContentItem from '@canvas/tinymce-external-tools/TinyMCEContentItem'
 import {Submission} from '@canvas/assignments/graphql/student/Submission'
+import apiUserContent from '@canvas/util/jquery/apiUserContent'
+import theme from '@instructure/canvas-theme'
+import StudentViewContext from '../Context'
 
 // This is how long we wait to see that changes have stopped before actually
 // saving the draft
@@ -47,7 +50,7 @@ export default class TextEntry extends React.Component {
 
   handleMessage = e => {
     const editor = this._rceRef.current
-    if (editor == null || e.data.messageType !== 'A2ExternalContentReady') {
+    if (editor == null || e.data.subject !== 'A2ExternalContentReady') {
       return
     }
 
@@ -88,17 +91,15 @@ export default class TextEntry extends React.Component {
       return
     }
 
-    if (this.props.readOnly !== prevProps.readOnly) {
-      this._tinyeditor.mode.set(this.props.readOnly ? 'readonly' : 'design')
-    }
-
     if (this.props.submission.attempt !== prevProps.submission.attempt) {
       const body = this.getDraftBody()
-      this._tinyeditor.setContent(body)
+      if (body !== this._tinyeditor.getContent()) {
+        this._tinyeditor.setContent(body)
+      }
       this._lastSavedContent = body
 
-      if (this.props.focusOnInit && !this.props.readOnly) {
-        this._rceRef.current.focus()
+      if (this.props.focusOnInit) {
+        this._rceRef?.current?.focus()
       }
     }
   }
@@ -127,7 +128,7 @@ export default class TextEntry extends React.Component {
     const isNewAttempt = submission.submissionDraft == null && submission.state === 'unsubmitted'
     // If read-only *or* this is a brand new attempt with no content,
     // we don't want to save a draft, so don't bother comparing
-    if (this.props.readOnly || (isNewAttempt && newContent === '')) {
+    if (isNewAttempt && newContent === '') {
       return
     }
 
@@ -152,13 +153,12 @@ export default class TextEntry extends React.Component {
   // in this.handleRCEInit
   handleRCEInit = tinyeditor => {
     this._tinyeditor = tinyeditor
-    tinyeditor.mode.set(this.props.readOnly ? 'readonly' : 'design')
 
     const draftBody = this.getDraftBody()
     tinyeditor.setContent(draftBody)
     this._lastSavedContent = draftBody
 
-    if (this.props.focusOnInit && !this.props.readOnly) {
+    if (this.props.focusOnInit) {
       this._rceRef.current.focus()
     }
     this._isInitted = true
@@ -185,29 +185,55 @@ export default class TextEntry extends React.Component {
     })
   }
 
+  renderContent() {
+    return (
+      <div
+        data-testid="read-only-content"
+        dangerouslySetInnerHTML={{
+          __html: apiUserContent.convert(this.props.submission.body)
+        }}
+      />
+    )
+  }
+
+  renderRCE(context) {
+    return (
+      <div
+        data-testid="text-editor"
+        style={{padding: `${theme.variables.spacing.small} ${theme.variables.spacing.xLarge}`}}
+      >
+        <CanvasRce
+          ref={this._rceRef}
+          autosave={false}
+          defaultContent={this.getDraftBody()}
+          editorOptions={{
+            focus: false
+          }}
+          height={300}
+          readOnly={context.isObserver}
+          textareaId="textentry_text"
+          onFocus={this.handleEditorFocus}
+          onBlur={() => {}}
+          onInit={this.handleRCEInit}
+          onContentChange={content => {
+            this.checkForChanges(content)
+          }}
+        />
+      </div>
+    )
+  }
+
   render() {
     return (
-      <div data-testid="text-editor">
-        <span>
-          <CanvasRce
-            ref={this._rceRef}
-            autosave={false}
-            defaultContent={this.getDraftBody()}
-            editorOptions={{
-              focus: false
-            }}
-            height={300}
-            readOnly={this.props.readOnly}
-            textareaId="textentry_text"
-            onFocus={this.handleEditorFocus}
-            onBlur={() => {}}
-            onInit={this.handleRCEInit}
-            onContentChange={content => {
-              this.checkForChanges(content)
-            }}
-          />
-        </span>
-      </div>
+      <>
+        {this.props.readOnly ? (
+          this.renderContent()
+        ) : (
+          <StudentViewContext.Consumer>
+            {context => this.renderRCE(context)}
+          </StudentViewContext.Consumer>
+        )}
+      </>
     )
   }
 }

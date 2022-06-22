@@ -23,11 +23,13 @@ import configureAxios from '../utilities/configureAxios'
 import {alert} from '../utilities/alertUtils'
 import formatMessage from '../format-message'
 import {maybeUpdateTodoSidebar} from './sidebar-actions'
-
+import {getPlannerItems, getWeeklyPlannerItems, clearLoading} from './loading-actions'
 import {
   transformInternalToApiItem,
   transformInternalToApiOverride,
-  transformPlannerNoteApiToInternalItem
+  transformPlannerNoteApiToInternalItem,
+  getResponseHeader,
+  buildURL
 } from '../utilities/apiUtils'
 
 configureAxios(axios)
@@ -50,7 +52,13 @@ export const {
   setNaiAboveScreen,
   scrollToNewActivity,
   scrollToToday,
-  toggleMissingItems
+  toggleMissingItems,
+  selectedObservee,
+  clearWeeklyItems,
+  clearOpportunities,
+  clearDays,
+  clearCourses,
+  clearSidebar
 } = createActions(
   'INITIAL_OPTIONS',
   'ADD_OPPORTUNITIES',
@@ -69,7 +77,13 @@ export const {
   'SET_NAI_ABOVE_SCREEN',
   'SCROLL_TO_NEW_ACTIVITY',
   'SCROLL_TO_TODAY',
-  'TOGGLE_MISSING_ITEMS'
+  'TOGGLE_MISSING_ITEMS',
+  'SELECTED_OBSERVEE',
+  'CLEAR_WEEKLY_ITEMS',
+  'CLEAR_OPPORTUNITIES',
+  'CLEAR_DAYS',
+  'CLEAR_COURSES',
+  'CLEAR_SIDEBAR'
 )
 
 export * from './loading-actions'
@@ -100,18 +114,20 @@ export const getNextOpportunities = () => {
         url: getState().opportunities.nextUrl
       })
         .then(response => {
-          if (parseLinkHeader(response.headers.link).next) {
+          if (parseLinkHeader(getResponseHeader(response, 'link')).next) {
             dispatch(
               addOpportunities({
                 items: response.data,
-                nextUrl: parseLinkHeader(response.headers.link).next.url
+                nextUrl: parseLinkHeader(getResponseHeader(response, 'link')).next.url
               })
             )
           } else {
             dispatch(addOpportunities({items: response.data, nextUrl: null}))
           }
         })
-        .catch(() => alert(formatMessage('Failed to load opportunities'), true))
+        .catch(_ex => {
+          alert(formatMessage('Failed to load opportunities'), true)
+        })
     } else {
       dispatch(allOpportunitiesLoaded())
     }
@@ -122,17 +138,28 @@ export const getInitialOpportunities = () => {
   return (dispatch, getState) => {
     dispatch(startLoadingOpportunities())
 
+    // eslint-disable-next-line @typescript-eslint/no-shadow
+    const {courses, selectedObservee} = getState()
     const url =
       getState().opportunities.nextUrl ||
-      '/api/v1/users/self/missing_submissions?include[]=planner_overrides&filter[]=submittable'
+      buildURL('/api/v1/users/self/missing_submissions', {
+        include: ['planner_overrides'],
+        filter: ['submittable', 'current_grading_period'],
+        observed_user_id: selectedObservee,
+        course_ids: selectedObservee
+          ? courses.map(c => c.id).sort((a, b) => a.localeCompare(b, 'en', {numeric: true}))
+          : undefined
+      })
     const request = asAxios(getPrefetchedXHR(url)) || axios({method: 'get', url})
 
     request
       .then(response => {
-        const next = parseLinkHeader(response.headers.link).next
+        const next = parseLinkHeader(getResponseHeader(response, 'link')).next
         dispatch(addOpportunities({items: response.data, nextUrl: next ? next.url : null}))
       })
-      .catch(() => alert(formatMessage('Failed to load opportunities'), true))
+      .catch(_ex => {
+        alert(formatMessage('Failed to load opportunities'), true)
+      })
   }
 }
 
@@ -259,6 +286,10 @@ export const togglePlannerItemCompletion = plannerItem => {
   }
 }
 
+export const sidebarCompleteItem = item => {
+  return togglePlannerItemCompletion(item)
+}
+
 function updateOverrideDataOnItem(plannerItem, apiOverride) {
   const updatedItem = {...plannerItem}
   updatedItem.overrideId = apiOverride.id
@@ -271,5 +302,36 @@ function getOverrideDataOnItem(plannerItem) {
   return {
     id: plannerItem.overrideId,
     marked_complete: plannerItem.completed
+  }
+}
+
+export const clearItems = () => {
+  return (dispatch, getState) => {
+    if (getState().weeklyDashboard) {
+      dispatch(clearWeeklyItems())
+    }
+    dispatch(clearCourses(getState().singleCourse))
+    dispatch(clearOpportunities())
+    dispatch(clearDays())
+    dispatch(clearSidebar())
+    dispatch(clearLoading())
+  }
+}
+
+export const reloadWithObservee = observeeId => {
+  return (dispatch, getState) => {
+    if (getState().selectedObservee !== observeeId) {
+      dispatch(selectedObservee(observeeId))
+      dispatch(clearItems())
+      if (getState().weeklyDashboard) {
+        return dispatch(getWeeklyPlannerItems(getState().today)).then(() => {
+          dispatch(startLoadingAllOpportunities())
+        })
+      } else {
+        return dispatch(getPlannerItems(getState().today)).then(() => {
+          dispatch(startLoadingAllOpportunities())
+        })
+      }
+    }
   }
 }

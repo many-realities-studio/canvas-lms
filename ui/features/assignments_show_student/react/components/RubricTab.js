@@ -18,7 +18,7 @@
 import {arrayOf} from 'prop-types'
 import CanvasSelect from '@canvas/instui-bindings/react/Select'
 import {fillAssessment} from '@canvas/rubrics/react/helpers'
-import I18n from 'i18n!assignments_2'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import {ProficiencyRating} from '@canvas/assignments/graphql/student/ProficiencyRating'
 import React, {useState} from 'react'
 import {Rubric} from '@canvas/assignments/graphql/student/Rubric'
@@ -28,6 +28,8 @@ import RubricComponent from '@canvas/rubrics/react/Rubric'
 import {Text} from '@instructure/ui-text'
 import {ToggleDetails} from '@instructure/ui-toggle-details'
 import {View} from '@instructure/ui-view'
+
+const I18n = useI18nScope('assignments_2')
 
 const ENROLLMENT_STRINGS = {
   StudentEnrollment: I18n.t('Student'),
@@ -57,7 +59,7 @@ export default function RubricTab(props) {
     <div data-testid="rubric-tab">
       <View as="div" margin="none none medium">
         <ToggleDetails
-          defaultExpanded={displayedAssessment != null}
+          defaultExpanded
           fluidWidth
           summary={<Text weight="bold">{I18n.t('View Rubric')}</Text>}
         >

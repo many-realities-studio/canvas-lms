@@ -54,6 +54,13 @@ describe('Integrations', () => {
     it('informs the user no integrations are available', () => {
       expect(render(<Integrations />).getByText('No integrations available')).toBeInTheDocument()
     })
+
+    it("doesn't fetch from the API", () => {
+      act(() => {
+        render(<Integrations />)
+      })
+      expect(useFetchApi).not.toHaveBeenCalled()
+    })
   })
 
   describe('Microsoft Sync', () => {
@@ -106,6 +113,24 @@ describe('Integrations', () => {
         fireEvent.click(subject.getByText('Show Microsoft Sync details'))
       })
 
+      expect(subject.getByText('Sync Now')).toBeTruthy()
+    })
+
+    it('expands the Microsoft Sync details when toggled on', () => {
+      useFetchApi.mockImplementationOnce(({error, loading}) => {
+        error({message: 'notfound', response: {status: 404}})
+        loading(false)
+      })
+      const subject = render(<Integrations />)
+      expect(subject.queryByText('Sync Now')).not.toBeInTheDocument()
+      useFetchApi.mockImplementationOnce(({success, loading}) => {
+        // Doesn't matter what the API returns, it just needs to return something
+        success({workflow_state: 'active'})
+        loading(false)
+      })
+      act(() => {
+        fireEvent.click(subject.getByLabelText('Toggle Microsoft Sync'))
+      })
       expect(subject.getByText('Sync Now')).toBeTruthy()
     })
 

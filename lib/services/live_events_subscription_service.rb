@@ -21,7 +21,11 @@ module Services
   class LiveEventsSubscriptionService
     class << self
       def available?
-        settings.present?
+        settings.present? && settings["app-host"].present?
+      end
+
+      def disabled?
+        settings&.[]("disabled")
       end
 
       def tool_proxy_subscription(tool_proxy, subscription_id)
@@ -35,7 +39,7 @@ module Services
       def create_tool_proxy_subscription(tool_proxy, subscription)
         Rails.logger.info do
           "in: LiveEventsSubscriptionService::create_tool_proxy_subscription, "\
-          "tool_proxy_id: #{tool_proxy.id}, subscription: #{subscription}"
+            "tool_proxy_id: #{tool_proxy.id}, subscription: #{subscription}"
         end
         create(tool_proxy_jwt_body(tool_proxy), subscription)
       end
@@ -47,7 +51,7 @@ module Services
       def destroy_tool_proxy_subscription(tool_proxy, subscription_id)
         Rails.logger.info do
           "in: LiveEventsSubscriptionService::destroy_tool_proxy_subscription, "\
-          "tool_proxy_id: #{tool_proxy.id}, subscription_id: #{subscription_id}"
+            "tool_proxy_id: #{tool_proxy.id}, subscription_id: #{subscription_id}"
         end
         destroy(tool_proxy_jwt_body(tool_proxy), subscription_id)
       end
@@ -59,10 +63,10 @@ module Services
 
       def create(jwt_body, subscription)
         options = {
-          headers: headers(jwt_body, { 'Content-Type' => 'application/json' }),
+          headers: headers(jwt_body, { "Content-Type" => "application/json" }),
           body: subscription.to_json
         }
-        request(:post, '/api/subscriptions', options)
+        request(:post, "/api/subscriptions", options)
       end
 
       def show(jwt_body, subscription_id)
@@ -72,10 +76,10 @@ module Services
 
       def update(jwt_body, subscription)
         options = {
-          headers: headers(jwt_body, { 'Content-Type' => 'application/json' }),
+          headers: headers(jwt_body, { "Content-Type" => "application/json" }),
           body: subscription.to_json
         }
-        request(:put, "/api/subscriptions/#{subscription['Id']}", options)
+        request(:put, "/api/subscriptions/#{subscription["Id"]}", options)
       end
 
       def destroy(jwt_body, subscription_id)
@@ -85,7 +89,7 @@ module Services
 
       def index(jwt_body, opts = {}, query: {})
         options = { headers: headers(jwt_body, opts), query: query }
-        request(:get, '/api/root_account_subscriptions', options)
+        request(:get, "/api/root_account_subscriptions", options)
       end
 
       def event_types_index(jwt_body, message_type, opts = {})
@@ -97,18 +101,18 @@ module Services
 
       def request(method, endpoint, options = {})
         Canvas.timeout_protection("live-events-subscription-service-session", raise_on_timeout: true) do
-          HTTParty.send(method, "#{settings['app-host']}#{endpoint}", options.merge(timeout: 10))
+          HTTParty.send(method, "#{settings["app-host"]}#{endpoint}", options.merge(timeout: 10))
         end
       end
 
       def headers(jwt_body, headers = {})
-        token = Canvas::Security::ServicesJwt.generate(jwt_body)
-        headers['Authorization'] = "Bearer #{token}"
+        token = CanvasSecurity::ServicesJwt.generate(jwt_body, symmetric: true)
+        headers["Authorization"] = "Bearer #{token}"
         headers
       end
 
       def settings
-        Canvas::DynamicSettings.find("live-events-subscription-service", default_ttl: 5.minutes)
+        DynamicSettings.find("live-events-subscription-service", default_ttl: 5.minutes)
       end
 
       def tool_proxy_jwt_body(tool_proxy, options = {})

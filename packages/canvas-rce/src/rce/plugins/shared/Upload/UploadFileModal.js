@@ -27,7 +27,7 @@ import {ToggleDetails} from '@instructure/ui-toggle-details'
 import {Text} from '@instructure/ui-text'
 import formatMessage from '../../../../format-message'
 
-import RceApiSource from '../../../../sidebar/sources/api'
+import RceApiSource from '../../../../rcs/api'
 import ImageOptionsForm from '../ImageOptionsForm'
 import UsageRightsSelectBox from './UsageRightsSelectBox'
 import {View} from '@instructure/ui-view'
@@ -250,7 +250,7 @@ const UploadFileModal = React.forwardRef(
                     <ToggleDetails
                       defaultExpanded
                       summary={
-                        <Text size="x-large">{formatMessage('Usage Rights (required)')}</Text>
+                        <Heading level="h3">{formatMessage('Usage Rights (required)')}</Heading>
                       }
                     >
                       <UsageRightsSelectBox
@@ -273,7 +273,7 @@ const UploadFileModal = React.forwardRef(
                   >
                     <ToggleDetails
                       defaultExpanded={!requiresUsageRights}
-                      summary={<Text size="x-large">{formatMessage('Attributes')}</Text>}
+                      summary={<Heading level="h3">{formatMessage('Attributes')}</Heading>}
                     >
                       <ImageOptionsForm
                         id="upload-file-form"

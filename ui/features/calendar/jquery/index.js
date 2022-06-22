@@ -20,7 +20,7 @@
 //  * Make assignments (due date) events non-resizable. Having an end date on them doesn't
 //    make sense.
 
-import I18n from 'i18n!calendar'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import $ from 'jquery'
 import _ from 'underscore'
 import tz from '@canvas/timezone'
@@ -43,12 +43,14 @@ import htmlEscape from 'html-escape'
 import calendarEventFilter from '../CalendarEventFilter'
 import schedulerActions from '../react/scheduler/actions'
 import 'fullcalendar'
-import '../ext/fullcalendar_locales'
 import '../ext/patches-to-fullcalendar'
 import '@canvas/jquery/jquery.instructure_misc_helpers'
 import '@canvas/jquery/jquery.instructure_misc_plugins'
 import 'jquery-tinypubsub'
 import 'jqueryui/button'
+import 'jqueryui/tooltip'
+
+const I18n = useI18nScope('calendar')
 
 // we use a <div> (with a <style> inside it) because you cant set .innerHTML directly on a
 // <style> node in ie8
@@ -315,7 +317,7 @@ export default class Calendar {
   // Close all event details popup on the page and have them cleaned up.
   closeEventPopups() {
     // Close any open popup as it gets detached when rendered
-    $('.event-details').each(function() {
+    $('.event-details').each(function () {
       const existingDialog = $(this).data('showEventDetailsDialog')
       if (existingDialog) {
         existingDialog.close()
@@ -328,7 +330,10 @@ export default class Calendar {
     // which causes the pop-up to close if it is already open by the time the resize callback is called.
     // That hack doesn't rely on this handler to run, so let's just make sure that the window size has
     // actually changed before doing anything.
-    if (this.prevWindowHeight === window.innerHeight && this.prevWindowWidth === window.innerWidth) {
+    if (
+      this.prevWindowHeight === window.innerHeight &&
+      this.prevWindowWidth === window.innerWidth
+    ) {
       return
     }
 
@@ -346,6 +351,12 @@ export default class Calendar {
     }
     this.closeEventPopups()
     this.drawNowLine()
+    if (ENV.FEATURES.wrap_calendar_event_titles && _view.name === 'month') {
+      // add a delay to wait until the calendar elements get resized
+      setTimeout(() => {
+        $.each($('.fc-event'), (i, e) => this.renderTooltipIfNeeded($(e)))
+      }, 1000)
+    }
   }
 
   eventRender = (event, element, _view) => {
@@ -372,7 +383,7 @@ export default class Calendar {
 
     let reservedText = ''
     if (event.isAppointmentGroupEvent()) {
-      if (event.appointmentGroupEventStatus === 'Reserved') {
+      if (event.appointmentGroupEventStatus === I18n.t('Reserved')) {
         reservedText = `\n\n${I18n.t('Reserved By You')}`
       } else if (event.reservedUsers === '') {
         reservedText = `\n\n${I18n.t('Unreserved')}`
@@ -381,14 +392,16 @@ export default class Calendar {
       }
     }
 
-    $element.attr(
-      'title',
-      $.trim(
-        `${timeString}\n${$element.find('.fc-title').text()}\n\n${I18n.t('Calendar:')} ${htmlEscape(
-          event.contextInfo.name
-        )} ${htmlEscape(reservedText)}`
-      )
-    )
+    const newTitle =
+      ENV.FEATURES.wrap_calendar_event_titles && _view.name === 'month'
+        ? $.trim(element.find('.fc-title').text())
+        : $.trim(
+            `${timeString}\n${$element.find('.fc-title').text()}\n\n${I18n.t(
+              'Calendar:'
+            )} ${htmlEscape(event.contextInfo.name)} ${htmlEscape(reservedText)}`
+          )
+
+    $element.attr('title', newTitle)
     $element
       .find('.fc-content')
       .prepend(
@@ -448,6 +461,30 @@ export default class Calendar {
         view
       )
     }
+
+    if (ENV.FEATURES.wrap_calendar_event_titles && view.name === 'month') {
+      this.renderTooltipIfNeeded(element)
+    }
+  }
+
+  renderTooltipIfNeeded = element => {
+    const availableWidth = element.find('.fc-content').width()
+    const iconWidth = element.find('i').width()
+    const timeWidth = element.find('.fc-time').width()
+    const titleWidth = element.find('.fc-title').width()
+    const requiredRowWidth = titleWidth + iconWidth + timeWidth
+    if (requiredRowWidth > availableWidth) {
+      element.tooltip({
+        position: {my: 'center bottom', at: 'center top-10', collision: 'fit fit'},
+        tooltipClass: 'center bottom vertical',
+        show: {delay: 300}
+      })
+      element.data('title', element.attr('title'))
+    } else if (element.data('ui-tooltip')) {
+      element.tooltip('destroy')
+      // sometimes unbinding the tooltip clears the title attribute of the element, let's add it back
+      element.attr('title', element.data('title'))
+    }
   }
 
   eventDragStart = (event, _jsEvent, _ui, _view) => {
@@ -473,7 +510,10 @@ export default class Calendar {
       return
     }
 
-    if (event.eventType === 'assignment' && (event.assignment.unlock_at || event.assignment.lock_at)) {
+    if (
+      event.eventType === 'assignment' &&
+      (event.assignment.unlock_at || event.assignment.lock_at)
+    ) {
       startDate = event.assignment.unlock_at && moment(event.assignment.unlock_at)
       endDate = event.assignment.lock_at && moment(event.assignment.lock_at)
       if (!withinMomentDates(event.start, startDate, endDate)) {
@@ -604,14 +644,8 @@ export default class Calendar {
   }
 
   isSameWeek(date1, date2) {
-    const week1 = fcUtil
-      .clone(date1)
-      .weekday(0)
-      .stripTime()
-    const week2 = fcUtil
-      .clone(date2)
-      .weekday(0)
-      .stripTime()
+    const week1 = fcUtil.clone(date1).weekday(0).stripTime()
+    const week2 = fcUtil.clone(date2).weekday(0).stripTime()
     return +week1 === +week2
   }
 
@@ -1024,10 +1058,7 @@ export default class Calendar {
     // Get any custom colors that have been set
     $.getJSON(`/api/v1/users/${this.options.userId}/colors/`, data => {
       const customColors = data.custom_colors
-      const colors = colorSlicer.getColors(this.contextCodes.length, 275, {
-        unsafe: !ENV.use_high_contrast
-      })
-
+      const colors = colorSlicer.getColors(this.contextCodes.length, 275)
       const newCustomColors = {}
       const html = this.contextCodes
         .map((contextCode, index) => {

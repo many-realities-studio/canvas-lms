@@ -19,8 +19,9 @@
 import {Discussion} from '../../../graphql/Discussion'
 import {DiscussionPostToolbar} from '../../components/DiscussionPostToolbar/DiscussionPostToolbar'
 import React, {useContext, useEffect, useState} from 'react'
-import {SearchContext} from '../../utils/constants'
+import {SEARCH_TERM_DEBOUNCE_DELAY, SearchContext} from '../../utils/constants'
 import {View} from '@instructure/ui-view'
+import {ScreenReaderContent} from '@instructure/ui-a11y-content'
 
 export const DiscussionTopicToolbarContainer = props => {
   const {searchTerm, filter, sort, setSearchTerm, setFilter, setSort} = useContext(SearchContext)
@@ -31,7 +32,7 @@ export const DiscussionTopicToolbarContainer = props => {
       if (currentSearchValue !== searchTerm) {
         setSearchTerm(currentSearchValue)
       }
-    }, 500)
+    }, SEARCH_TERM_DEBOUNCE_DELAY)
 
     return () => clearInterval(interval)
   }, [currentSearchValue, searchTerm, setSearchTerm])
@@ -45,9 +46,6 @@ export const DiscussionTopicToolbarContainer = props => {
   }
 
   const getGroupsMenuTopics = () => {
-    if (!props.discussionTopic.permissions?.readAsAdmin) {
-      return null
-    }
     if (!props.discussionTopic.groupSet) {
       return null
     }
@@ -62,6 +60,9 @@ export const DiscussionTopicToolbarContainer = props => {
 
   return (
     <View as="div" padding="0 0 medium 0" background="primary">
+      <ScreenReaderContent>
+        <h1>{props.discussionTopic.title}</h1>
+      </ScreenReaderContent>
       <DiscussionPostToolbar
         childTopics={getGroupsMenuTopics()}
         selectedView={filter}
@@ -73,6 +74,8 @@ export const DiscussionTopicToolbarContainer = props => {
         onCollapseRepliesToggle={() => {}}
         onTopClick={() => {}}
         searchTerm={currentSearchValue}
+        discussionAnonymousState={props.discussionTopic.anonymousState}
+        canReplyAnonymously={props.discussionTopic.canReplyAnonymously}
       />
     </View>
   )

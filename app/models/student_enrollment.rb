@@ -19,28 +19,23 @@
 #
 
 class StudentEnrollment < Enrollment
-  belongs_to :student, :foreign_key => :user_id, :class_name => 'User'
-  after_save :evaluate_modules, if: Proc.new { |e|
+  belongs_to :student, foreign_key: :user_id, class_name: "User"
+  after_save :evaluate_modules, if: proc { |e|
     # if enrollment switches sections or is created
     e.saved_change_to_course_section_id? || e.saved_change_to_course_id? ||
       # or if an enrollment is deleted and they are in another section of the course
-      (e.saved_change_to_workflow_state? && e.workflow_state == 'deleted' &&
-       e.user.enrollments.where('id != ?', e.id).active.where(course_id: e.course_id).exists?)
+      (e.saved_change_to_workflow_state? && e.workflow_state == "deleted" &&
+       e.user.enrollments.where.not(id: e.id).active.where(course_id: e.course_id).exists?)
   }
   after_save :restore_submissions_and_scores
+  after_save :republish_course_pace_if_needed
 
   def student?
     true
   end
 
   def evaluate_modules
-    ContextModuleProgression.for_user(self.user_id)
-                            .joins(:context_module)
-                            .readonly(false)
-                            .where(:context_modules => { :context_type => 'Course', :context_id => self.course_id })
-                            .each do |prog|
-      prog.mark_as_outdated!
-    end
+    ContextModuleProgression.for_user(user_id).for_course(course_id).each(&:mark_as_outdated!)
   end
 
   def update_override_score(override_score:, grading_period_id: nil, updating_user:, record_grade_change: true)
@@ -71,14 +66,14 @@ class StudentEnrollment < Enrollment
 
   class << self
     def restore_submissions_and_scores_for_enrollments(enrollments)
-      raise ArgumentError, 'Cannot call with more than 1000 enrollments' if enrollments.count > 1_000
+      raise ArgumentError, "Cannot call with more than 1000 enrollments" if enrollments.count > 1_000
 
       restore_deleted_submissions_for_enrollments(enrollments)
       restore_deleted_scores_for_enrollments(enrollments)
     end
 
     def restore_deleted_submissions_for_enrollments(student_enrollments)
-      raise ArgumentError, 'Cannot call with more than 1000 enrollments' if student_enrollments.count > 1_000
+      raise ArgumentError, "Cannot call with more than 1000 enrollments" if student_enrollments.count > 1_000
 
       student_enrollments.group_by(&:course_id).each do |course_id, students|
         Submission
@@ -91,7 +86,7 @@ class StudentEnrollment < Enrollment
     end
 
     def restore_deleted_scores_for_enrollments(student_enrollments)
-      raise ArgumentError, 'Cannot call with more than 1000 enrollments' if student_enrollments.count > 1_000
+      raise ArgumentError, "Cannot call with more than 1000 enrollments" if student_enrollments.count > 1_000
 
       student_enrollments.group_by(&:course_id).each do |_course_id, students|
         course = students.first.course
@@ -131,5 +126,13 @@ class StudentEnrollment < Enrollment
 
   def restore_deleted_scores
     StudentEnrollment.restore_deleted_scores_for_enrollments([self])
+  end
+
+  def republish_course_pace_if_needed
+    return unless saved_change_to_id? || saved_change_to_start_at? || (saved_change_to_workflow_state? && workflow_state == "invited")
+    return unless course.enable_course_paces?
+
+    course_pace = course.course_paces.published.for_user(user).take || course.course_paces.published.primary.take
+    course_pace&.create_publish_progress
   end
 end

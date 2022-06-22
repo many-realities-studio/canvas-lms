@@ -32,8 +32,10 @@ import GradebookExportManager from '../../shared/GradebookExportManager'
 import PostGradesApp from '../../SISGradePassback/PostGradesApp'
 import tz from '@canvas/timezone'
 import DateHelper from '@canvas/datetime/dateHelper'
-import I18n from 'i18n!gradebookActionMenu'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import '@canvas/rails-flash-notifications'
+
+const I18n = useI18nScope('gradebookActionMenu')
 
 const {arrayOf, bool, func, object, shape, string} = PropTypes
 
@@ -69,12 +71,18 @@ export default function EnhancedActionMenu(props) {
     }
   }
 
-  const handleExport = () => {
+  const handleExport = currentView => {
     setExportInProgress(true)
     $.flashMessage(I18n.t('Gradebook export started'))
 
     return exportManager.current
-      .startExport(props.gradingPeriodId, props.getAssignmentOrder)
+      .startExport(
+        props.gradingPeriodId,
+        props.getAssignmentOrder,
+        props.showStudentFirstLastName,
+        props.getStudentOrder,
+        currentView
+      )
       .then(resolution => {
         setExportInProgress(false)
 
@@ -82,7 +90,7 @@ export default function EnhancedActionMenu(props) {
         const updatedAt = new Date(resolution.updatedAt)
 
         const previousExportValue = {
-          label: `${I18n.t('New Export')} (${DateHelper.formatDatetimeForDisplay(updatedAt)})`,
+          label: `${I18n.t('Previous Export')} (${DateHelper.formatDatetimeForDisplay(updatedAt)})`,
           attachmentUrl
         }
 
@@ -286,11 +294,24 @@ export default function EnhancedActionMenu(props) {
         <Menu.Item
           disabled={exportInProgress}
           onSelect={() => {
-            handleExport()
+            handleExport(true)
           }}
         >
           <span data-menu-id="export">
-            {exportInProgress ? I18n.t('Export in progress') : I18n.t('New Export')}
+            {exportInProgress
+              ? I18n.t('Export in progress')
+              : I18n.t('Export Current Gradebook View')}
+          </span>
+        </Menu.Item>
+
+        <Menu.Item
+          disabled={exportInProgress}
+          onSelect={() => {
+            handleExport(false)
+          }}
+        >
+          <span data-menu-id="export-all">
+            {exportInProgress ? I18n.t('Export in progress') : I18n.t('Export Entire Gradebook')}
           </span>
         </Menu.Item>
 
@@ -304,6 +325,7 @@ EnhancedActionMenu.propTypes = {
   gradebookIsEditable: bool.isRequired,
   contextAllowsGradebookUploads: bool.isRequired,
   getAssignmentOrder: func.isRequired,
+  getStudentOrder: func.isRequired,
   gradebookImportUrl: string.isRequired,
 
   currentUserId: string.isRequired,
@@ -339,7 +361,8 @@ EnhancedActionMenu.propTypes = {
     publishToSisUrl: string
   }),
 
-  gradingPeriodId: string.isRequired
+  gradingPeriodId: string.isRequired,
+  showStudentFirstLastName: bool
 }
 
 EnhancedActionMenu.defaultProps = {
@@ -348,5 +371,6 @@ EnhancedActionMenu.defaultProps = {
   postGradesLtis: [],
   publishGradesToSis: {
     publishToSisUrl: undefined
-  }
+  },
+  showStudentFirstLastName: false
 }

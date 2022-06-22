@@ -18,7 +18,7 @@
 
 import $ from 'jquery'
 import submissionDetailsDialog from '../jst/SubmissionDetailsDialog.handlebars'
-import I18n from 'i18n!submission_details_dialog'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import GradeFormatHelper from '@canvas/grading/GradeFormatHelper'
 import originalityReportSubmissionKey from '@canvas/grading/originalityReportSubmissionKey'
 import {extractDataForTurnitin} from '@canvas/grading/Turnitin'
@@ -32,6 +32,8 @@ import 'jqueryui/dialog'
 import '@canvas/jquery/jquery.instructure_misc_plugins'
 import 'jquery-scroll-to-visible/jquery.scrollTo'
 import 'jquery-tinypubsub'
+
+const I18n = useI18nScope('submission_details_dialog')
 
 export default class SubmissionDetailsDialog {
   constructor(assignment, student, options) {
@@ -75,7 +77,7 @@ export default class SubmissionDetailsDialog {
     })
     this.dialog
       .delegate('select[id="submission_to_view"]', 'change', event =>
-        this.dialog.find('.submission_detail').each(function(index) {
+        this.dialog.find('.submission_detail').each(function (index) {
           $(this).showIf(index === event.currentTarget.selectedIndex)
         })
       )
@@ -144,7 +146,7 @@ export default class SubmissionDetailsDialog {
       submission.submission_comments &&
         submission.submission_comments.forEach(comment => {
           comment.url = `${this.options.context_url}/users/${comment.author_id}`
-          const urlPrefix = `${location.protocol}//${location.host}`
+          const urlPrefix = `${window.location.protocol}//${window.location.host}`
           comment.image_url = `${urlPrefix}/images/users/${comment.author_id}`
         })
       submission.turnitin = extractDataForTurnitin(

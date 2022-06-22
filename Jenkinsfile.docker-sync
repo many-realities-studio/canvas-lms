@@ -27,22 +27,14 @@ final SYNC_IMAGES = [
     job: null,
     target: 'starlord.inscloudgate.net/jenkins/dockerfile:1.0-experimental',
   ],
-  'instructure/ruby-passenger:2.6': [
-    job: '/Canvas/main-canvas-postgres-12-ruby-2.6-postmerge',
-    target: 'starlord.inscloudgate.net/jenkins/ruby-passenger:2.6',
-  ],
-  'instructure/ruby-passenger:2.7': [
+  'selenium/hub:4.1': [
     job: null,
-    target: 'starlord.inscloudgate.net/jenkins/ruby-passenger:2.7',
+    target: 'starlord.inscloudgate.net/jenkins/selenium-hub:4.1'
   ],
-  'instructure/ruby-passenger:2.7-bionic': [
+  'selenium/node-chrome:101.0': [
     job: null,
-    target: 'starlord.inscloudgate.net/jenkins/ruby-passenger:2.7-bionic',
-  ],
-  'apachepulsar/pulsar:latest': [
-    job: null,
-    target: 'starlord.inscloudgate.net/jenkins/pulsar:latest',
-  ],
+    target: 'starlord.inscloudgate.net/jenkins/selenium-node-chrome:101.0'
+  ]
 ]
 
 pipeline {

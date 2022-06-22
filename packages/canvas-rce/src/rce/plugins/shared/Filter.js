@@ -25,6 +25,7 @@ import {TextInput} from '@instructure/ui-text-input'
 import {SimpleSelect} from '@instructure/ui-simple-select'
 import {IconButton} from '@instructure/ui-buttons'
 import {ScreenReaderContent} from '@instructure/ui-a11y-content'
+import {ICON_MAKER_ICONS} from '../instructure_icon_maker/svg/constants'
 import {
   IconLinkLine,
   IconFolderLine,
@@ -99,8 +100,8 @@ function renderTypeOptions(contentType, contentSubtype, userContextType) {
     )
   }
 
-  // Buttons and Icons are only stored in course folders.
-  if (contentSubtype !== 'buttons_and_icons') {
+  // Icon Maker icons are only stored in course folders.
+  if (contentSubtype !== ICON_MAKER_ICONS) {
     options.push(
       <SimpleSelect.Option
         key="user_files"
@@ -200,7 +201,6 @@ export default function Filter(props) {
         <IconButton
           screenReaderLabel={formatMessage('Clear')}
           onClick={handleClear}
-          interaction={isContentLoading ? 'disabled' : 'enabled'}
           withBorder={false}
           withBackground={false}
           size="small"
@@ -231,8 +231,8 @@ export default function Filter(props) {
                   // when flipped to All, the context needs to be user
                   // so we can get media_objects, which are all returned in the user context
                   changed.contentType = 'user_files'
-                } else if (changed.contentSubtype === 'buttons_and_icons') {
-                  // Buttons and Icons only belong to Courses.
+                } else if (changed.contentSubtype === ICON_MAKER_ICONS) {
+                  // Icon Maker icons only belong to Courses.
                   changed.contentType = 'course_files'
                 }
                 onChange(changed)
@@ -255,13 +255,13 @@ export default function Filter(props) {
                 {formatMessage('Media')}
               </SimpleSelect.Option>
 
-              {props.use_rce_buttons_and_icons && (
+              {props.use_rce_icon_maker && (
                 <SimpleSelect.Option
-                  id="buttons_and_icons"
-                  value="buttons_and_icons"
+                  id={ICON_MAKER_ICONS}
+                  value={ICON_MAKER_ICONS}
                   renderBeforeLabel={IconImageLine}
                 >
-                  {formatMessage('Buttons and Icons')}
+                  {formatMessage('Icon Maker Icons')}
                 </SimpleSelect.Option>
               )}
 
@@ -305,7 +305,6 @@ export default function Filter(props) {
               doSearch(pendingSearchString)
             }
           }}
-          interaction={isContentLoading ? 'readonly' : 'enabled'}
         />
       </View>
     </View>
@@ -352,5 +351,10 @@ Filter.propTypes = {
   /**
    * The page context
    */
-  containingContextType: oneOf(['user', 'course', 'group'])
+  containingContextType: oneOf(['user', 'course', 'group']),
+
+  /**
+   * Should include Icon Maker?
+   */
+  use_rce_icon_maker: bool
 }

@@ -17,19 +17,20 @@
  */
 
 import {DiscussionEdit} from '../DiscussionEdit/DiscussionEdit'
-import I18n from 'i18n!discussion_posts'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import PropTypes from 'prop-types'
 import React, {useContext} from 'react'
-import {responsiveQuerySizes} from '../../utils'
+import {getDisplayName, responsiveQuerySizes} from '../../utils'
 import {SearchContext} from '../../utils/constants'
 import {SearchSpan} from '../SearchSpan/SearchSpan'
-import {User} from '../../../graphql/User'
 
 import {AccessibleContent} from '@instructure/ui-a11y-content'
 import {Responsive} from '@instructure/ui-responsive'
 import {Text} from '@instructure/ui-text'
 import theme from '@instructure/canvas-theme'
 import {View} from '@instructure/ui-view'
+
+const I18n = useI18nScope('discussion_posts')
 
 export function PostMessage({...props}) {
   const {searchTerm} = useContext(SearchContext)
@@ -54,22 +55,37 @@ export function PostMessage({...props}) {
       }}
       render={responsiveProps => (
         <View>
-          {props.title && (
-            <View as="h1" margin={responsiveProps.titleMargin}>
+          {props.title ? (
+            <View as="h2" margin={responsiveProps.titleMargin}>
               <Text size={responsiveProps.titleTextSize} weight={responsiveProps.titleTextWeight}>
                 <AccessibleContent alt={I18n.t('Discussion Topic: %{title}', {title: props.title})}>
                   {props.title}
                 </AccessibleContent>
               </Text>
             </View>
+          ) : (
+            <View as="h2" margin={responsiveProps.titleMargin}>
+              <Text size={responsiveProps.titleTextSize} weight={responsiveProps.titleTextWeight}>
+                <AccessibleContent
+                  alt={I18n.t('Reply from %{author}', {
+                    author: getDisplayName(props.discussionEntry)
+                  })}
+                />
+              </Text>
+            </View>
           )}
           {props.isEditing ? (
             <View display="inline-block" margin="small none none none" width="100%">
               <DiscussionEdit
+                discussionAnonymousState={props.discussionAnonymousState}
+                canReplyAnonymously={props.canReplyAnonymously}
                 onCancel={props.onCancel}
                 value={props.draftMessage || props.message}
+                attachment={props.attachment}
                 onSubmit={props.onSave}
                 isEdit
+                onSetDraftSaved={props.onSetDraftSaved}
+                draftSaved={props.draftSaved}
                 updateDraft={newDraftMessage => {
                   props.onCreateDiscussionEntryDraft(newDraftMessage)
                 }}
@@ -81,7 +97,6 @@ export function PostMessage({...props}) {
                 style={{
                   fontSize: theme.variables.typography[responsiveProps.messageTextSize]
                 }}
-                className="no-margin"
               >
                 <SearchSpan
                   isIsolatedView={props.isIsolatedView}
@@ -100,9 +115,9 @@ export function PostMessage({...props}) {
 
 PostMessage.propTypes = {
   /**
-   * Object containing the author information
+   * Object containing the discussion entry information
    */
-  author: User.shape,
+  discussionEntry: PropTypes.object,
   /**
    * Children to be directly rendered below the PostMessage
    */
@@ -115,6 +130,10 @@ PostMessage.propTypes = {
    * Display text for the post's message
    */
   message: PropTypes.string.isRequired,
+  /*
+   * Display attachment for the post's message
+   */
+  attachment: PropTypes.object,
   /**
    * Determines if the editor should be displayed
    */
@@ -129,7 +148,11 @@ PostMessage.propTypes = {
   onCancel: PropTypes.func,
   isIsolatedView: PropTypes.bool,
   onCreateDiscussionEntryDraft: PropTypes.func,
-  draftMessage: PropTypes.string
+  draftMessage: PropTypes.string,
+  onSetDraftSaved: PropTypes.func,
+  discussionAnonymousState: PropTypes.string,
+  canReplyAnonymously: PropTypes.bool,
+  draftSaved: PropTypes.bool
 }
 
 PostMessage.defaultProps = {

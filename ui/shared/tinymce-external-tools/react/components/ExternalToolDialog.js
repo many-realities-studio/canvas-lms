@@ -23,11 +23,13 @@ import ExternalToolDialogModal from './ExternalToolDialog/Modal'
 import ExternalToolDialogTray from './ExternalToolDialog/Tray'
 import {Alert} from '@instructure/ui-alerts'
 import {Spinner} from '@instructure/ui-spinner'
-import I18n from 'i18n!ExternalToolDialog'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import {send} from '@canvas/rce/RceCommandShim'
 import TinyMCEContentItem from '../../TinyMCEContentItem'
 import processEditorContentItems from '@canvas/deep-linking/processors/processEditorContentItems'
 import {Flex} from '@instructure/ui-flex'
+
+const I18n = useI18nScope('ExternalToolDialog')
 
 const EMPTY_BUTTON = {
   height: 300,
@@ -113,7 +115,9 @@ export default class ExternalToolDialog extends React.Component {
       send(win.$(`#${editor.id}`), 'set_code', code)
     } else {
       for (let i = 0, len = contentItems.length; i < len; ++i) {
-        const code = TinyMCEContentItem.fromJSON(contentItems[i]).codePayload
+        const contentData = contentItems[i]
+        contentData.class = 'lti-embed'
+        const code = TinyMCEContentItem.fromJSON(contentData).codePayload
         send(win.$(`#${editor.id}`), 'insert_code', code)
       }
     }
@@ -126,7 +130,7 @@ export default class ExternalToolDialog extends React.Component {
     if (
       ev.origin === deepLinkingOrigin &&
       ev.data &&
-      ev.data.messageType === 'LtiDeepLinkingResponse'
+      ev.data.subject === 'LtiDeepLinkingResponse'
     ) {
       processEditorContentItems(ev, editor, this)
     }

@@ -95,7 +95,6 @@ describe('RCE StatusBar', () => {
     it('defaults to pretty html editor', async () => {
       const onChangeView = jest.fn()
       const {container, getByText} = renderStatusBar({
-        use_rce_pretty_html_editor: true,
         onChangeView
       })
 
@@ -112,7 +111,6 @@ describe('RCE StatusBar', () => {
     it('prefers raw html editor if specified', async () => {
       const onChangeView = jest.fn()
       const {container, getByText} = renderStatusBar({
-        use_rce_pretty_html_editor: true,
         preferredHtmlEditor: RAW_HTML_EDITOR_VIEW,
         onChangeView
       })
@@ -127,29 +125,15 @@ describe('RCE StatusBar', () => {
       expect(onChangeView).toHaveBeenCalledWith(RAW_HTML_EDITOR_VIEW)
     })
 
-    it('a11y checker start with no notifications if flag is disabled', () => {
-      const props = defaultProps({
-        use_rce_a11y_checker_notifications: false
-      })
-      const {getByTitle} = renderStatusBar(props)
+    it('a11y checker start with no notifications', () => {
+      const {getByTitle} = renderStatusBar(defaultProps())
       const a11yButton = getByTitle('Accessibility Checker')
       const sibling = a11yButton.parentElement.children[1]
       expect(sibling.id.includes('Badge')).toBeFalsy()
     })
 
-    it('a11y checker start with no notifications if flag is enabled', () => {
+    it('a11y checker start set a notification count', () => {
       const props = defaultProps({
-        use_rce_a11y_checker_notifications: true
-      })
-      const {getByTitle} = renderStatusBar(props)
-      const a11yButton = getByTitle('Accessibility Checker')
-      const sibling = a11yButton.parentElement.children[1]
-      expect(sibling.id.includes('Badge')).toBeFalsy()
-    })
-
-    it('a11y checker start set a notification count if flag is enabled', () => {
-      const props = defaultProps({
-        use_rce_a11y_checker_notifications: true,
         a11yErrorsCount: 5
       })
       const {rerender, getByTitle} = renderStatusBar(props)
@@ -161,9 +145,8 @@ describe('RCE StatusBar', () => {
       expect(notificationBadge.textContent).toEqual('10')
     })
 
-    it('a11y checker set max notifications count if flag is enabled', () => {
+    it('a11y checker set max notifications count', () => {
       const props = defaultProps({
-        use_rce_a11y_checker_notifications: true,
         a11yErrorsCount: 999
       })
       const {getByTitle} = renderStatusBar(props)
@@ -179,7 +162,7 @@ describe('RCE StatusBar', () => {
       const {container, getByTestId} = renderStatusBar({editorView: RAW_HTML_EDITOR_VIEW})
       const statusbar = getByTestId('RCEStatusBar')
       const buttons = container.querySelectorAll('[tabindex]')
-      expect(buttons.length).toEqual(2)
+      expect(buttons.length).toEqual(3)
 
       buttons[0].focus()
       expect(document.activeElement).toBe(buttons[0])
@@ -195,7 +178,7 @@ describe('RCE StatusBar', () => {
       const {container, getByTestId} = renderStatusBar({editorView: RAW_HTML_EDITOR_VIEW})
       const statusbar = getByTestId('RCEStatusBar')
       const buttons = container.querySelectorAll('[tabindex]')
-      expect(buttons.length).toEqual(2)
+      expect(buttons.length).toEqual(3)
 
       buttons[buttons.length - 1].focus()
       expect(document.activeElement).toBe(buttons[buttons.length - 1])
@@ -213,8 +196,7 @@ describe('RCE StatusBar', () => {
   describe('in pretty HTML mode', () => {
     it('cycles focus with right arrow keys', () => {
       const {container, getByTestId} = renderStatusBar({
-        editorView: PRETTY_HTML_EDITOR_VIEW,
-        use_rce_pretty_html_editor: true
+        editorView: PRETTY_HTML_EDITOR_VIEW
       })
       const statusbar = getByTestId('RCEStatusBar')
       const buttons = container.querySelectorAll('[tabindex]')
@@ -232,8 +214,7 @@ describe('RCE StatusBar', () => {
 
     it('cycles focus with left arrow keys', async () => {
       const {container, getByTestId} = renderStatusBar({
-        editorView: PRETTY_HTML_EDITOR_VIEW,
-        use_rce_pretty_html_editor: true
+        editorView: PRETTY_HTML_EDITOR_VIEW
       })
       const statusbar = getByTestId('RCEStatusBar')
       const buttons = container.querySelectorAll('[tabindex]')

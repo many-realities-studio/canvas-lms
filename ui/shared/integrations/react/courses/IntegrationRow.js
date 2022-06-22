@@ -16,8 +16,8 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import React, {useState} from 'react'
-import I18n from 'i18n!course_settings'
+import React from 'react'
+import {useScope as useI18nScope} from '@canvas/i18n'
 
 import {Alert} from '@instructure/ui-alerts'
 import {Checkbox} from '@instructure/ui-checkbox'
@@ -28,6 +28,8 @@ import {Spinner} from '@instructure/ui-spinner'
 import {Text} from '@instructure/ui-text'
 import {ToggleGroup} from '@instructure/ui-toggle-details'
 import {View} from '@instructure/ui-view'
+
+const I18n = useI18nScope('course_settings')
 
 const IntegrationRow = ({
   available,
@@ -89,30 +91,32 @@ const IntegrationRow = ({
       expanded={expanded}
       onToggle={onToggle}
     >
-      <div role="region" aria-live="polite">
-        {error && !loading && (
-          <Alert variant="error" margin="small">
-            <Text>
-              {error.message ||
-                I18n.t('An error occurred, please try again. Error: %{error}', {error})}
-            </Text>
-          </Alert>
-        )}
-        {((!enabled && !loading) || info) && (
-          <Alert variant={info?.variant || 'info'} margin="small">
-            <Text>
-              {enabled
-                ? info?.message || info
-                : I18n.t(
-                    'This integration is not enabled. Please enable it to interact with settings.'
-                  )}
-            </Text>
-          </Alert>
-        )}
-      </div>
-      <View display="block" padding="small">
-        {children}
-      </View>
+      <>
+        <div role="region" aria-live="polite">
+          {error && !loading && (
+            <Alert variant="error" margin="small">
+              <Text>
+                {error.message ||
+                  I18n.t('An error occurred, please try again. Error: %{error}', {error})}
+              </Text>
+            </Alert>
+          )}
+          {((!enabled && !loading) || info) && (!error || enabled) && (
+            <Alert variant={info?.variant || 'info'} margin="small">
+              <Text>
+                {enabled
+                  ? info?.message || info
+                  : I18n.t(
+                      'This integration is not enabled. Please enable it to interact with settings.'
+                    )}
+              </Text>
+            </Alert>
+          )}
+        </div>
+        <View display="block" padding="small">
+          {children}
+        </View>
+      </>
     </ToggleGroup>
   ) : (
     <></>

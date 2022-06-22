@@ -20,11 +20,15 @@ import React from 'react'
 import ReactDOM from 'react-dom'
 import {Button, IconButton} from '@instructure/ui-buttons'
 import {SVGIcon} from '@instructure/ui-svg-images'
-import I18n from 'i18n!ImmersiveReader'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import {showFlashError} from '@canvas/alerts/react/FlashAlert'
 import {defaultFetchOptions} from '@instructure/js-utils'
 import {CookiePolicy} from '@microsoft/immersive-reader-sdk'
 import WithBreakpoints from 'with-breakpoints'
+import ContentChunker from './ContentChunker'
+import ContentUtils from './ContentUtils'
+
+const I18n = useI18nScope('ImmersiveReader')
 
 /**
  * This comes from https://github.com/microsoft/immersive-reader-sdk/blob/master/assets/icon.svg
@@ -51,9 +55,21 @@ function handleClick({title, content}, readerSDK) {
       fetch('/api/v1/immersive_reader/authenticate', defaultFetchOptions)
         .then(response => response.json())
         .then(({token, subdomain}) => {
+          let htmlPayload = content()
+
+          // For any images that are hyperlinked (i.e. their immedediate parent is an anchor tag)
+          // we want to remove each hyperlinked image's parent anchor tag before sending the html payload
+          // to Immersive Reader (IR)
+          // Otherwise IR will not read the hyperlinked image's alt text; it will instead read the anchor's href value
+          const contentUtils = new ContentUtils(htmlPayload)
+          if (contentUtils.htmlContainsHyperlinkedImage()) {
+            htmlPayload = contentUtils.removeAnchorFromHyperlinkedImages()
+          }
+
+          const chunks = new ContentChunker().chunk(htmlPayload)
           const requestContent = {
             title,
-            chunks: [{content, mimeType: 'text/html'}]
+            chunks
           }
           const options = {
             cookiePolicy: CookiePolicy.Disable
@@ -82,7 +98,7 @@ export function ImmersiveReaderButton({content, readerSDK, breakpoints}) {
       <SVGIcon src={LOGO} />
     </IconButton>
   ) : (
-    <Button onClick={() => handleClick(content, readerSDK)} icon={<SVGIcon src={LOGO} />}>
+    <Button onClick={() => handleClick(content, readerSDK)} renderIcon={<SVGIcon src={LOGO} />}>
       {I18n.t('Immersive Reader')}
     </Button>
   )

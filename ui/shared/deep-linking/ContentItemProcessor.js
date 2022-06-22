@@ -21,7 +21,7 @@ import LinkContentItem from './models/LinkContentItem'
 import ResourceLinkContentItem from './models/ResourceLinkContentItem'
 import ImageContentItem from './models/ImageContentItem'
 import HtmlFragmentContentItem from './models/HtmlFragmentContentItem'
-import {ltiState} from '@canvas/lti/jquery/post_message/handleLtiPostMessage'
+import {ltiState} from '@canvas/lti/jquery/messages'
 
 export default class ContentItemProcessor {
   constructor(contentItems, messages, logs, ltiEndpoint, processHandler) {
@@ -48,9 +48,9 @@ export default class ContentItemProcessor {
   }
 
   static fromEvent(event, processHandler) {
-    const {content_items, msg, log, errormsg, errorlog, ltiEndpoint, messageType} = event.data
+    const {content_items, msg, log, errormsg, errorlog, ltiEndpoint, subject} = event.data
 
-    if (messageType !== 'LtiDeepLinkingResponse') {
+    if (subject !== 'LtiDeepLinkingResponse') {
       return
     }
 

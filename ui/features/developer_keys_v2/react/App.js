@@ -22,13 +22,25 @@ import {Spinner} from '@instructure/ui-spinner'
 import {Tabs} from '@instructure/ui-tabs'
 import {View} from '@instructure/ui-view'
 
-import I18n from 'i18n!react_developer_keys'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import React from 'react'
 import PropTypes from 'prop-types'
-import DeveloperKeysTable from './AdminTable'
+import AdminTable from './AdminTable'
+import InheritedTable from './InheritedTable'
 import DeveloperKey from './DeveloperKey'
 import NewKeyModal from './NewKeyModal'
 import DeveloperKeyModalTrigger from './NewKeyTrigger'
+import {showFlashSuccess} from '@canvas/alerts/react/FlashAlert'
+
+const I18n = useI18nScope('react_developer_keys')
+/**
+ * @see {@link DeveloperKeysApp.developerKeySaveSuccessfulHandler}
+ * @description
+ * How long to wait after closing NewKeyModal to show any developer key alerts.
+ * This value might be able to be decreased, but two seconds is a pretty
+ * safe gap.
+ */
+const ALERT_WAIT_TIME = 2000
 
 class DeveloperKeysApp extends React.Component {
   state = {
@@ -72,7 +84,7 @@ class DeveloperKeysApp extends React.Component {
       store: {dispatch},
       actions: {getRemainingDeveloperKeys}
     } = this.props
-    const callBack = this.mainTableRef.createSetFocusCallback()
+    const callBack = this.mainTableRef.setFocusCallback()
     getRemainingDeveloperKeys(nextPage, [], callBack)(dispatch)
   }
 
@@ -98,16 +110,8 @@ class DeveloperKeysApp extends React.Component {
       actions: {getRemainingInheritedDeveloperKeys}
     } = this.props
 
-    const callBack = this.inheritedTableRef.createSetFocusCallback()
-    getRemainingInheritedDeveloperKeys(
-      inheritedNextPage,
-      [],
-      callBack
-    )(dispatch).then(foundActiveKey => {
-      if (!foundActiveKey) {
-        this.focusInheritedTab()
-      }
-    })
+    const callBack = this.inheritedTableRef.setFocusCallback()
+    getRemainingInheritedDeveloperKeys(inheritedNextPage, [], callBack)(dispatch)
   }
 
   showMoreInheritedButton() {
@@ -129,6 +133,22 @@ class DeveloperKeysApp extends React.Component {
     this.setState({selectedTab: id})
   }
 
+  /**
+   * Due to some annoying accessibility issues related to modal focus
+   * returning and screenreader issues, we have to use a setTimeout here
+   * to make sure either alert gets read out properly. Without a setTimeout,
+   * the alert shows up, but because the Modal returns focus back to the element
+   * that opened it, the screenreader starts and then immediately stops reading
+   * the alert, instead reading out the description of the edit developer key
+   * button. If you can find a better solution, please remove this hacky
+   * workaround and do it.
+   * @todo Find a better way to avoid modal-focus-screenreader-bulldozing so
+   * this isn't necessary.
+   */
+  developerKeySaveSuccessfulHandler() {
+    setTimeout(showFlashSuccess(I18n.t('Save successful.')), ALERT_WAIT_TIME)
+  }
+
   render() {
     const {
       applicationState: {
@@ -146,6 +166,10 @@ class DeveloperKeysApp extends React.Component {
       ctx
     } = this.props
     const tab = this.state.selectedTab
+    const globalInheritedList = (inheritedList || []).filter(key => key.inherited_from === 'global')
+    const parentInheritedList = (inheritedList || []).filter(
+      key => key.inherited_from === 'federated_parent'
+    )
 
     return (
       <div>
@@ -174,8 +198,9 @@ class DeveloperKeysApp extends React.Component {
               availableScopesPending={listDeveloperKeyScopes.listDeveloperKeyScopesPending}
               selectedScopes={listDeveloperKeyScopes.selectedScopes}
               ctx={ctx}
+              handleSuccessfulSave={this.developerKeySaveSuccessfulHandler}
             />
-            <DeveloperKeysTable
+            <AdminTable
               ref={this.setMainTableRef}
               store={store}
               actions={actions}
@@ -195,13 +220,32 @@ class DeveloperKeysApp extends React.Component {
               id="tab-panel-inherited"
               isSelected={tab === 'tab-panel-inherited'}
             >
-              <DeveloperKeysTable
+              {parentInheritedList.length > 0 && (
+                <>
+                  <Heading margin="small" level="h2">
+                    {I18n.t('Consortium Parent Keys')}
+                  </Heading>
+                  <InheritedTable
+                    prefix="parent"
+                    label={I18n.t('Parent Inherited Developer Keys')}
+                    store={store}
+                    actions={actions}
+                    developerKeysList={parentInheritedList}
+                    ctx={ctx}
+                  />
+                  <Heading margin="small" level="h2">
+                    {I18n.t('Global Keys')}
+                  </Heading>
+                </>
+              )}
+              <InheritedTable
+                prefix="global"
+                label={I18n.t('Global Inherited Developer Keys')}
                 ref={this.setInheritedTableRef}
                 store={store}
                 actions={actions}
-                developerKeysList={inheritedList}
+                developerKeysList={globalInheritedList}
                 ctx={ctx}
-                inherited
                 setFocus={this.focusInheritedTab}
               />
               <View as="div" margin="small" padding="large" textAlign="center">

@@ -16,30 +16,34 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import I18n from 'i18n!discussion_posts'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import PropTypes from 'prop-types'
 import React from 'react'
 
 import {Pagination} from '@instructure/ui-pagination'
 
+const I18n = useI18nScope('discussion_posts')
+
 export const ThreadPagination = props => (
-  <Pagination
-    margin="small"
-    variant="compact"
-    labelNext={I18n.t('Next Page')}
-    labelPrev={I18n.t('Previous Page')}
-    data-testid="pagination"
-  >
-    {Array.from(Array(props.totalPages)).map((v, i) => (
-      <Pagination.Page
-        key={btoa(i)}
-        onClick={() => props.setPage(i)}
-        current={props.selectedPage === i + 1}
-      >
-        {i + 1}
-      </Pagination.Page>
-    ))}
-  </Pagination>
+  <span className="discussion-pagination-section">
+    <Pagination
+      margin="small"
+      variant="compact"
+      labelNext={I18n.t('Next Page')}
+      labelPrev={I18n.t('Previous Page')}
+      data-testid="pagination"
+    >
+      {Array.from(Array(props.totalPages)).map((v, i) => (
+        <Pagination.Page
+          key={btoa(i)}
+          onClick={() => props.setPage(i)}
+          current={props.selectedPage === i + 1}
+        >
+          {i + 1}
+        </Pagination.Page>
+      ))}
+    </Pagination>
+  </span>
 )
 
 ThreadPagination.propTypes = {

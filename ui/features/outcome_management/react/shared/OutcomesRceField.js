@@ -19,11 +19,18 @@
 
 import React, {useState, useRef, Suspense} from 'react'
 import PropTypes from 'prop-types'
-import I18n from 'i18n!OutcomeManagement'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import {View} from '@instructure/ui-view'
 import {Spinner} from '@instructure/ui-spinner'
 
-const CanvasRce = React.lazy(() => import('@canvas/rce/react/CanvasRce'))
+const I18n = useI18nScope('OutcomeManagement')
+
+const CanvasRce = React.lazy(() =>
+  import(
+    /* webpackChunkName: "[request]" */
+    '@canvas/rce/react/CanvasRce'
+  )
+)
 
 const OutcomesRceField = ({onChangeHandler, defaultContent}) => {
   const [isLoadingRce, setIsLoadingRce] = useState(true)

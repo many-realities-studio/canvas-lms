@@ -58,6 +58,7 @@ pipeline {
   }
 
   environment {
+    COMPOSE_PROJECT_NAME = 'main-axe'
     BUILD_REGISTRY_FQDN = configuration.buildRegistryFQDN()
     POSTGRES = configuration.postgres()
     RUBY = configuration.ruby() // RUBY_VERSION is a reserved keyword for ruby installs
@@ -69,7 +70,7 @@ pipeline {
     POSTGRES_PREFIX = configuration.buildRegistryPath('postgres-migrations')
 
     IMAGE_CACHE_MERGE_SCOPE = configuration.gerritBranchSanitized()
-    RSPEC_PROCESSES = 4
+    RSPEC_PROCESSES = 6
 
     CASSANDRA_IMAGE_TAG = "$CASSANDRA_PREFIX:$IMAGE_CACHE_MERGE_SCOPE-$RSPEC_PROCESSES"
     DYNAMODB_IMAGE_TAG = "$DYNAMODB_PREFIX:$IMAGE_CACHE_MERGE_SCOPE-$RSPEC_PROCESSES"
@@ -107,20 +108,27 @@ pipeline {
         }
 
         copyArtifacts(
-          filter: 'tmp/rspec_results/**',
+          filter: 'tmp/*/rspec_results.tgz',
           optional: false,
           projectName: env.JOB_NAME,
           selector: specific(env.BUILD_NUMBER),
         )
 
+        sh "ls tmp/*/rspec_results.tgz | xargs -n1 tar xvf"
+
         withEnv(['COMPOSE_FILE=docker-compose.new-jenkins.yml']) {
           sh """
-            docker-compose run -v \$(pwd)/\$LOCAL_WORKDIR/tmp/rspec_results/:/tmp/rspec_results \
+            docker-compose run -v \$(pwd)/\$LOCAL_WORKDIR/tmp/:/tmp \
             --name stormbreaker-results canvas bash -c \
-            "bundle install; bundle exec rake stormbreaker:combine_results['/tmp/rspec_results/**']"
+            "bundle install; bundle exec rake stormbreaker:combine_results['/tmp/*_rspec_results/**']"
           """
 
           sh 'docker cp stormbreaker-results:/usr/src/app/results.html .'
+
+          withCredentials([usernamePassword(credentialsId: 'INSENG_CANVAS_CI_AWS_ACCESS', usernameVariable: 'INSENG_AWS_ACCESS_KEY_ID', passwordVariable: 'INSENG_AWS_SECRET_ACCESS_KEY')]) {
+            def awsCreds = "AWS_DEFAULT_REGION=us-west-2 AWS_ACCESS_KEY_ID=${INSENG_AWS_ACCESS_KEY_ID} AWS_SECRET_ACCESS_KEY=${INSENG_AWS_SECRET_ACCESS_KEY}"
+            sh "$awsCreds aws s3 cp results.html s3://instructure-canvas-ci/axe_results.html"
+          }
 
           archiveArtifacts allowEmptyArchive: true, artifacts: 'results.html'
         }

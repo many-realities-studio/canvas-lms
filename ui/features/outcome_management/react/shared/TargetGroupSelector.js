@@ -17,8 +17,9 @@
  */
 
 import React, {useEffect, useRef, useState} from 'react'
+import useBoolean from '@canvas/outcomes/react/hooks/useBoolean'
 import PropTypes from 'prop-types'
-import I18n from 'i18n!MoveOutcomesModal'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import {View} from '@instructure/ui-view'
 import {Text} from '@instructure/ui-text'
 import {Spinner} from '@instructure/ui-spinner'
@@ -28,6 +29,8 @@ import AddContentItem from './AddContentItem'
 import GroupSelectionDrillDown from './GroupSelectionDrillDown'
 import {useTargetGroupSelector} from '@canvas/outcomes/react/treeBrowser'
 import useCanvasContext from '@canvas/outcomes/react/hooks/useCanvasContext'
+
+const I18n = useI18nScope('MoveOutcomesModal')
 
 const getAncestorsIds = (targetGroup, collections) => {
   const ids = []
@@ -41,10 +44,11 @@ const getAncestorsIds = (targetGroup, collections) => {
   return ids
 }
 
-const TargetGroupSelector = ({groupId, starterGroupId, setTargetGroup}) => {
+const TargetGroupSelector = ({groupId, starterGroupId, setTargetGroup, notifyGroupCreated}) => {
   const {isCourse} = useCanvasContext()
   const [expanded, setExpanded] = useState(false)
   const [hasExpanded, setHasExpanded] = useState(false)
+  const [groupCreated, setGroupCreated, setGroupNotCreated] = useBoolean(false)
   const [labelRef, setLabelRef] = useState(null)
   const canCallSetTargetGroupWithStarterGroup = useRef(true)
   const {
@@ -79,10 +83,10 @@ const TargetGroupSelector = ({groupId, starterGroupId, setTargetGroup}) => {
   useEffect(() => {
     if (expanded) {
       setHasExpanded(true)
-    } else if (hasExpanded && labelRef) {
+    } else if (hasExpanded && labelRef && !groupCreated) {
       labelRef.focus()
     }
-  }, [expanded, hasExpanded, labelRef])
+  }, [expanded, hasExpanded, labelRef, groupCreated])
 
   const onCreateGroupHandler = async (groupName, parentId) => {
     const newGroup = await createGroup(groupName, parentId)
@@ -93,13 +97,16 @@ const TargetGroupSelector = ({groupId, starterGroupId, setTargetGroup}) => {
         targetGroup: newGroup,
         targetAncestorsIds: getAncestorsIds(newGroup, collections)
       })
+
+      // notify parent of group creation (if applicable)
+      typeof notifyGroupCreated === 'function' && notifyGroupCreated()
     }
   }
 
   const onCollectionClick = (_, selectedCollection) => {
     canCallSetTargetGroupWithStarterGroup.current = false
     queryCollections(selectedCollection)
-    const selectedGroupObject = collections[selectedCollection.id]
+    const selectedGroupObject = collections[selectedCollection.id] || selectedCollection
     setTargetGroup({
       targetGroup: selectedGroupObject,
       targetAncestorsIds: getAncestorsIds(selectedGroupObject, collections)
@@ -135,10 +142,14 @@ const TargetGroupSelector = ({groupId, starterGroupId, setTargetGroup}) => {
                 onSaveHandler={name => {
                   const parentId = selectedGroupId || rootId
                   onCreateGroupHandler(name, parentId)
+                  setGroupCreated()
                   setExpanded(false)
                 }}
                 textInputInstructions={I18n.t('Enter new group name')}
-                onHideHandler={() => setExpanded(false)}
+                onHideHandler={() => {
+                  setGroupNotCreated()
+                  setExpanded(false)
+                }}
               />
             ) : (
               <View as="div" margin="xx-small none small">
@@ -162,7 +173,8 @@ const TargetGroupSelector = ({groupId, starterGroupId, setTargetGroup}) => {
 TargetGroupSelector.propTypes = {
   groupId: PropTypes.string,
   starterGroupId: PropTypes.string,
-  setTargetGroup: PropTypes.func.isRequired
+  setTargetGroup: PropTypes.func.isRequired,
+  notifyGroupCreated: PropTypes.func
 }
 
 export default TargetGroupSelector

@@ -17,6 +17,11 @@
  */
 
 import renderAssignmentsApp from './react/index'
+import ready from '@instructure/ready'
+import {monitorLtiMessages} from '@canvas/lti/jquery/messages'
 
-const elt = document.getElementById('content')
-renderAssignmentsApp(ENV, elt)
+ready(() => {
+  monitorLtiMessages()
+  const elt = document.getElementById('content')
+  renderAssignmentsApp(ENV, elt)
+})

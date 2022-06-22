@@ -29,8 +29,8 @@ import {Text} from '@instructure/ui-text'
 import {Pill} from '@instructure/ui-pill'
 import {Avatar} from '@instructure/ui-avatar'
 import {Checkbox, CheckboxFacade} from '@instructure/ui-checkbox'
-
-import {Button} from '@instructure/ui-buttons'
+import {Button, CondensedButton, IconButton} from '@instructure/ui-buttons'
+import {Link} from '@instructure/ui-link'
 import {
   IconAssignmentLine,
   IconQuizLine,
@@ -59,7 +59,7 @@ import {assignmentType as getAssignmentType} from '../../utilities/contentUtils'
 import formatMessage from '../../format-message'
 import {animatable} from '../../dynamic-ui'
 
-export class PlannerItem extends Component {
+export class PlannerItem_raw extends Component {
   static propTypes = {
     color: string,
     id: string.isRequired,
@@ -96,7 +96,8 @@ export class PlannerItem extends Component {
     simplifiedControls: bool,
     isMissingItem: bool,
     readOnly: bool,
-    onlineMeetingURL: string
+    onlineMeetingURL: string,
+    isObserving: bool
   }
 
   static defaultProps = {
@@ -104,7 +105,8 @@ export class PlannerItem extends Component {
     responsiveSize: 'large',
     allDay: false,
     simplifiedControls: false,
-    isMissingItem: false
+    isMissingItem: false,
+    isObserving: false
   }
 
   constructor(props) {
@@ -190,7 +192,7 @@ export class PlannerItem extends Component {
   }
 
   renderDateField = () => {
-    if (this.props.date) {
+    if (this.props.date && this.props.date.isValid()) {
       if (this.props.allDay) {
         return formatMessage('All Day')
       }
@@ -321,37 +323,49 @@ export class PlannerItem extends Component {
   }
 
   renderTitle() {
-    const linkProps = {}
-    if (this.props.associated_item === 'To Do') {
-      linkProps.onClick = this.toDoLinkClick
-    }
-    if (this.props.associated_item === 'Calendar Event') {
-      linkProps.onClick = this.openCalendarEventModal
-    } else {
-      linkProps.href = this.props.html_url
+    if (['To Do', 'Calendar Event'].includes(this.props.associated_item)) {
+      return (
+        <div className={styles.title} style={{position: 'relative'}}>
+          <CondensedButton
+            theme={{
+              mediumPaddingHorizontal: '0',
+              linkColor: this.props.simplifiedControls ? colors.licorice : undefined,
+              linkHoverColor: this.props.simplifiedControls ? colors.licorice : undefined
+            }}
+            elementRef={link => {
+              this.itemLink = link
+            }}
+            onClick={
+              this.props.associated_item === 'To Do'
+                ? this.toDoLinkClick
+                : this.openCalendarEventModal
+            }
+            readOnly={this.props.readOnly}
+          >
+            <ScreenReaderContent>{this.linkLabel()}</ScreenReaderContent>
+            <PresentationContent>{this.props.title}</PresentationContent>
+          </CondensedButton>
+          {this.renderCalendarEventModal()}
+        </div>
+      )
     }
 
     return (
-      <div className={styles.title} style={{position: 'relative'}}>
-        <Button
-          variant="link"
-          theme={{
-            mediumPadding: '0',
-            mediumHeight: 'normal',
-            linkColor: this.props.simplifiedControls ? colors.licorice : undefined,
-            linkHoverColor: this.props.simplifiedControls ? colors.licorice : undefined
-          }}
-          buttonRef={link => {
-            this.itemLink = link
-          }}
-          {...linkProps}
-          readOnly={this.props.readOnly}
-        >
-          <ScreenReaderContent>{this.linkLabel()}</ScreenReaderContent>
-          <PresentationContent>{this.props.title}</PresentationContent>
-        </Button>
-        {this.renderCalendarEventModal()}
-      </div>
+      <Link
+        href={this.props.html_url}
+        isWithinText={false}
+        theme={{
+          linkColor: this.props.simplifiedControls ? colors.licorice : undefined,
+          linkHoverColor: this.props.simplifiedControls ? colors.licorice : undefined
+        }}
+        elementRef={link => {
+          this.itemLink = link
+        }}
+        interaction={this.props.readOnly ? 'disabled' : 'enabled'}
+      >
+        <ScreenReaderContent>{this.linkLabel()}</ScreenReaderContent>
+        <PresentationContent>{this.props.title}</PresentationContent>
+      </Link>
     )
   }
 
@@ -360,7 +374,9 @@ export class PlannerItem extends Component {
       return (
         <BadgeList>
           {this.props.badges.map(b => (
-            <Pill key={b.id} text={b.text} variant={b.variant} />
+            <Pill key={b.id} color={b.variant}>
+              {b.text}
+            </Pill>
           ))}
         </BadgeList>
       )
@@ -380,19 +396,24 @@ export class PlannerItem extends Component {
         </div>
       )
     }
-    if (this.props.associated_item === 'To Do') {
+    if (this.props.associated_item === 'To Do' && !this.props.isObserving) {
       return (
         <div className={styles.editButton}>
           <ApplyTheme
             theme={{
-              [Button.theme]: {
+              [IconButton.theme]: {
                 iconColor: this.props.simplifiedControls ? undefined : this.props.color
               }
             }}
           >
-            <Button variant="icon" icon={IconEditLine} onClick={this.toDoLinkClick}>
-              <ScreenReaderContent>{formatMessage('Edit')}</ScreenReaderContent>
-            </Button>
+            <IconButton
+              data-testid="edit-event-button"
+              withBorder={false}
+              withBackground={false}
+              renderIcon={IconEditLine}
+              onClick={this.toDoLinkClick}
+              screenReaderLabel={formatMessage('Edit')}
+            />
           </ApplyTheme>
         </div>
       )
@@ -594,7 +615,7 @@ export class PlannerItem extends Component {
             label={<ScreenReaderContent>{checkboxLabel}</ScreenReaderContent>}
             checked={this.props.toggleAPIPending ? !this.state.completed : this.state.completed}
             onChange={this.props.toggleCompletion}
-            disabled={this.props.toggleAPIPending}
+            disabled={this.props.toggleAPIPending || this.props.isObserving}
             readOnly={this.props.readOnly}
           />
         </ApplyTheme>
@@ -638,9 +659,15 @@ export class PlannerItem extends Component {
   render() {
     return (
       <div
-        className={classnames(styles.root, styles[this.getLayout()], 'planner-item', {
-          [styles.missingItem]: this.props.isMissingItem
-        })}
+        className={classnames(
+          styles.root,
+          styles[this.getLayout()],
+          'planner-item',
+          {
+            [styles.missingItem]: this.props.isMissingItem
+          },
+          this.props.simplifiedControls ? styles.k5Layout : ''
+        )}
         ref={this.registerRootDivRef}
       >
         {this.renderNotificationBadge()}
@@ -664,7 +691,7 @@ export class PlannerItem extends Component {
   }
 }
 
-const ThemeablePlannerItem = themeable(theme, styles)(PlannerItem)
+const ThemeablePlannerItem = themeable(theme, styles)(PlannerItem_raw)
 const AnimatablePlannerItem = animatable(ThemeablePlannerItem)
 AnimatablePlannerItem.theme = ThemeablePlannerItem.theme
 export default AnimatablePlannerItem

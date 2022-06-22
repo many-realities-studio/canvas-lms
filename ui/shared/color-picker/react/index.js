@@ -25,13 +25,16 @@ import ReactModal from '@canvas/react-modal'
 import {Button} from '@instructure/ui-buttons'
 import {TextInput} from '@instructure/ui-text-input'
 import {ScreenReaderContent} from '@instructure/ui-a11y-content'
-import I18n from 'i18n!calendar_color_picker'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import CourseNicknameEdit from './CourseNicknameEdit'
 import classnames from 'classnames'
 import {isRTL} from '@canvas/i18n/rtlHelper'
 import '@canvas/rails-flash-notifications'
 import {Tooltip} from '@instructure/ui-tooltip'
 import {IconWarningSolid} from '@instructure/ui-icons'
+import {showFlashError, showFlashAlert} from '@canvas/alerts/react/FlashAlert'
+
+const I18n = useI18nScope('calendar_color_picker')
 
 export const PREDEFINED_COLORS = [
   {
@@ -319,11 +322,16 @@ const ColorPicker = createReactClass({
 
   warnIfInvalid() {
     if (!this.isValidHex(this.state.currentColor)) {
-      $.screenReaderFlashMessage(
-        I18n.t("'%{chosenColor}' is not a valid color. Enter a valid hexcode before saving.", {
-          chosenColor: this.state.currentColor
-        })
-      )
+      showFlashAlert({
+        message: I18n.t(
+          "'%{chosenColor}' is not a valid color. Enter a valid hexcode before saving.",
+          {
+            chosenColor: this.state.currentColor
+          }
+        ),
+        type: 'warning',
+        srOnly: true
+      })
     }
   },
 
@@ -347,7 +355,7 @@ const ColorPicker = createReactClass({
 
     const handleFailure = () => {
       doneSaving()
-      $.flashError(I18n.t("Could not save '%{chosenColor}'", {chosenColor: color}))
+      showFlashError(I18n.t("Could not save '%{chosenColor}'", {chosenColor: color}))()
     }
 
     if (this.isValidHex(color)) {
@@ -367,9 +375,12 @@ const ColorPicker = createReactClass({
         }
       })
     } else {
-      $.flashWarning(
-        I18n.t("'%{chosenColor}' is not a valid color.", {chosenColor: this.state.currentColor})
-      )
+      showFlashAlert({
+        message: I18n.t("'%{chosenColor}' is not a valid color.", {
+          chosenColor: this.state.currentColor
+        }),
+        type: 'warning'
+      })
     }
   },
 
@@ -484,7 +495,7 @@ const ColorPicker = createReactClass({
         tabIndex="-1"
       >
         {!this.isValidHex(this.state.currentColor) && (
-          <Tooltip tip={I18n.t('Invalid hexcode')}>
+          <Tooltip renderTip={I18n.t('Invalid hexcode')}>
             <IconWarningSolid color="warning" id="ColorPicker__InvalidHex" />
           </Tooltip>
         )}
@@ -518,7 +529,7 @@ const ColorPicker = createReactClass({
         <div className="ColorPicker__CustomInputContainer">
           {this.colorPreview()}
           <TextInput
-            label={
+            renderLabel={
               <ScreenReaderContent>
                 {this.isValidHex(this.state.currentColor)
                   ? I18n.t('Enter a hexcode here to use a custom color.')
@@ -542,7 +553,7 @@ const ColorPicker = createReactClass({
             {I18n.t('Cancel')}
           </Button>
           <Button
-            variant="primary"
+            color="primary"
             id="ColorPicker__Apply"
             size="small"
             onClick={this.onApply.bind(null, this.state.currentColor)}

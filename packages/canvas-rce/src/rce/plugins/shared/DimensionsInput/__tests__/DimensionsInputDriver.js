@@ -17,6 +17,7 @@
  */
 
 import NumberInputDriver from './NumberInputDriver'
+import {queryByLabelText, getByTestId} from '@testing-library/react'
 
 export default class DimensionsInputDriver {
   static find($parent) {
@@ -31,25 +32,41 @@ export default class DimensionsInputDriver {
     return new DimensionsInputDriver($fieldset)
   }
 
-  constructor($element) {
-    this.$element = $element
+  constructor($parent) {
+    this.$typeSelector = $parent.firstChild.firstChild
+    this.$dimensionsInput = $parent.firstChild.lastChild
   }
 
   get width() {
-    return NumberInputDriver.findByLabelText('Width', this.$element)
+    const $container = getByTestId(this.$dimensionsInput, 'input-number-container')
+    return NumberInputDriver.findByLabelText('Width', $container)
   }
 
   get height() {
-    return NumberInputDriver.findByLabelText('Height', this.$element)
+    const $container = getByTestId(this.$dimensionsInput, 'input-number-container')
+    return NumberInputDriver.findByLabelText('Height', $container)
+  }
+
+  get percentage() {
+    const $container = getByTestId(this.$dimensionsInput, 'input-number-container')
+    return NumberInputDriver.findByLabelText('Percentage', $container)
+  }
+
+  get pixelsRadioButton() {
+    const $parent = getByTestId(this.$typeSelector, 'dimension-type')
+    return queryByLabelText($parent, 'Pixels', {exact: false})
+  }
+
+  get percentageRadioButton() {
+    const $parent = getByTestId(this.$typeSelector, 'dimension-type')
+    return queryByLabelText($parent, 'Percentage', {exact: false})
   }
 
   get messageTexts() {
-    const messagesId = this.$element.getAttribute('aria-describedby')
-    if (messagesId == null) {
-      return []
-    }
-
-    return [...this.$element.querySelectorAll(`#${messagesId} > *`)].map($message =>
+    const messageContainer = this.$dimensionsInput.querySelector(
+      'fieldset legend span:last-child span:first-child'
+    )
+    return [...messageContainer.querySelectorAll('span')].map($message =>
       $message.textContent.trim()
     )
   }

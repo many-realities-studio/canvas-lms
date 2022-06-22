@@ -16,19 +16,23 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import I18n from 'i18n!conversations_2'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import PropTypes from 'prop-types'
-import React from 'react'
+import React, {useContext} from 'react'
 
 import {Button, IconButton} from '@instructure/ui-buttons'
 import {Flex} from '@instructure/ui-flex'
 import {IconAttachMediaLine, IconPaperclipLine} from '@instructure/ui-icons'
 import {Tooltip} from '@instructure/ui-tooltip'
+import {ConversationContext} from '../../../util/constants'
+
+const I18n = useI18nScope('conversations_2')
 
 export const ComposeActionButtons = ({...props}) => {
+  const {isSubmissionCommentsType} = useContext(ConversationContext)
   return (
-    <Flex justifyItems="space-between" width="100%">
-      <Flex.Item>{renderUploadButtons(props)}</Flex.Item>
+    <Flex justifyItems={isSubmissionCommentsType ? 'end' : 'space-between'} width="100%">
+      {!isSubmissionCommentsType && <Flex.Item>{renderUploadButtons(props)}</Flex.Item>}
       <Flex.Item>{renderMessageButtons(props)}</Flex.Item>
     </Flex>
   )
@@ -55,7 +59,10 @@ const renderUploadButtons = props => {
         type="file"
         style={{display: 'none'}}
         aria-hidden
-        onChange={props.onAttachmentUpload}
+        onChange={e => {
+          props.onAttachmentUpload(e)
+          attachmentInput.value = ''
+        }}
         multiple
       />
       {props.onMediaUpload && (
@@ -65,6 +72,7 @@ const renderUploadButtons = props => {
             onClick={props.onMediaUpload}
             margin="xx-small"
             data-testid="media-upload"
+            interaction={props.hasMediaComment ? 'disabled' : 'enabled'}
           >
             <IconAttachMediaLine />
           </IconButton>
@@ -118,7 +126,11 @@ ComposeActionButtons.propTypes = {
   /**
    * Indicates that a message is currently being sent
    */
-  isSending: PropTypes.bool.isRequired
+  isSending: PropTypes.bool.isRequired,
+  /**
+   * Indicates whether or not there is a media comment already attached
+   */
+  hasMediaComment: PropTypes.bool
 }
 
 export default ComposeActionButtons

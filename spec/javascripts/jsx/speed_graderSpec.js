@@ -21,10 +21,11 @@ import React from 'react'
 import ReactDOM from 'react-dom'
 import _ from 'underscore'
 
-import SpeedGrader from 'ui/features/speed_grader/jquery/speed_grader.js'
-import SpeedGraderAlerts from 'ui/features/speed_grader/react/SpeedGraderAlerts.js'
-import SpeedGraderHelpers from 'ui/features/speed_grader/jquery/speed_grader_helpers.js'
-import JQuerySelectorCache from 'ui/features/speed_grader/JQuerySelectorCache.js'
+import SpeedGrader from 'ui/features/speed_grader/jquery/speed_grader'
+import SpeedGraderAlerts from 'ui/features/speed_grader/react/SpeedGraderAlerts'
+import SpeedGraderHelpers from 'ui/features/speed_grader/jquery/speed_grader_helpers'
+import JQuerySelectorCache from 'ui/features/speed_grader/JQuerySelectorCache'
+import moxios from 'moxios'
 import fakeENV from 'helpers/fakeENV'
 import numberHelper from '@canvas/i18n/numberHelper'
 import userSettings from '@canvas/user-settings'
@@ -218,8 +219,9 @@ QUnit.module('SpeedGrader', rootHooks => {
       func(elem, size, keepOriginalText)
     })
     SpeedGrader.EG.showDiscussion()
-    const screenreaderText = document.querySelector('.play_comment_link .screenreader-only')
-      .innerText
+    const screenreaderText = document.querySelector(
+      '.play_comment_link .screenreader-only'
+    ).innerText
     strictEqual(screenreaderText, 'Play media comment by An Author from Jul 12, 2016 at 11:47pm.')
     deferFake.restore()
     INST.kalturaSettings = originalKalturaSettings
@@ -549,12 +551,16 @@ QUnit.module('SpeedGrader', rootHooks => {
           {
             grade: 70,
             score: 7,
-            user_id: '4'
+            user_id: '4',
+            assignment_id: '1',
+            anonymous_id: 'i9Z1a'
           },
           {
             grade: 10,
             score: 1,
-            user_id: '5'
+            user_id: '5',
+            assignment_id: '1',
+            anonymous_id: 't4N2y'
           }
         ]
       }
@@ -578,7 +584,8 @@ QUnit.module('SpeedGrader', rootHooks => {
 
     test('makes request to API', () => {
       SpeedGrader.EG.refreshGrades()
-      ok($.getJSON.calledWithMatch('submission_history'))
+      const request = $.getJSON.lastCall
+      strictEqual(request.args[1]['include[]'], 'submission_history')
     })
 
     test('updates the submission for the requested student', () => {
@@ -599,7 +606,7 @@ QUnit.module('SpeedGrader', rootHooks => {
 
     test('does not call showGrade if a different student has been selected since the request', () => {
       $.getJSON.restore()
-      sinon.stub($, 'getJSON').callsFake((url, successCallback) => {
+      sinon.stub($, 'getJSON').callsFake((url, params, successCallback) => {
         SpeedGrader.EG.currentStudent = window.jsonData.studentMap['5']
         successCallback({user_id: '4', score: 2, grade: '20'})
       })
@@ -919,6 +926,7 @@ QUnit.module('SpeedGrader', rootHooks => {
       fakeENV.setup(env)
       sandbox.spy($.fn, 'append')
       sandbox.spy($, 'ajaxJSON')
+      sinon.stub($, 'flashError')
       server = sinon.fakeServer.create({respondImmediately: true})
       server.respondWith('POST', 'my_url.com', [
         200,
@@ -1016,6 +1024,7 @@ QUnit.module('SpeedGrader', rootHooks => {
       SpeedGrader.teardown()
       fakeENV.teardown()
       server.restore()
+      $.flashError.restore()
     })
 
     QUnit.module('when assignment is moderated', contextHooks => {
@@ -1102,6 +1111,16 @@ QUnit.module('SpeedGrader', rootHooks => {
       equal(formData['submission[score]'], undefined)
       equal(formData['submission[grade]'], '56')
       equal(formData['submission[user_id]'], 4)
+      SpeedGraderHelpers.determineGradeToSubmit.restore()
+    })
+
+    test('handleGradeSubmit should not submit grade and show a flash message if grade is invalid', function () {
+      SpeedGrader.EG.jsonReady()
+      sandbox.stub(SpeedGraderHelpers, 'determineGradeToSubmit').returns('NaN')
+      SpeedGrader.EG.handleGradeSubmit(null, false)
+      strictEqual($.flashError.callCount, 1)
+      const [errorMessage] = $.flashError.firstCall.args
+      strictEqual(errorMessage, 'Invalid Grade')
       SpeedGraderHelpers.determineGradeToSubmit.restore()
     })
 
@@ -1251,126 +1270,202 @@ QUnit.module('SpeedGrader', rootHooks => {
   QUnit.module('speed_grader#getGradeToShow')
 
   test('returns an empty string for "entered" if submission is null', () => {
-    const grade = SpeedGrader.EG.getGradeToShow(null, 'some_role')
+    const grade = SpeedGrader.EG.getGradeToShow(null)
     equal(grade.entered, '')
   })
 
   test('returns an empty string for "entered" if the submission is undefined', () => {
-    const grade = SpeedGrader.EG.getGradeToShow(undefined, 'some_role')
+    const grade = SpeedGrader.EG.getGradeToShow(undefined)
     equal(grade.entered, '')
   })
 
   test('returns an empty string for "entered" if a submission has no excused or grade', () => {
-    const grade = SpeedGrader.EG.getGradeToShow({}, 'some_role')
+    const grade = SpeedGrader.EG.getGradeToShow({})
     equal(grade.entered, '')
   })
 
   test('returns excused for "entered" if excused is true', () => {
-    const grade = SpeedGrader.EG.getGradeToShow({excused: true}, 'some_role')
-    equal(grade.entered, 'EX')
-  })
-
-  test('returns excused for "entered" if excused is true and user is moderator', () => {
-    const grade = SpeedGrader.EG.getGradeToShow({excused: true}, 'moderator')
-    equal(grade.entered, 'EX')
-  })
-
-  test('returns excused for "entered" if excused is true and user is provisional grader', () => {
-    const grade = SpeedGrader.EG.getGradeToShow({excused: true}, 'provisional_grader')
+    const grade = SpeedGrader.EG.getGradeToShow({excused: true})
     equal(grade.entered, 'EX')
   })
 
   test('returns negated points_deducted for "pointsDeducted"', () => {
-    const grade = SpeedGrader.EG.getGradeToShow(
-      {
-        points_deducted: 123
-      },
-      'some_role'
-    )
+    const grade = SpeedGrader.EG.getGradeToShow({
+      points_deducted: 123
+    })
     equal(grade.pointsDeducted, '-123')
   })
 
   test('returns values based on grades if submission has no excused and grade is not a float', () => {
-    const grade = SpeedGrader.EG.getGradeToShow(
-      {
-        grade: 'some_grade',
-        entered_grade: 'entered_grade'
-      },
-      'some_role'
-    )
+    const grade = SpeedGrader.EG.getGradeToShow({
+      grade: 'some_grade',
+      entered_grade: 'entered_grade'
+    })
     equal(grade.entered, 'entered_grade')
     equal(grade.adjusted, 'some_grade')
   })
 
-  test('returns values based on scores if user is a moderator', () => {
-    const grade = SpeedGrader.EG.getGradeToShow(
-      {
-        grade: 15,
-        score: 25,
-        entered_score: 30
-      },
-      'moderator'
-    )
-    equal(grade.entered, '30')
-    equal(grade.adjusted, '25')
-  })
-
-  test('returns values based on scores if user is a provisional grader', () => {
-    const grade = SpeedGrader.EG.getGradeToShow(
-      {
-        grade: 15,
-        score: 25,
-        entered_score: 30,
-        points_deducted: 5
-      },
-      'provisional_grader'
-    )
-    equal(grade.entered, '30')
-    equal(grade.adjusted, '25')
-    equal(grade.pointsDeducted, '-5')
-  })
-
-  test('returns values based on grades if user is neither a moderator or provisional grader', () => {
-    const grade = SpeedGrader.EG.getGradeToShow(
-      {
-        grade: 15,
-        score: 25,
-        entered_grade: 30,
-        points_deducted: 15
-      },
-      'some_role'
-    )
+  test('returns values based on grades', () => {
+    const grade = SpeedGrader.EG.getGradeToShow({
+      grade: 15,
+      score: 25,
+      entered_grade: 30,
+      points_deducted: 15
+    })
     equal(grade.entered, '30')
     equal(grade.adjusted, '15')
     equal(grade.pointsDeducted, '-15')
   })
 
-  test('returns values based on grades if user is moderator but score is null', () => {
-    const grade = SpeedGrader.EG.getGradeToShow(
-      {
-        grade: 15,
-        entered_grade: 20,
-        points_deducted: 5
-      },
-      'moderator'
-    )
-    equal(grade.entered, '20')
-    equal(grade.adjusted, '15')
-    equal(grade.pointsDeducted, '-5')
-  })
+  QUnit.module('speed_grader#skipRelativeToCurrentIndex', suiteHooks => {
+    let originalStudent
+    let originalWindowJSONData
 
-  test('returns values based on grades if user is provisional grader but score is null', () => {
-    const grade = SpeedGrader.EG.getGradeToShow(
-      {
-        grade: 15,
-        entered_grade: 20,
-        points_deducted: 5
-      },
-      'provisional_grader'
-    )
-    equal(grade.entered, '20')
-    equal(grade.adjusted, '15')
-    equal(grade.pointsDeducted, '-5')
+    suiteHooks.beforeEach(() => {
+      originalStudent = SpeedGrader.EG.currentStudent
+      originalWindowJSONData = window.jsonData
+
+      window.jsonData = {}
+      window.jsonData.studentsWithSubmissions = [
+        {
+          index: 0,
+          id: 1101,
+          name: 'Victor McDade',
+          submission_state: 'not_graded',
+          anonymous_id: '1101'
+        },
+        {
+          index: 1,
+          id: 1102,
+          name: 'Jack Jarvis',
+          submission_state: 'graded',
+          anonymous_id: '1102'
+        },
+        {
+          index: 2,
+          id: 1103,
+          name: 'Isa Brennan',
+          submission_state: 'graded',
+          anonymous_id: '1103'
+        }
+      ]
+      window.jsonData.context = {
+        active_course_sections: ['2001'],
+        enrollments: [
+          {course_section_id: '2001', user_id: '1101', workflow_state: 'active'},
+          {course_section_id: '2001', user_id: '1102', workflow_state: 'active'},
+          {course_section_id: '2001', user_id: '1103', workflow_state: 'active'}
+        ],
+        students: [
+          {id: '1101', sortable_name: 'McDade, Victor'},
+          {id: '1102', sortable_name: 'Jarvis, Jack'},
+          {id: '1103', sortable_name: 'Brennan, Isa'}
+        ]
+      }
+      window.jsonData.submissions = [
+        {
+          grade: 'B',
+          grade_matches_current_submission: false,
+          id: '2503',
+          score: 0,
+          submission_history: [],
+          submitted_at: '2021-05-06T12:00:00Z',
+          user_id: '1101',
+          workflow_state: 'resubmitted'
+        },
+        {
+          grade: 'A',
+          grade_matches_current_submission: true,
+          id: '2504',
+          score: 10,
+          submission_history: [],
+          submitted_at: '2021-05-04T12:00:00Z',
+          user_id: '1102',
+          workflow_state: 'graded'
+        },
+        {
+          grade: 'C',
+          grade_matches_current_submission: true,
+          id: '2505',
+          score: 8,
+          submission_history: [],
+          submitted_at: '2021-05-04T12:00:00Z',
+          user_id: '1103',
+          workflow_state: 'graded'
+        }
+      ]
+
+      SpeedGrader.EG.jsonReady()
+      SpeedGrader.EG.currentStudent = window.jsonData.studentsWithSubmissions[1]
+      sinon.stub(SpeedGrader.EG, 'goToStudent')
+      sinon.stub(SpeedGrader.EG, 'anyUnpostedComment').returns(true)
+    })
+
+    suiteHooks.afterEach(() => {
+      SpeedGrader.teardown()
+      SpeedGrader.EG.currentStudent = originalStudent
+      window.jsonData = originalWindowJSONData
+      SpeedGrader.EG.goToStudent.restore()
+      SpeedGrader.EG.anyUnpostedComment.restore()
+    })
+
+    test('goToStudent is called with next student id', () => {
+      SpeedGrader.EG.skipRelativeToCurrentIndex(1)
+      deepEqual(SpeedGrader.EG.goToStudent.firstCall.args, ['1103', 'push'])
+    })
+
+    test('goToStudent is called with prev student id', () => {
+      SpeedGrader.EG.skipRelativeToCurrentIndex(-1)
+      deepEqual(SpeedGrader.EG.goToStudent.firstCall.args, ['1101', 'push'])
+    })
+
+    QUnit.module('speed_grader#skipRelativeToCurrentIndex#warning_dialog', hooks => {
+      let originalFlag
+
+      hooks.beforeEach(() => {
+        originalFlag = ENV.speedgrader_dialog_for_unposted_comments
+        ENV.speedgrader_dialog_for_unposted_comments = true
+      })
+
+      hooks.afterEach(() => {
+        ENV.speedgrader_dialog_for_unposted_comments = originalFlag
+      })
+
+      test('goToStudent is called with prev student id with user setting to not show dialog', () => {
+        sandbox.stub(userSettings, 'get').returns(true)
+
+        SpeedGrader.EG.skipRelativeToCurrentIndex(-1)
+        deepEqual(SpeedGrader.EG.goToStudent.firstCall.args, ['1101', 'push'])
+      })
+
+      test('goToStudent is called with prev student id on clicking proceed', () => {
+        sandbox.stub(userSettings, 'get').returns(false)
+        SpeedGrader.EG.skipRelativeToCurrentIndex(-1)
+        $(document).find('#unposted_comment_proceed').click()
+        deepEqual(SpeedGrader.EG.goToStudent.firstCall.args, ['1101', 'push'])
+      })
+
+      test('goToStudent is not called on clicking cancel', () => {
+        sandbox.stub(userSettings, 'get').returns(false)
+        SpeedGrader.EG.skipRelativeToCurrentIndex(-1)
+        $(document).find('#unposted_comment_cancel').click()
+        ok(SpeedGrader.EG.goToStudent.notCalled)
+      })
+
+      test('dialog does not show when instructor disables warning', () => {
+        // warning dialog shows and user selects the checkbox to not show the dialog again
+        sandbox.stub(userSettings, 'get').returns(false)
+        SpeedGrader.EG.skipRelativeToCurrentIndex(-1)
+        $(document).find('.do-not-show-again input').click()
+        $(document).find('#unposted_comment_cancel').click()
+
+        // dialog should not show up any more
+        userSettings.get.restore()
+        sandbox.stub(userSettings, 'get').returns(true)
+        SpeedGrader.EG.skipRelativeToCurrentIndex(-1)
+        deepEqual(SpeedGrader.EG.goToStudent.firstCall.args, ['1101', 'push'])
+      })
+    })
   })
 
   QUnit.module('speed_grader#getStudentNameAndGrade', {
@@ -1384,12 +1479,14 @@ QUnit.module('SpeedGrader', rootHooks => {
           index: 0,
           id: 4,
           name: 'Guy B. Studying',
+          anonymous_name: 'Student 1',
           submission_state: 'not_graded'
         },
         {
           index: 1,
           id: 12,
           name: 'Sil E. Bus',
+          anonymous_name: 'Student 2',
           submission_state: 'graded'
         }
       ]
@@ -1455,6 +1552,21 @@ QUnit.module('SpeedGrader', rootHooks => {
       submissions = `/submissions/{{submissionId}}`
       params = `?download={{attachmentId}}`
       setupFixtures(`
+      <div id="combo_box_container"></div>
+      <ul
+        id="section-menu"
+        class="ui-selectmenu-menu ui-widget ui-widget-content ui-selectmenu-menu-dropdown ui-selectmenu-open"
+        style="display:none;" role="listbox" aria-activedescendant="section-menu-link"
+      >
+        <li role="presentation" class="ui-selectmenu-item">
+          <a href="#" tabindex="-1" role="option" aria-selected="true" id="section-menu-link">
+            <span>Showing: <span id="section_currently_showing">All Sections</span></span>
+          </a>
+          <ul>
+            <li><a class="selected" data-section-id="all" href="#">Show All Sections</a></li>
+          </ul>
+        </li>
+      </ul>
       <div id="iframe_holder"></div>
       <div id="react_pill_container"></div>
       <div id='grade_container'>
@@ -1473,8 +1585,10 @@ QUnit.module('SpeedGrader', rootHooks => {
       </div>
       <div id="submission_details">
         Submission Details
+        <div id="multiple_submissions"></div>
         <div id="speed_grader_edit_status_mount_point"></div>
         <div id="speed_grader_edit_status_secondary_mount_point"></div>
+        <div id="submission_word_count"></div>
       </div>`)
       sinon.stub($, 'ajaxJSON')
 
@@ -1517,7 +1631,8 @@ QUnit.module('SpeedGrader', rootHooks => {
                     {
                       attachment: {viewed_at: new Date('Jan 1, 2011').toISOString()}
                     }
-                  ]
+                  ],
+                  word_count: 24
                 }
               }
             ]
@@ -1610,6 +1725,55 @@ QUnit.module('SpeedGrader', rootHooks => {
       $.ajaxJSON.restore()
       SpeedGrader.teardown()
       fakeENV.teardown()
+    })
+
+    function selectStatusMenuOption(index) {
+      const button = document.querySelector(
+        '#speed_grader_edit_status_secondary_mount_point button'
+      )
+      button.click()
+
+      const $menuContent = document.querySelector(`[aria-labelledby="${button.id}"]`)
+      const menuOption = $menuContent.querySelectorAll('[role="none"]')[index]
+      menuOption.children[0].click()
+    }
+
+    QUnit.module('SpeedGrader#shouldParseGrade', hooks => {
+      hooks.afterEach(() => {
+        SpeedGrader.EG.currentStudent.submission.submission_type = 'basic_lti_launch'
+      })
+
+      test('does not show the word count for online text entry submission with feature disabled', () => {
+        ENV.FEATURES.word_count_in_speed_grader = false
+        finishSetup()
+        SpeedGrader.EG.currentStudent.submission.submission_type = 'online_text_entry'
+        SpeedGrader.EG.handleSubmissionSelectionChange()
+        strictEqual(document.getElementById('submission_word_count').children.length, 0)
+      })
+
+      test('does not show the word count for basic lti submission', () => {
+        ENV.FEATURES.word_count_in_speed_grader = true
+        finishSetup()
+        SpeedGrader.EG.handleSubmissionSelectionChange()
+        strictEqual(document.getElementById('submission_word_count').children.length, 0)
+      })
+
+      test('does not show the word count for external tool submission', () => {
+        ENV.FEATURES.word_count_in_speed_grader = true
+        finishSetup()
+        SpeedGrader.EG.currentStudent.submission.submission_type = 'external_tool'
+        SpeedGrader.EG.handleSubmissionSelectionChange()
+        strictEqual(document.getElementById('submission_word_count').children.length, 0)
+      })
+
+      test('shows the word count for online text entry submission', () => {
+        ENV.FEATURES.word_count_in_speed_grader = true
+        finishSetup()
+        SpeedGrader.EG.currentStudent.submission.submission_type = 'online_text_entry'
+        SpeedGrader.EG.handleSubmissionSelectionChange()
+        strictEqual(document.getElementById('submission_word_count').children.length, 1)
+        strictEqual($('#submission_word_count').text(), 'Word Count: 24 words')
+      })
     })
 
     test('should use submission history lti launch url', () => {
@@ -1754,12 +1918,226 @@ QUnit.module('SpeedGrader', rootHooks => {
       strictEqual(mountPoint.children.length, 1)
     })
 
+    test('displays the late pill after the status has changed through the status menu', assert => {
+      const done = assert.async()
+      finishSetup()
+      SpeedGrader.EG.currentStudent.submission_state = 'not_submitted'
+      SpeedGrader.EG.currentStudent.submission = {
+        workflow_state: 'unsubmitted',
+        submission_history: [{excused: false, late: false, missing: false}],
+        submission_type: 'online_text_entry',
+        user_id: '4',
+        assignment_id: '1'
+      }
+      window.jsonData.context.students[0] = SpeedGrader.EG.currentStudent
+      window.jsonData.studentMap[4] = SpeedGrader.EG.currentStudent
+      SpeedGrader.EG.showSubmissionDetails()
+
+      moxios.install()
+      const url = `/api/v1/courses/${ENV.course_id}/assignments/${SpeedGrader.EG.currentStudent.submission.assignment_id}/submissions/${SpeedGrader.EG.currentStudent.submission.user_id}`
+      moxios.stubRequest(url, {status: 200, response: {}})
+      moxios.wait(() => done())
+
+      const responseRefreshRequest = {
+        assignment_id: '1',
+        id: '1',
+        user_id: '4',
+        workflow_state: 'graded',
+        grade_matches_current_submission: true,
+        graded_at: '2021-09-23T14:41:15Z',
+        grader_id: '1',
+        excused: false,
+        points_deducted: 0.0,
+        late: true,
+        missing: false,
+        seconds_late: 0,
+        preview_url: '',
+        submission_history: [
+          {
+            id: '1',
+            assignment_id: '1',
+            user_id: '4',
+            workflow_state: 'graded',
+            grade_matches_current_submission: true,
+            graded_at: '2021-09-23T14:41:15Z',
+            grader_id: 1,
+            excused: false,
+            late: true,
+            missing: false,
+            seconds_late: 0,
+            preview_url: ''
+          }
+        ],
+        anonymous_id: 'yvqp3'
+      }
+
+      const optionsIndexes = {
+        Late: 1,
+        Missing: 2,
+        Excused: 3,
+        None: 4
+      }
+      selectStatusMenuOption(optionsIndexes.Late)
+
+      const getJsonStub = sinon.stub($, 'getJSON').callsFake((_url, _data, successCallback) => {
+        successCallback(responseRefreshRequest)
+
+        moxios.uninstall()
+        getJsonStub.restore()
+        const pill = $('.submission-late-pill')
+        ok(pill.is(':visible'))
+      })
+    })
+
+    test('displays the missing pill after the status has changed through the status menu', assert => {
+      const done = assert.async()
+      finishSetup()
+      SpeedGrader.EG.currentStudent.submission_state = 'not_submitted'
+      SpeedGrader.EG.currentStudent.submission = {
+        workflow_state: 'unsubmitted',
+        submission_history: [{excused: false, late: false, missing: false}],
+        submission_type: 'online_text_entry',
+        user_id: '4',
+        assignment_id: '1'
+      }
+      window.jsonData.context.students[0] = SpeedGrader.EG.currentStudent
+      window.jsonData.studentMap[4] = SpeedGrader.EG.currentStudent
+      SpeedGrader.EG.showSubmissionDetails()
+
+      moxios.install()
+      const url = `/api/v1/courses/${ENV.course_id}/assignments/${SpeedGrader.EG.currentStudent.submission.assignment_id}/submissions/${SpeedGrader.EG.currentStudent.submission.user_id}`
+      moxios.stubRequest(url, {status: 200, response: {}})
+      moxios.wait(() => done())
+
+      const responseRefreshRequest = {
+        assignment_id: '1',
+        id: '1',
+        user_id: '4',
+        workflow_state: 'graded',
+        grade_matches_current_submission: true,
+        graded_at: '2021-09-23T14:41:15Z',
+        grader_id: '1',
+        excused: false,
+        points_deducted: 0.0,
+        late: false,
+        missing: true,
+        seconds_late: 0,
+        preview_url: '',
+        submission_history: [
+          {
+            id: '1',
+            assignment_id: '1',
+            user_id: '4',
+            workflow_state: 'graded',
+            grade_matches_current_submission: true,
+            graded_at: '2021-09-23T14:41:15Z',
+            grader_id: 1,
+            excused: false,
+            late: false,
+            missing: true,
+            seconds_late: 0,
+            preview_url: ''
+          }
+        ],
+        anonymous_id: 'yvqp3'
+      }
+
+      const optionsIndexes = {
+        Late: 1,
+        Missing: 2,
+        Excused: 3,
+        None: 4
+      }
+      selectStatusMenuOption(optionsIndexes.Missing)
+
+      const getJsonStub = sinon.stub($, 'getJSON').callsFake((_url, _data, successCallback) => {
+        successCallback(responseRefreshRequest)
+
+        moxios.uninstall()
+        getJsonStub.restore()
+        const pill = $('.submission-missing-pill')
+        ok(pill.is(':visible'))
+      })
+    })
+
+    test('displays the excused pill after the status has changed through the status menu', assert => {
+      const done = assert.async()
+      finishSetup()
+      SpeedGrader.EG.currentStudent.submission_state = 'not_submitted'
+      SpeedGrader.EG.currentStudent.submission = {
+        workflow_state: 'unsubmitted',
+        submission_history: [{excused: false, late: false, missing: false}],
+        submission_type: 'online_text_entry',
+        user_id: '4',
+        assignment_id: '1'
+      }
+      window.jsonData.context.students[0] = SpeedGrader.EG.currentStudent
+      window.jsonData.studentMap[4] = SpeedGrader.EG.currentStudent
+      SpeedGrader.EG.showSubmissionDetails()
+
+      moxios.install()
+      const url = `/api/v1/courses/${ENV.course_id}/assignments/${SpeedGrader.EG.currentStudent.submission.assignment_id}/submissions/${SpeedGrader.EG.currentStudent.submission.user_id}`
+      moxios.stubRequest(url, {status: 200, response: {}})
+      moxios.wait(() => done())
+
+      const responseRefreshRequest = {
+        assignment_id: '1',
+        id: '1',
+        user_id: '4',
+        workflow_state: 'graded',
+        grade_matches_current_submission: true,
+        graded_at: '2021-09-23T14:41:15Z',
+        grader_id: '1',
+        excused: true,
+        points_deducted: 0.0,
+        late: false,
+        missing: false,
+        seconds_late: 0,
+        preview_url: '',
+        submission_history: [
+          {
+            id: '1',
+            assignment_id: '1',
+            user_id: '4',
+            workflow_state: 'graded',
+            grade_matches_current_submission: true,
+            graded_at: '2021-09-23T14:41:15Z',
+            grader_id: 1,
+            excused: true,
+            late: false,
+            missing: false,
+            seconds_late: 0,
+            preview_url: ''
+          }
+        ],
+        anonymous_id: 'yvqp3'
+      }
+
+      const optionsIndexes = {
+        Late: 1,
+        Missing: 2,
+        Excused: 3,
+        None: 4
+      }
+      selectStatusMenuOption(optionsIndexes.Excused)
+
+      const getJsonStub = sinon.stub($, 'getJSON').callsFake((_url, _data, successCallback) => {
+        successCallback(responseRefreshRequest)
+
+        moxios.uninstall()
+        getJsonStub.restore()
+        const pill = $('.submission-excused-pill')
+        ok(pill.is(':visible'))
+      })
+    })
+
     test('includes last-viewed date for attachments if not anonymizing students', () => {
       finishSetup()
       SpeedGrader.EG.handleSubmissionSelectionChange()
 
-      const viewedAtHTML = document.getElementById('submission_attachment_viewed_at_container')
-        .innerHTML
+      const viewedAtHTML = document.getElementById(
+        'submission_attachment_viewed_at_container'
+      ).innerHTML
 
       ok(viewedAtHTML.includes('Jan 1, 2011'))
     })
@@ -1770,8 +2148,9 @@ QUnit.module('SpeedGrader', rootHooks => {
       window.jsonData.anonymize_students = true
       SpeedGrader.EG.handleSubmissionSelectionChange()
 
-      const viewedAtHTML = document.getElementById('submission_attachment_viewed_at_container')
-        .innerHTML
+      const viewedAtHTML = document.getElementById(
+        'submission_attachment_viewed_at_container'
+      ).innerHTML
 
       ok(viewedAtHTML.includes('Jan 1, 2011'))
     })
@@ -1781,8 +2160,9 @@ QUnit.module('SpeedGrader', rootHooks => {
       window.jsonData.anonymize_students = true
       SpeedGrader.EG.handleSubmissionSelectionChange()
 
-      const viewedAtHTML = document.getElementById('submission_attachment_viewed_at_container')
-        .innerHTML
+      const viewedAtHTML = document.getElementById(
+        'submission_attachment_viewed_at_container'
+      ).innerHTML
 
       notOk(viewedAtHTML.includes('Jan 1, 2011'))
     })
@@ -1795,8 +2175,9 @@ QUnit.module('SpeedGrader', rootHooks => {
       SpeedGrader.EG.currentStudent = gradedStudentWithNoSubmission
       SpeedGrader.EG.handleSubmissionSelectionChange()
 
-      const viewedAtHTML = document.getElementById('submission_attachment_viewed_at_container')
-        .innerHTML
+      const viewedAtHTML = document.getElementById(
+        'submission_attachment_viewed_at_container'
+      ).innerHTML
 
       strictEqual(viewedAtHTML, '')
     })
@@ -1825,14 +2206,15 @@ QUnit.module('SpeedGrader', rootHooks => {
     test('submission files list template is populated with anonymous submission data', () => {
       finishSetup()
       SpeedGrader.EG.currentStudent.submission.currentSelectedIndex = 0
-      SpeedGrader.EG.currentStudent.submission.submission_history[0].submission.versioned_attachments = [
-        {
-          attachment: {
-            id: 1,
-            display_name: 'submission.txt'
+      SpeedGrader.EG.currentStudent.submission.submission_history[0].submission.versioned_attachments =
+        [
+          {
+            attachment: {
+              id: 1,
+              display_name: 'submission.txt'
+            }
           }
-        }
-      ]
+        ]
       SpeedGrader.EG.handleSubmissionSelectionChange()
       const {pathname} = new URL(document.querySelector('#submission_files_list a').href)
       const expectedPathname = `${courses}${assignments}/submissions/${SpeedGrader.EG.currentStudent.id}`
@@ -1924,7 +2306,7 @@ QUnit.module('SpeedGrader', rootHooks => {
     equal(result, 'A')
   })
 
-  QUnit.module('SpeedGrader', suiteHooks => {
+  QUnit.module('SpeedGrader (2)', suiteHooks => {
     suiteHooks.beforeEach(() => {
       setupFixtures(`
       <div id="combo_box_container"></div>
@@ -2011,7 +2393,7 @@ QUnit.module('SpeedGrader', rootHooks => {
             {
               grade: 'F',
               grade_matches_current_submission: false,
-              id: '2503',
+              id: '14',
               score: 0,
               submission_history: [],
               submitted_at: '2015-05-06T12:00:00Z',
@@ -2030,6 +2412,13 @@ QUnit.module('SpeedGrader', rootHooks => {
               workflow_state: 'graded'
             }
           ]
+        })
+
+        test('filters out students that do not have submissions', () => {
+          window.jsonData.submissions.shift()
+          SpeedGrader.EG.jsonReady()
+          const ids = window.jsonData.studentsWithSubmissions.map(student => student.id)
+          deepEqual(ids, ['1102', '1103', '1104'])
         })
 
         test('preserves student order (from server) when sorting alphabetically', () => {
@@ -2067,6 +2456,13 @@ QUnit.module('SpeedGrader', rootHooks => {
           deepEqual(ids, ['1101', '1103', '1102', '1104'])
         })
 
+        test('sorts students by their assigned index when names are hidden', () => {
+          userSettings.get.withArgs('eg_hide_student_names').returns(true)
+          SpeedGrader.EG.jsonReady()
+          const ids = window.jsonData.studentsWithSubmissions.map(student => student.id)
+          deepEqual(ids, ['1101', '1102', '1103', '1104'])
+        })
+
         test('sorts students by sortable_name when submission statuses match', () => {
           Object.assign(window.jsonData.submissions[1], {
             grade: null,
@@ -2081,10 +2477,10 @@ QUnit.module('SpeedGrader', rootHooks => {
       })
 
       QUnit.module('when students are anonymous', contextHooks => {
-        const alpha = {anonymous_id: '00000'}
-        const beta = {anonymous_id: '99999'}
-        const gamma = {anonymous_id: 'aaaaa'}
-        const delta = {anonymous_id: 'zzzzz'}
+        const alpha = {anonymous_id: '00000', anonymous_name_position: 1}
+        const beta = {anonymous_id: '99999', anonymous_name_position: 2}
+        const gamma = {anonymous_id: 'aaaaa', anonymous_name_position: 3}
+        const delta = {anonymous_id: 'zzzzz', anonymous_name_position: 4}
 
         contextHooks.beforeEach(() => {
           window.jsonData.anonymize_students = true
@@ -2748,8 +3144,7 @@ QUnit.module('SpeedGrader', rootHooks => {
     SpeedGrader.teardown()
   })
 
-  QUnit.module('SpeedGrader', function (suiteHooks) {
-    /* eslint-disable-line qunit/no-identical-names */
+  QUnit.module('SpeedGrader (3)', function (suiteHooks) {
     suiteHooks.beforeEach(() => {
       fakeENV.setup({
         assignment_id: '2',
@@ -3271,8 +3666,8 @@ QUnit.module('SpeedGrader', rootHooks => {
       const originalJsonData = window.jsonData
       const alphaIdPair = {id: '1'}
       const omegaIdPair = {id: '9'}
-      const alphaAnonymousIdPair = {anonymous_id: '00000'}
-      const omegaAnonymousIdPair = {anonymous_id: 'ZZZZZ'}
+      const alphaAnonymousIdPair = {anonymous_id: '00000', anonymous_name_position: 1}
+      const omegaAnonymousIdPair = {anonymous_id: 'ZZZZZ', anonymous_name_position: 2}
 
       const baseAssignment = {}
       const assignment = {
@@ -3467,9 +3862,8 @@ QUnit.module('SpeedGrader', rootHooks => {
           })
 
           concludedHooks.afterEach(() => {
-            window.jsonData.studentMap[
-              alphaStudent.id
-            ].enrollments[0].workflow_state = originalWorkflowState
+            window.jsonData.studentMap[alphaStudent.id].enrollments[0].workflow_state =
+              originalWorkflowState
           })
 
           test('button is hidden when comment is publishable', () => {
@@ -3519,8 +3913,7 @@ QUnit.module('SpeedGrader', rootHooks => {
           fakeENV.teardown()
         })
 
-        QUnit.module('given a non-concluded enrollment', () => {
-          /* eslint-disable-line qunit/no-identical-names */
+        QUnit.module('given a non-concluded enrollment (2)', () => {
           test('button is shown when comment is publishable', () => {
             SpeedGrader.EG.addCommentSubmissionHandler(commentElement, {publishable: true})
             const submitButtons = document.querySelectorAll('.submit_comment_button')
@@ -3534,8 +3927,7 @@ QUnit.module('SpeedGrader', rootHooks => {
           })
         })
 
-        QUnit.module('given a concluded enrollment', concludedHooks => {
-          /* eslint-disable-line qunit/no-identical-names */
+        QUnit.module('given a concluded enrollment (2)', concludedHooks => {
           concludedHooks.beforeEach(() => {
             originalWorkflowState =
               window.jsonData.studentMap[alphaAnonymousStudent.anonymous_id].enrollments[0]
@@ -3587,8 +3979,8 @@ QUnit.module('SpeedGrader', rootHooks => {
       anonymousHooks.beforeEach(() => {
         assignment = {anonymize_students: true}
         originalJsonData = window.jsonData
-        alpha = {anonymous_id: '00000'}
-        omega = {anonymous_id: 'zzzzz'}
+        alpha = {anonymous_id: '00000', anonymous_name: 'Student 1', anonymous_name_position: 1}
+        omega = {anonymous_id: 'zzzzz', anonymous_name: 'Student 2', anonymous_name_position: 2}
         alphaStudent = {
           ...alpha,
           submission_history: [],
@@ -4620,9 +5012,7 @@ QUnit.module('SpeedGrader', rootHooks => {
 
       QUnit.module('#setOrUpdateSubmission', hooks => {
         function getPostOrHideGradesButton() {
-          return document.querySelector(
-            '#speed_grader_post_grades_menu_mount_point button[title="Post or Hide Grades"]'
-          )
+          return document.querySelector('#speed_grader_post_grades_menu_mount_point button')
         }
 
         hooks.beforeEach(() => {
@@ -4674,6 +5064,25 @@ QUnit.module('SpeedGrader', rootHooks => {
             posted_at: null
           })
           strictEqual(getPostGradesMenuItem().textContent, 'Post Grades')
+        })
+
+        test('includes previous versioned_attachments in submission_history', () => {
+          const versionedAttachments = [...alphaSubmission.versioned_attachments]
+          delete alphaSubmission.versioned_attachments
+          const {submission} = SpeedGrader.EG.setOrUpdateSubmission(alphaSubmission)
+          deepEqual(submission.submission_history[0].versioned_attachments, versionedAttachments)
+        })
+
+        test('does not thoughtlessly alter the submission field of the first attempt of the existing submission object if the passed-in submission has no attempt field', () => {
+          alphaSubmission.submission_history[0].submission = {grade: 'please spare me'}
+
+          const fakeSubmission = {
+            ...alphaSubmission,
+            score: '10'
+          }
+          SpeedGrader.EG.setOrUpdateSubmission(fakeSubmission)
+
+          strictEqual(alphaSubmission.submission_history[0].submission.grade, 'please spare me')
         })
       })
 
@@ -4765,12 +5174,8 @@ QUnit.module('SpeedGrader', rootHooks => {
           sinon.spy(window.rubricAssessment, 'populateNewRubricSummary')
           SpeedGrader.EG.showRubric()
 
-          const [
-            ,
-            ,
-            ,
-            editingData
-          ] = window.rubricAssessment.populateNewRubricSummary.firstCall.args
+          const [, , , editingData] =
+            window.rubricAssessment.populateNewRubricSummary.firstCall.args
           notStrictEqual(editingData, null)
           window.rubricAssessment.populateNewRubricSummary.restore()
         })
@@ -4779,12 +5184,8 @@ QUnit.module('SpeedGrader', rootHooks => {
           sinon.spy(window.rubricAssessment, 'populateNewRubricSummary')
           SpeedGrader.EG.showRubric({validateEnteredData: false})
 
-          const [
-            ,
-            ,
-            ,
-            editingData
-          ] = window.rubricAssessment.populateNewRubricSummary.firstCall.args
+          const [, , , editingData] =
+            window.rubricAssessment.populateNewRubricSummary.firstCall.args
           strictEqual(editingData, null)
           window.rubricAssessment.populateNewRubricSummary.restore()
         })
@@ -5150,8 +5551,7 @@ QUnit.module('SpeedGrader', rootHooks => {
         })
       })
 
-      QUnit.module('#renderSubmissionPreview', hooks => {
-        /* eslint-disable-line qunit/no-identical-names */
+      QUnit.module('#renderSubmissionPreview (2)', hooks => {
         let anonymousId
         let assignmentId
         let courseId
@@ -6881,7 +7281,7 @@ QUnit.module('SpeedGrader', rootHooks => {
           SpeedGrader.EG.jsonReady()
         })
 
-        QUnit.module('with new plagiarism icons active', newPlagiarismIconHooks => {
+        QUnit.module('with new plagiarism icons active (2)', newPlagiarismIconHooks => {
           // This is the inner "container" that holds both the icon and (if present) score text,
           // and may be rendered as a link if the a valid report URL exists
           const similarityContainerSelector =
@@ -7004,7 +7404,7 @@ QUnit.module('SpeedGrader', rootHooks => {
           })
         })
 
-        QUnit.module('with old plagiarism icons active', () => {
+        QUnit.module('with old plagiarism icons active (2)', () => {
           const similarityScoreSelector =
             '#submission_files_list .submission-file .turnitin_score_container .turnitin_similarity_score'
 
@@ -7088,8 +7488,7 @@ QUnit.module('SpeedGrader', rootHooks => {
         })
       })
 
-      QUnit.module('when anonymous grading is active', hooks => {
-        /* eslint-disable-line qunit/no-identical-names */
+      QUnit.module('when anonymous grading is active (2)', hooks => {
         hooks.beforeEach(() => {
           const reportURL = document.querySelector('#assignment_submission_turnitin_report_url')
           reportURL.href = reportURL.href.replace('user_id', 'anonymous_id')
@@ -7283,12 +7682,12 @@ QUnit.module('SpeedGrader', rootHooks => {
             let originalWorkflowState
             let originalConcluded
 
-            function isPresent(mountPoint) {
-              strictEqual(mountPoint.innerText, 'HIDDEN')
+            function isPresent(mountPoint_) {
+              strictEqual(mountPoint_.innerText, 'HIDDEN')
             }
 
-            function isNotPresent(mountPoint) {
-              strictEqual(mountPoint.innerText, '')
+            function isNotPresent(mountPoint_) {
+              strictEqual(mountPoint_.innerText, '')
             }
 
             function pill() {

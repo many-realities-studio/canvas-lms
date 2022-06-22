@@ -108,11 +108,14 @@ exports[`ActAsModal renders with panda svgs, user avatar, table, and proceed but
               withVisualDebug={false}
             >
               <Avatar
+                color="default"
                 data-fs-exclude={true}
                 display="inline-block"
+                hasInverseColor={false}
                 margin="medium 0 x-small 0"
                 name="foo"
                 onImageLoaded={[Function]}
+                renderIcon={null}
                 shape="circle"
                 size="small"
                 src="testImageUrl"
@@ -557,7 +560,7 @@ exports[`ActAsModal renders with panda svgs, user avatar, table, and proceed but
             >
               <Button
                 as="button"
-                buttonRef={[Function]}
+                color="primary"
                 cursor="pointer"
                 data-method="post"
                 display="inline-block"
@@ -568,7 +571,6 @@ exports[`ActAsModal renders with panda svgs, user avatar, table, and proceed but
                 size="medium"
                 textAlign="center"
                 type="button"
-                variant="primary"
                 withBackground={true}
               >
                 Proceed

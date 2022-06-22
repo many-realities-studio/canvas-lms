@@ -18,7 +18,7 @@
 
 import React, {useState, useEffect, useRef} from 'react'
 import PropTypes from 'prop-types'
-import I18n from 'i18n!FindOutcomesModal'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import {Spinner} from '@instructure/ui-spinner'
 import {Flex} from '@instructure/ui-flex'
 import {IconArrowOpenEndLine, IconArrowOpenStartLine} from '@instructure/ui-icons'
@@ -26,6 +26,8 @@ import {Select} from '@instructure/ui-select'
 import {showFlashAlert} from '@canvas/alerts/react/FlashAlert'
 import {isRTL} from '@canvas/i18n/rtlHelper'
 import useCanvasContext from '@canvas/outcomes/react/hooks/useCanvasContext'
+
+const I18n = useI18nScope('FindOutcomesModal')
 
 const BACK_OPTION = 'back'
 const VIEW_OPTION = 'view'
@@ -128,16 +130,16 @@ const GroupActionDrillDown = ({
     </Select.Option>
   ) : (
     <Select.Group renderLabel={collections[selectedGroupId].name}>
-      <Select.Option
-        id={VIEW_OPTION}
-        isDisabled={disableActionLink}
-        isHighlighted={disableActionLink ? false : isActionLinkHighlighted}
-      >
-        {!disableActionLink && (
+      {!disableActionLink ? (
+        <Select.Option
+          id={VIEW_OPTION}
+          isDisabled={disableActionLink}
+          isHighlighted={disableActionLink ? false : isActionLinkHighlighted}
+        >
           <div
             style={{
               ...margin,
-              color: isActionLinkHighlighted ? '' : '#008EE2'
+              color: isActionLinkHighlighted ? '' : '#0374B5'
             }}
           >
             {I18n.t(
@@ -150,8 +152,8 @@ const GroupActionDrillDown = ({
               }
             )}
           </div>
-        )}
-      </Select.Option>
+        </Select.Option>
+      ) : null}
     </Select.Group>
   )
 

@@ -17,7 +17,7 @@
  */
 
 import INST from 'browser-sniffer'
-import I18n from 'i18n!select_content_dialog'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import $ from 'jquery'
 import React from 'react'
 import ReactDOM from 'react-dom'
@@ -36,17 +36,19 @@ import SelectContent from '../select_content'
 import setDefaultToolValues from '../setDefaultToolValues'
 import processSingleContentItem from '@canvas/deep-linking/processors/processSingleContentItem'
 import {findLinkForService, getUserServices} from '@canvas/services/findLinkForService'
-import '@canvas/datetime' /* datetime_field */
+import '@canvas/datetime'/* datetime_field */
 import '@canvas/jquery/jquery.ajaxJSON'
-import '@canvas/forms/jquery/jquery.instructure_forms' /* formSubmit, ajaxJSONFiles, getFormData, errorBox */
+import '@canvas/forms/jquery/jquery.instructure_forms'/* formSubmit, ajaxJSONFiles, getFormData, errorBox */
 import 'jqueryui/dialog'
 import '@canvas/util/jquery/fixDialogButtons'
-import '@canvas/jquery/jquery.instructure_misc_helpers' /* replaceTags */
-import '@canvas/jquery/jquery.instructure_misc_plugins' /* showIf */
+import '@canvas/jquery/jquery.instructure_misc_helpers'/* replaceTags */
+import '@canvas/jquery/jquery.instructure_misc_plugins'/* showIf */
 import '@canvas/keycodes'
 import '@canvas/loading-image'
 import '@canvas/util/templateData'
 import processMultipleContentItems from '@canvas/deep-linking/processors/processMultipleContentItems'
+
+const I18n = useI18nScope('select_content_dialog')
 
 const SelectContentDialog = {}
 
@@ -57,10 +59,10 @@ SelectContentDialog.deepLinkingListener = event => {
   if (
     event.origin === ENV.DEEP_LINKING_POST_MESSAGE_ORIGIN &&
     event.data &&
-    event.data.messageType === 'LtiDeepLinkingResponse'
+    event.data.subject === 'LtiDeepLinkingResponse'
   ) {
     if (event.data.content_items.length > 1) {
-      processMultipleContentItems(event)
+      return processMultipleContentItems(event)
         .then(result => {
           const $dialog = $('#resource_selection_dialog')
           $dialog.off('dialogbeforeclose', SelectContentDialog.dialogCancelHandler)
@@ -85,7 +87,7 @@ SelectContentDialog.deepLinkingListener = event => {
           $dialog.dialog('close')
         })
     } else if (event.data.content_items.length === 1) {
-      processSingleContentItem(event)
+      return processSingleContentItem(event)
         .then(result => {
           const $dialog = $('#resource_selection_dialog')
           $dialog.off('dialogbeforeclose', SelectContentDialog.dialogCancelHandler)
@@ -109,16 +111,20 @@ SelectContentDialog.deepLinkingListener = event => {
           $dialog.dialog('close')
         })
     } else if (event.data.content_items.length === 0) {
-      const $selectContextContentDialog = $('#select_context_content_dialog')
-      const $resourceSelectionDialog = $('#resource_selection_dialog')
-
-      $resourceSelectionDialog.off('dialogbeforeclose', SelectContentDialog.dialogCancelHandler)
-      $(window).off('beforeunload', SelectContentDialog.beforeUnloadHandler)
-
-      $resourceSelectionDialog.dialog('close')
-      $selectContextContentDialog.dialog('close')
+      SelectContentDialog.closeAll()
     }
   }
+}
+
+SelectContentDialog.closeAll = function () {
+  const $selectContextContentDialog = $('#select_context_content_dialog')
+  const $resourceSelectionDialog = $('#resource_selection_dialog')
+
+  $resourceSelectionDialog.off('dialogbeforeclose', SelectContentDialog.dialogCancelHandler)
+  $(window).off('beforeunload', SelectContentDialog.beforeUnloadHandler)
+
+  $resourceSelectionDialog.dialog('close')
+  $selectContextContentDialog.dialog('close')
 }
 
 SelectContentDialog.attachDeepLinkingListner = function () {
@@ -151,7 +157,21 @@ SelectContentDialog.handleContentItemResult = function (result, tool) {
   $('#external_tool_create_url').val(result.url)
   $('#external_tool_create_title').val(result.title || tool.name)
   $('#external_tool_create_custom_params').val(JSON.stringify(result.custom))
+  if (result.iframe) {
+    $('#external_tool_create_iframe_width').val(result.iframe.width)
+    $('#external_tool_create_iframe_height').val(result.iframe.height)
+  }
+
   $('#context_external_tools_select .domain_message').hide()
+
+  // content item with an assignment_id means that an assignment was already
+  // created on the backend, so close this dialog without giving the user
+  // any chance to make changes that would be discarded
+  if (result.assignment_id) {
+    $('#external_tool_create_assignment_id').val(result.assignment_id)
+    $('#select_context_content_dialog .add_item_button').click()
+    SelectContentDialog.closeAll()
+  }
 }
 
 SelectContentDialog.Events = {
@@ -234,7 +254,7 @@ SelectContentDialog.Events = {
         $external_content_info_alerts.on('focus', function () {
           const iframeWidth = $iframe.outerWidth(true)
           const iframeHeight = $iframe.outerHeight(true)
-          $iframe.css('border', '2px solid #008EE2')
+          $iframe.css('border', '2px solid #0374B5')
           $(this).removeClass('screenreader-only')
           const alertHeight = $(this).outerHeight(true)
           $iframe
@@ -364,7 +384,10 @@ SelectContentDialog.extractContextExternalToolItemData = function () {
     'item[indent]': $('#content_tag_indent').val(),
     'item[url]': $('#external_tool_create_url').val(),
     'item[title]': $('#external_tool_create_title').val(),
-    'item[custom_params]': $('#external_tool_create_custom_params').val()
+    'item[custom_params]': $('#external_tool_create_custom_params').val(),
+    'item[assignment_id]': $('#external_tool_create_assignment_id').val(),
+    'item[iframe][width]': $('#external_tool_create_iframe_width').val(),
+    'item[iframe][height]': $('#external_tool_create_iframe_height').val()
   }
 }
 
@@ -372,6 +395,9 @@ SelectContentDialog.resetExternalToolFields = function () {
   $('#external_tool_create_url').val('')
   $('#external_tool_create_title').val('')
   $('#external_tool_create_custom_params').val('')
+  $('#external_tool_create_assignment_id').val('')
+  $('#external_tool_create_iframe_width').val('')
+  $('#external_tool_create_iframe_height').val('')
 }
 
 $(document).ready(function () {
@@ -501,6 +527,11 @@ $(document).ready(function () {
       }
     } else if (item_type == 'context_external_tool') {
       var item_data = SelectContentDialog.extractContextExternalToolItemData()
+      if (item_data['item[assignment_id]']) {
+        // don't keep fields populated after an assignment was created
+        // since assignment creation via deep link requires another tool launch
+        SelectContentDialog.resetExternalToolFields()
+      }
 
       $dialog.find('.alert-error').remove()
 
@@ -608,16 +639,17 @@ $(document).ready(function () {
 
           if (item_data['item[type]'] == 'attachment') {
             BaseUploader.prototype.onUploadPosted = attachment => {
+              let file_matches = false
               // if the uploaded file replaced and existing file that already has a module item, don't create a new item
               const adding_to_module_id = $dialog.data().context_module_id
               if (
-                !Object.keys(ENV.MODULE_FILE_DETAILS).find(
-                  fdkey =>
-                    // there's module item with the id of the replaced file
-                    ENV.MODULE_FILE_DETAILS[fdkey].content_id == attachment.replacingFileId && // eslint-disable-line eqeqeq
-                    // and the module item is in the module we're working in
+                !Object.keys(ENV.MODULE_FILE_DETAILS).find(fdkey => {
+                  file_matches =
+                    ENV.MODULE_FILE_DETAILS[fdkey].content_id == attachment.replacingFileId &&
                     ENV.MODULE_FILE_DETAILS[fdkey].module_id == adding_to_module_id // eslint-disable-line eqeqeq
-                )
+                  if (file_matches) ENV.MODULE_FILE_DETAILS[fdkey].content_id = attachment.id
+                  return file_matches
+                })
               ) {
                 process_upload(attachment, false)
               }

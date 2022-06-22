@@ -25,14 +25,14 @@ class GradingPeriodGradeSummaryPresenter < GradeSummaryPresenter
     @grading_period_id = grading_period_id
   end
 
-  def assignments_visible_to_student
+  def assignments_for_student
+    includes = ["completed"]
+    includes << "inactive" if user_has_elevated_permissions?
     grading_period = GradingPeriod.for(@context).where(id: grading_period_id).first
-    grading_period.assignments_for_student(@context, super, student)
+    grading_period.assignments_for_student(@context, super, student, includes: includes)
   end
 
   def groups
-    @groups ||= begin
-      assignments.uniq(&:assignment_group_id).map(&:assignment_group)
-    end
+    @groups ||= assignments.uniq(&:assignment_group_id).map(&:assignment_group)
   end
 end

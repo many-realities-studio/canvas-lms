@@ -16,18 +16,21 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import I18n from 'i18n!shared.flash_notices'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import $ from 'jquery'
 import htmlEscape from 'html-escape'
 import 'jquery.cookie'
 
+const I18n = useI18nScope('shared.flash_notices')
+
 function updateAriaLive({polite} = {polite: false}) {
   if (this.screenreaderHolderReady()) {
     const value = polite ? 'polite' : 'assertive'
-    $(this.screenreader_holder).attr('aria-live', value)
     // instui FocusRegionManager throws aria-hidden on everything outside a Dialog when opened
     // removing it here sees that it's done whenever screenreader alerts are displayed
     $(this.screenreader_holder).removeAttr('aria-hidden')
+    // adding the aria-live before removing the aria-hidden breaks some screenreaders
+    $(this.screenreader_holder).attr('aria-live', value)
   }
 }
 
@@ -58,9 +61,7 @@ class RailsFlashNotificationsHelper {
           $.cookie('unsupported_browser_dismissed', true, {path: '/'})
         }
 
-        $(event.currentTarget)
-          .stop(true, true)
-          .remove()
+        $(event.currentTarget).stop(true, true).remove()
       })
     }
   }
@@ -79,7 +80,7 @@ class RailsFlashNotificationsHelper {
         .css({zIndex: 2, ...cssOptions})
         .show('fast')
         .delay(ENV.flashAlertTimeout || timeout || 7000)
-        .fadeOut('slow', function() {
+        .fadeOut('slow', function () {
           $(this).remove()
         })
     }
@@ -156,7 +157,7 @@ class RailsFlashNotificationsHelper {
       $(this.screenreader_holder).attr('aria-live', 'assertive')
       $(this.screenreader_holder).attr('aria-relevant', 'additions')
       $(this.screenreader_holder).attr('class', 'screenreader-only')
-      $(this.screenreader_holder).attr('aria-atomic', 'false')
+      $(this.screenreader_holder).attr('aria-atomic', '')
     }
   }
 

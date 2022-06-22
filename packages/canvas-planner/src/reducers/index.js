@@ -29,6 +29,7 @@ import ui from './ui-reducer'
 import savePlannerItem from './save-item-reducer'
 import sidebar from './sidebar-reducer'
 import weeklyDashboard from './weekly-reducer'
+import selectedObservee from './selected-observee-reducer'
 
 const locale = handleAction(
   'INITIAL_OPTIONS',
@@ -102,7 +103,8 @@ const combinedReducers = combineReducers({
   todo,
   ui,
   sidebar,
-  weeklyDashboard
+  weeklyDashboard,
+  selectedObservee
 })
 
 export default function finalReducer(state, action) {

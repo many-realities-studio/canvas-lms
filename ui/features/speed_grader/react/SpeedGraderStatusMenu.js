@@ -18,7 +18,7 @@
 
 import React from 'react'
 import {func, number, string, oneOf} from 'prop-types'
-import I18n from 'i18n!speed_grader'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import {Menu} from '@instructure/ui-menu'
 import {IconEditLine} from '@instructure/ui-icons'
 import {IconButton} from '@instructure/ui-buttons'
@@ -26,7 +26,10 @@ import {Flex} from '@instructure/ui-flex'
 import {ScreenReaderContent} from '@instructure/ui-a11y-content'
 import TimeLateInput from '@canvas/grading/TimeLateInput'
 
+const I18n = useI18nScope('speed_grader')
+
 const statusesMap = {
+  extended: I18n.t('Extended'),
   excused: I18n.t('Excused'),
   late: I18n.t('Late'),
   missing: I18n.t('Missing'),
@@ -47,7 +50,10 @@ export default function SpeedGraderStatusMenu(props) {
     props.updateSubmission(data)
   }
 
-  const menuOptions = ['late', 'missing', 'excused', 'none'].map(status => (
+  const optionValues = ['late', 'missing', 'excused', 'none']
+  if (ENV.FEATURES && ENV.FEATURES.extended_submission_state) optionValues.splice(3, 0, 'extended')
+
+  const menuOptions = optionValues.map(status => (
     <Menu.Item
       key={status}
       value={status}
@@ -82,14 +88,16 @@ export default function SpeedGraderStatusMenu(props) {
         </Flex.Item>
       </Flex>
       {props.selection === 'late' && (
-        <TimeLateInput
-          lateSubmissionInterval={props.lateSubmissionInterval}
-          locale={props.locale}
-          renderLabelBefore
-          secondsLate={props.secondsLate}
-          onSecondsLateUpdated={props.updateSubmission}
-          width="3.3125rem"
-        />
+        <div style={{position: 'absolute', right: '24px'}}>
+          <TimeLateInput
+            lateSubmissionInterval={props.lateSubmissionInterval}
+            locale={props.locale}
+            renderLabelBefore
+            secondsLate={props.secondsLate}
+            onSecondsLateUpdated={props.updateSubmission}
+            width="5rem"
+          />
+        </div>
       )}
     </>
   )

@@ -16,98 +16,113 @@
 # You should have received a copy of the GNU Affero General Public License along
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 
-require_relative '../common'
-require_relative 'page_objects/modules_index_page'
-require_relative '../shared_components/copy_to_tray_page'
-require_relative '../shared_components/send_to_dialog_page'
+require_relative "../common"
+require_relative "page_objects/modules_index_page"
+require_relative "../shared_components/copy_to_tray_page"
+require_relative "../shared_components/send_to_dialog_page"
 
-describe 'modules' do
-  include_context 'in-process server selenium tests'
+describe "modules" do
+  include_context "in-process server selenium tests"
   include ModulesIndexPage
   include CopyToTrayPage
   include SendToDialogPage
 
   before(:once) do
-    course_with_teacher(course_name: 'Other Course Eh', name: 'Sharee', active_all: true)
+    course_with_teacher(course_name: "Other Course Eh", name: "Sharee", active_all: true)
     @other_course = @course
     @other_teacher = @teacher
     course_with_teacher(active_all: true)
     @other_course.enroll_teacher(@teacher).accept!
-    @assignment1 = @course.assignments.create!(:title => 'Assignment First', :points_possible => 10)
-    @module1 = @course.context_modules.create!(name: 'Test Module1')
-    @item1 = @module1.add_item(id: @assignment1.id, type: 'assignment')
+    @assignment1 = @course.assignments.create!(title: "Assignment First", points_possible: 10)
+    @module1 = @course.context_modules.create!(name: "Test Module1")
+    @item1 = @module1.add_item(id: @assignment1.id, type: "assignment")
   end
 
-  before :each do
+  before do
     user_session(@teacher)
-    visit_modules_index_page(@course.id)
   end
 
-  it 'shares a module' do
+  it "shares a module" do
+    visit_modules_index_page(@course.id)
     manage_module_button(@module1).click
-    module_index_menu_tool_link('Send To...').click
-    replace_content(user_search, 'Sharee')
-    wait_for_ajax_requests
-    user_dropdown('Sharee').click
+    module_index_menu_tool_link("Send To...").click
+    replace_content(user_search, "Sharee")
+    wait_for_sharee_dropdown
+    click_option(user_search_selector, "Sharee")
     send_button.click
     wait_for_ajax_requests
     expect(@other_teacher.received_content_shares.last.name).to eq @module1.name
   end
 
-  it 'copies a module' do
+  it "copies a module" do
+    visit_modules_index_page(@course.id)
     manage_module_button(@module1).click
-    module_index_menu_tool_link('Copy To...').click
+    module_index_menu_tool_link("Copy To...").click
     course_search_dropdown.click
-    course_dropdown_item(@other_course.name).click
+    course_search_dropdown.send_keys("course")
+    wait_for_search_dropdown
+    click_option(course_dropdown_item_selector, @other_course.name)
     course_search_dropdown.send_keys(:tab)
     copy_button.click
     wait_for_ajax_requests
-    expect(@other_course.content_migrations.last.migration_settings['copy_options'].keys).to eq(['context_modules'])
+    expect(@other_course.content_migrations.last.migration_settings["copy_options"].keys).to eq(["context_modules"])
   end
 
-  it 'shares a module item' do
+  it "shares a module item" do
+    visit_modules_index_page(@course.id)
     manage_module_item_button(@item1).click
-    module_index_menu_tool_link('Send To...').click
-    replace_content(user_search, 'Sharee')
-    wait_for_ajax_requests
-    user_dropdown('Sharee').click
+    module_index_menu_tool_link("Send To...").click
+    replace_content(user_search, "Sharee")
+    wait_for_sharee_dropdown
+    click_option(user_search_selector, "Sharee")
     send_button.click
     wait_for_ajax_requests
     expect(@other_teacher.received_content_shares.last.name).to eq @assignment1.name
   end
 
-  it 'copies a module item' do
+  it "copies a module item" do
+    visit_modules_index_page(@course.id)
     manage_module_item_button(@item1).click
-    module_index_menu_tool_link('Copy To...').click
+    module_index_menu_tool_link("Copy To...").click
     course_search_dropdown.click
-    course_dropdown_item(@other_course.name).click
+    course_search_dropdown.send_keys("course")
+    wait_for_search_dropdown
+    click_option(course_dropdown_item_selector, @other_course.name)
     course_search_dropdown.send_keys(:tab)
     copy_button.click
     wait_for_ajax_requests
-    expect(@other_course.content_migrations.last.migration_settings['copy_options'].keys).to eq(['assignments'])
+    expect(@other_course.content_migrations.last.migration_settings["copy_options"].keys).to eq(["assignments"])
   end
 
-  it 'shares a newly created module item' do
-    add_new_module_item(@module1, 'wiki_page', 'New Page Title')
+  it "shares a newly created module item" do
+    wiki_page = @course.wiki_pages.create!(title: "New Page Title", body: "Here is the body")
+    @module1.add_item({ id: wiki_page.id, type: "wiki_page" })
+    visit_modules_index_page(@course.id)
+
     manage_module_item_button(ContentTag.last).click
-    module_index_menu_tool_link('Send To...').click
-    replace_content(user_search, 'Sharee')
-    wait_for_ajax_requests
-    user_dropdown('Sharee').click
+    module_index_menu_tool_link("Send To...").click
+    replace_content(user_search, "Sharee")
+    wait_for_sharee_dropdown
+    click_option(user_search_selector, "Sharee")
     send_button.click
     wait_for_ajax_requests
-    expect(@other_teacher.received_content_shares.last.name).to eq 'New Page Title'
+    expect(@other_teacher.received_content_shares.last.name).to eq "New Page Title"
   end
 
-  it 'copies a newly created module item' do
-    add_new_module_item(@module1, 'quiz', 'New Quiz')
+  it "copies a newly created module item" do
+    quiz = @course.quizzes.create!(title: "New Quiz")
+    @module1.add_item({ id: quiz.id, type: "quiz" })
+    visit_modules_index_page(@course.id)
+
     manage_module_item_button(ContentTag.last).click
-    module_index_menu_tool_link('Copy To...').click
+    module_index_menu_tool_link("Copy To...").click
     course_search_dropdown.click
-    course_dropdown_item(@other_course.name).click
+    course_search_dropdown.send_keys("course")
+    wait_for_search_dropdown
+    click_option(course_dropdown_item_selector, @other_course.name)
     course_search_dropdown.send_keys(:tab)
     copy_button.click
     wait_for_ajax_requests
-    expect(@other_course.content_migrations.last.migration_settings['copy_options'].keys).to eq(['quizzes'])
+    expect(@other_course.content_migrations.last.migration_settings["copy_options"].keys).to eq(["quizzes"])
   end
 end

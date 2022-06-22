@@ -18,7 +18,7 @@
 
 import React from 'react'
 import {number, string, shape, arrayOf, bool} from 'prop-types'
-import {Button} from '@instructure/ui-buttons'
+import {IconButton, CondensedButton} from '@instructure/ui-buttons'
 import {Table} from '@instructure/ui-table'
 import {ScreenReaderContent} from '@instructure/ui-a11y-content'
 import {Tooltip} from '@instructure/ui-tooltip'
@@ -33,9 +33,11 @@ import {
 import axios from '@canvas/axios'
 import {uniqBy} from 'lodash'
 import $ from '@canvas/rails-flash-notifications'
-import I18n from 'i18n!account_course_user_search'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import UserLink from './UserLink'
 import AddPeopleApp from '@canvas/add-people'
+
+const I18n = useI18nScope('account_course_user_search')
 
 export default class CoursesListRow extends React.Component {
   static propTypes = {
@@ -149,10 +151,16 @@ export default class CoursesListRow extends React.Component {
       const {name} = this.props
       const addUsersTip = I18n.t('Add Users to %{name}', {name})
       return (
-        <Tooltip tip={addUsersTip}>
-          <Button variant="icon" size="small" onClick={this.openAddUsersToCourseDialog}>
+        <Tooltip renderTip={addUsersTip}>
+          <IconButton
+            withBorder={false}
+            withBackground={false}
+            size="small"
+            onClick={this.openAddUsersToCourseDialog}
+            screenReaderLabel={addUsersTip}
+          >
             <IconPlusLine title={addUsersTip} />
-          </Button>
+          </IconButton>
         </Tooltip>
       )
     }
@@ -200,13 +208,13 @@ export default class CoursesListRow extends React.Component {
           <a href={url}>
             <span style={{paddingRight: '0.5em'}}>{name}</span>
             {blueprint && (
-              <Tooltip tip={blueprintTip}>
+              <Tooltip renderTip={blueprintTip}>
                 <IconBlueprintLine />
                 <ScreenReaderContent>{blueprintTip}</ScreenReaderContent>
               </Tooltip>
             )}
             {template && (
-              <Tooltip tip={templateTip}>
+              <Tooltip renderTip={templateTip}>
                 <IconCollectionSolid />
                 <ScreenReaderContent>{templateTip}</ScreenReaderContent>
               </Tooltip>
@@ -222,15 +230,16 @@ export default class CoursesListRow extends React.Component {
                 key={teacher.id}
                 href={teacher.html_url}
                 name={teacher.display_name}
+                avatarName={teacher.display_name}
                 avatar_url={teacher.avatar_image_url}
                 size="x-small"
               />
             </div>
           ))}
           {teachers && teachers.length > 2 && teachersToShow.length === 2 && (
-            <Button variant="link" size="small" onClick={this.showMoreTeachers}>
+            <CondensedButton size="small" onClick={this.showMoreTeachers}>
               {I18n.t('Show More')}
-            </Button>
+            </CondensedButton>
           )}
           {!teachers && teacher_count && I18n.t('%{teacher_count} teachers', {teacher_count})}
         </Table.Cell>
@@ -240,15 +249,27 @@ export default class CoursesListRow extends React.Component {
         </Table.Cell>
         <Table.Cell textAlign="end">
           {this.renderAddEnrollments()}
-          <Tooltip tip={statsTip}>
-            <Button variant="icon" size="small" href={`${url}/statistics`}>
+          <Tooltip renderTip={statsTip}>
+            <IconButton
+              withBorder={false}
+              withBackground={false}
+              size="small"
+              href={`${url}/statistics`}
+              screenReaderLabel={statsTip}
+            >
               <IconStatsLine title={statsTip} />
-            </Button>
+            </IconButton>
           </Tooltip>
-          <Tooltip tip={settingsTip}>
-            <Button variant="icon" size="small" href={`${url}/settings`}>
+          <Tooltip renderTip={settingsTip}>
+            <IconButton
+              withBorder={false}
+              withBackground={false}
+              size="small"
+              href={`${url}/settings`}
+              screenReaderLabel={settingsTip}
+            >
               <IconSettingsLine title={settingsTip} />
-            </Button>
+            </IconButton>
           </Tooltip>
         </Table.Cell>
       </Table.Row>

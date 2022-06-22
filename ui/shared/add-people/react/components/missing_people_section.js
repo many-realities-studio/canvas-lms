@@ -16,7 +16,7 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import I18n from 'i18n!add_people_missing_people_section'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import React from 'react'
 import PropTypes from 'prop-types'
 import {missingsShape} from './shapes'
@@ -24,7 +24,9 @@ import {Table} from '@instructure/ui-table'
 import {ScreenReaderContent} from '@instructure/ui-a11y-content'
 import {Checkbox} from '@instructure/ui-checkbox'
 import {TextInput} from '@instructure/ui-text-input'
-import {Button} from '@instructure/ui-buttons'
+import {CondensedButton} from '@instructure/ui-buttons'
+
+const I18n = useI18nScope('add_people_missing_people_section')
 
 const namePrompt = I18n.t('Click to add a name')
 const nameLabel = I18n.t("New user's name")
@@ -179,11 +181,11 @@ class MissingPeopleSection extends React.Component {
             </Table.Cell>
             <Table.Cell>
               <TextInput
-                required
+                isRequired
                 name="name"
                 type="text"
                 placeholder={nameLabel}
-                label={<ScreenReaderContent>{nameLabel}</ScreenReaderContent>}
+                renderLabel={<ScreenReaderContent>{nameLabel}</ScreenReaderContent>}
                 data-address={missing.address}
                 onChange={this.onNewForMissingChange}
                 value={missing.newUserInfo.name || ''}
@@ -191,11 +193,11 @@ class MissingPeopleSection extends React.Component {
             </Table.Cell>
             <Table.Cell>
               <TextInput
-                required
+                isRequired
                 name="email"
                 type="email"
                 placeholder={emailLabel}
-                label={<ScreenReaderContent>{emailLabel}</ScreenReaderContent>}
+                renderLabel={<ScreenReaderContent>{emailLabel}</ScreenReaderContent>}
                 data-address={missing.address}
                 onChange={this.onNewForMissingChange}
                 value={missing.newUserInfo.email || ''}
@@ -220,13 +222,9 @@ class MissingPeopleSection extends React.Component {
               />
             </Table.Cell>
             <Table.Cell colSpan="2">
-              <Button
-                variant="link"
-                onClick={this.onSelectNewForMissing}
-                data-address={missing.address}
-              >
+              <CondensedButton onClick={this.onSelectNewForMissing} data-address={missing.address}>
                 {namePrompt}
-              </Button>
+              </CondensedButton>
             </Table.Cell>
             <Table.RowHeader>{missing.address}</Table.RowHeader>
           </Table.Row>
@@ -270,11 +268,11 @@ class MissingPeopleSection extends React.Component {
             </Table.Cell>
             <Table.Cell>
               <TextInput
-                required
+                isRequired
                 name="name"
                 type="text"
                 placeholder={nameLabel}
-                label={<ScreenReaderContent>{nameLabel}</ScreenReaderContent>}
+                renderLabel={<ScreenReaderContent>{nameLabel}</ScreenReaderContent>}
                 data-address={missing.address}
                 onChange={this.onNewForMissingChange}
                 value={missing.newUserInfo.name || ''}
@@ -299,14 +297,13 @@ class MissingPeopleSection extends React.Component {
               />
             </Table.Cell>
             <Table.Cell>
-              <Button
-                variant="link"
+              <CondensedButton
                 onClick={this.onSelectNewForMissing}
                 data-address={missing.address}
-                theme={{mediumPadding: '0', mediumHeight: 'normal'}}
+                theme={{mediumPaddingHorizontal: '0', mediumHeight: 'normal'}}
               >
                 {namePrompt}
-              </Button>
+              </CondensedButton>
             </Table.Cell>
             <Table.RowHeader>{missing.address}</Table.RowHeader>
           </Table.Row>

@@ -31,8 +31,9 @@ import numberFormat from '@canvas/i18n/numberFormat'
 import '@canvas/datetime'
 import '@canvas/jquery/jquery.instructure_misc_helpers'
 import '@canvas/jquery/jquery.instructure_misc_plugins'
-import 'translations/_core_en'
-import I18n from 'i18n!handlebars_helpers' # 'i18n!handlebars_helpers' sets the scope for the I18n.t calls
+import {useScope as useI18nScope} from '@canvas/i18n'
+
+I18n = useI18nScope('handlebars_helpers')
 
 Handlebars = _Handlebars.default
 
@@ -131,6 +132,10 @@ Handlebars.registerHelper name, fn for name, fn of {
   datetimeFormatted : (datetime) ->
     $.datetimeString(datetime)
 
+  datetimeFormattedWithTz: (datetime) ->
+    date = tz.parse(datetime)
+    tz.format(date, 'date.formats.full')
+
   # Strips the time information from the datetime and accounts for the user's
   # timezone preference. expects: anything tz() can handle
   dateString : (datetime) ->
@@ -198,10 +203,11 @@ Handlebars.registerHelper name, fn for name, fn of {
 
   # convert an event date and time to a string using the given date and time format specifiers
   tEventToString : (date = '', i18n_date_format = 'short', i18n_time_format = 'tiny') ->
-    I18nObj.t 'time.event',
-      defaultValue: '%{date} at %{time}',
-      date: I18nObj.l "date.formats.#{i18n_date_format}", date
-      time: I18nObj.l "time.formats.#{i18n_time_format}", date
+    if (date)
+      I18nObj.t 'time.event',
+        defaultValue: '%{date} at %{time}',
+        date: I18nObj.l "date.formats.#{i18n_date_format}", date
+        time: I18nObj.l "time.formats.#{i18n_time_format}", date
 
   # formats a date as a string, using the given i18n format string
   strftime : (date = '', fmtstr) ->
@@ -482,6 +488,9 @@ Handlebars.registerHelper name, fn for name, fn of {
         ''
     else
       if thing then 'checked' else ''
+
+  checkedIfNullOrUndef: ( thing ) ->
+    if thing == null || thing == undefined then 'checked' else ''
 
   selectedIf: ( thing, thingToCompare, hash ) ->
     if arguments.length == 3

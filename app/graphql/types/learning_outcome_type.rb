@@ -20,6 +20,8 @@
 
 module Types
   class LearningOutcomeType < ApplicationObjectType
+    include OutcomesFeaturesHelper
+
     class AssessedLoader < GraphQL::Batch::Loader
       def perform(outcomes)
         assessed_ids = LearningOutcomeResult.active.where(learning_outcome_id: outcomes).distinct.pluck(:learning_outcome_id)
@@ -31,6 +33,7 @@ module Types
 
     class ImportedLoader < GraphQL::Batch::Loader
       def initialize(target_context_id, target_context_type)
+        super()
         @target_context_id = target_context_id
         @target_context_type = target_context_type.downcase.capitalize
       end
@@ -46,7 +49,7 @@ module Types
       end
     end
 
-    alias outcome object
+    alias_method :outcome, :object
     implements GraphQL::Types::Relay::Node
     implements Interfaces::LegacyIDInterface
     implements Interfaces::TimestampInterface
@@ -59,6 +62,33 @@ module Types
     field :description, String, null: true
     field :display_name, String, null: true
     field :vendor_guid, String, null: true
+    field :calculation_method, String, null: true
+    field :calculation_int, Integer, null: true
+
+    field :calculation_method, String, null: true
+    def calculation_method
+      outcome.calculation_method unless account_level_mastery_scales_enabled?(outcome.context)
+    end
+
+    field :calculation_int, Integer, null: true
+    def calculation_int
+      outcome.calculation_int unless account_level_mastery_scales_enabled?(outcome.context)
+    end
+
+    field :mastery_points, Float, null: true
+    def mastery_points
+      outcome.mastery_points unless account_level_mastery_scales_enabled?(outcome.context)
+    end
+
+    field :points_possible, Float, null: true
+    def points_possible
+      outcome.points_possible unless account_level_mastery_scales_enabled?(outcome.context)
+    end
+
+    field :ratings, [Types::ProficiencyRatingType], null: true
+    def ratings
+      outcome.rubric_criterion[:ratings] unless account_level_mastery_scales_enabled?(outcome.context)
+    end
 
     field :can_edit, Boolean, null: false
     def can_edit
@@ -94,6 +124,14 @@ module Types
       ).load(
         object.id
       )
+    end
+
+    field :alignments, [Types::OutcomeAlignmentType], null: true do
+      argument :context_id, ID, required: true
+      argument :context_type, String, required: true
+    end
+    def alignments(context_id:, context_type:)
+      Loaders::OutcomeAlignmentLoader.for(context_id, context_type).load(outcome)
     end
 
     private

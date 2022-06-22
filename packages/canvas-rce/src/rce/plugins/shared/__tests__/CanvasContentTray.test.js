@@ -20,7 +20,7 @@ import React from 'react'
 import {act, render, waitFor, waitForElementToBeRemoved} from '@testing-library/react'
 
 import Bridge from '../../../../bridge/Bridge'
-import * as fakeSource from '../../../../sidebar/sources/fake'
+import * as fakeSource from '../../../../rcs/fake'
 import CanvasContentTray from '../CanvasContentTray'
 
 jest.mock('../../../../canvasFileBrowser/FileBrowser', () => {
@@ -113,9 +113,9 @@ describe('RCE Plugins > CanvasContentTray', () => {
       expect(getTrayLabel()).toEqual('User Documents')
     })
 
-    it('is labeled with "Buttons and Icons" when using the "list_buttons_and_icons" content type', async () => {
-      await showTrayForPlugin('list_buttons_and_icons')
-      expect(getTrayLabel()).toEqual('Buttons and Icons')
+    it('is labeled with "Icon Maker Icons" when using the "list_icon_maker_icons" content type', async () => {
+      await showTrayForPlugin('list_icon_maker_icons')
+      expect(getTrayLabel()).toEqual('Icon Maker Icons')
     })
   })
 
@@ -170,8 +170,8 @@ describe('RCE Plugins > CanvasContentTray', () => {
       )
     })
 
-    it('is the images panel for button and icons content types', async () => {
-      await showTrayForPlugin('list_buttons_and_icons')
+    it('is the images panel for icon maker content types', async () => {
+      await showTrayForPlugin('list_icon_maker_icons')
       await waitFor(() =>
         expect(component.getByTestId('instructure_links-ImagesPanel')).toBeInTheDocument()
       )

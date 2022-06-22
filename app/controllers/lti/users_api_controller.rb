@@ -21,7 +21,7 @@ module Lti
   # @API Plagiarism Detection Platform Users
   # **Plagiarism Detection Platform API for Users (Must use <a href="jwt_access_tokens.html">JWT access tokens</a> with this API).**
   class UsersApiController < ApplicationController
-    include Lti::Ims::AccessTokenHelper
+    include Lti::IMS::AccessTokenHelper
     include Api::V1::User
 
     skip_before_action :load_user
@@ -29,24 +29,24 @@ module Lti
     before_action :user_in_context, only: :show
     before_action :tool_in_context, only: :group_index
 
-    USER_SERVICE = 'vnd.Canvas.User'.freeze
-    GROUP_INDEX_SERVICE = 'vnd.Canvas.GroupIndex'.freeze
+    USER_SERVICE = "vnd.Canvas.User"
+    GROUP_INDEX_SERVICE = "vnd.Canvas.GroupIndex"
     SERVICE_DEFINITIONS = [
       {
         id: USER_SERVICE,
-        endpoint: 'api/lti/users/{user_id}',
-        format: ['application/json'].freeze,
-        action: ['GET'].freeze
+        endpoint: "api/lti/users/{user_id}",
+        format: ["application/json"].freeze,
+        action: ["GET"].freeze
       }.freeze,
       {
         id: GROUP_INDEX_SERVICE,
-        endpoint: 'api/lti/groups/{group_id}/users',
-        format: ['application/json'].freeze,
-        action: ['GET'].freeze
+        endpoint: "api/lti/groups/{group_id}/users",
+        format: ["application/json"].freeze,
+        action: ["GET"].freeze
       }.freeze
     ].freeze
 
-    USER_INCLUDES = %w(email lti_id).freeze
+    USER_INCLUDES = %w[email lti_id].freeze
 
     def lti2_service_name
       USER_SERVICE
@@ -96,14 +96,10 @@ module Lti
 
     def user_in_context
       tool_proxy_assignments = AssignmentConfigurationToolLookup.by_tool_proxy_scope(tool_proxy).select(:assignment_id)
-      user_visible_to_proxy = user.enrollments
-                                  .joins(course: :assignments)
-                                  .where(assignments: { id: tool_proxy_assignments })
-                                  .where.not(
-                                    courses: { workflow_state: 'deleted' },
-                                    assignments: { workflow_state: 'deleted' }
-                                  )
-                                  .exists?
+      user_visible_to_proxy = Enrollment.joins(course: :assignments)
+                                        .where(user: user, assignments: { id: tool_proxy_assignments })
+                                        .merge(Course.active).merge(Assignment.active)
+                                        .exists?
       render_unauthorized_action unless user_visible_to_proxy
     end
   end

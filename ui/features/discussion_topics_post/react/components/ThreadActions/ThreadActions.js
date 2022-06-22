@@ -16,7 +16,7 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import I18n from 'i18n!discussion_posts'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import PropTypes from 'prop-types'
 import React, {useMemo} from 'react'
 
@@ -29,12 +29,16 @@ import {
   IconTrashLine,
   IconSpeedGraderLine,
   IconMarkAsReadSolid,
-  IconMarkAsReadLine
+  IconMarkAsReadLine,
+  IconWarningBorderlessSolid,
+  IconReplyAll2Line
 } from '@instructure/ui-icons'
 
 import {IconButton} from '@instructure/ui-buttons'
 import {Text} from '@instructure/ui-text'
 import {Flex} from '@instructure/ui-flex'
+
+const I18n = useI18nScope('discussion_posts')
 
 // Reason: <Menu> in v6 of InstUI requires a ref to bind too or errors
 // are produced by the menu causing the page to scroll all over the place
@@ -47,10 +51,13 @@ export const ThreadActions = props => {
       onToggleUnread: props.onToggleUnread,
       goToTopic: props.goToTopic,
       goToParent: props.goToParent,
+      goToQuotedReply: props.goToQuotedReply,
       onEdit: props.onEdit,
       onDelete: props.onDelete,
       onOpenInSpeedGrader: props.onOpenInSpeedGrader,
-      onMarkThreadAsRead: props.onMarkThreadAsRead
+      onMarkThreadAsRead: props.onMarkThreadAsRead,
+      onReport: props.onReport,
+      isReported: props.isReported
     }).map(config => renderMenuItem({...config}, props.id))
   }, [props])
 
@@ -62,14 +69,18 @@ export const ThreadActions = props => {
             placement="bottom"
             key={`threadActionMenu-${props.id}`}
             trigger={
-              <IconButton
-                size="small"
-                screenReaderLabel={I18n.t('Manage Discussion')}
-                renderIcon={IconMoreLine}
-                withBackground={false}
-                withBorder={false}
-                data-testid="thread-actions-menu"
-              />
+              <span className="discussion-thread-action-button">
+                <IconButton
+                  size="small"
+                  screenReaderLabel={I18n.t('Manage Discussion by %{author}', {
+                    author: props.authorName
+                  })}
+                  renderIcon={IconMoreLine}
+                  withBackground={false}
+                  withBorder={false}
+                  data-testid="thread-actions-menu"
+                />
+              </span>
             }
           >
             {menuItems}
@@ -149,6 +160,14 @@ const getMenuConfigs = props => {
       selectionCallback: props.goToParent
     })
   }
+  if (props.goToQuotedReply) {
+    options.push({
+      key: 'toQuotedReply',
+      icon: <IconReplyAll2Line />,
+      label: I18n.t('Go To Quoted Reply'),
+      selectionCallback: props.goToQuotedReply
+    })
+  }
   if (props.onEdit) {
     options.push({
       key: 'edit',
@@ -173,27 +192,53 @@ const getMenuConfigs = props => {
       selectionCallback: props.onOpenInSpeedGrader
     })
   }
+  if (props.onReport) {
+    options.push({
+      key: 'separator',
+      separator: true
+    })
+    options.push({
+      key: 'report',
+      icon: <IconWarningBorderlessSolid />,
+      label: props.isReported ? I18n.t('Reported') : I18n.t('Report'),
+      selectionCallback: props.onReport,
+      disabled: props.isReported
+    })
+  }
   return options
 }
 
-const renderMenuItem = ({selectionCallback, icon, label, key}, id) => (
-  <Menu.Item
-    key={`${key}-${id}`}
-    onSelect={() => {
-      selectionCallback(key)
-    }}
-    data-testid={key}
-  >
-    <Flex>
-      <Flex.Item>{icon}</Flex.Item>
-      <Flex.Item padding="0 0 0 xx-small">
-        <Text>{label}</Text>
-      </Flex.Item>
-    </Flex>
-  </Menu.Item>
-)
+const renderMenuItem = (
+  {selectionCallback, icon, label, key, separator = false, disabled = false, color},
+  id
+) => {
+  return separator ? (
+    <Menu.Separator key={key} />
+  ) : (
+    <Menu.Item
+      key={`${key}-${id}`}
+      onSelect={() => {
+        selectionCallback(key)
+      }}
+      data-testid={key}
+      disabled={disabled}
+    >
+      <span className={`discussion-thread-menuitem-${key}`}>
+        <Text color={color}>
+          <Flex>
+            <Flex.Item>{icon}</Flex.Item>
+            <Flex.Item padding="0 0 0 xx-small">
+              <Text>{label}</Text>
+            </Flex.Item>
+          </Flex>
+        </Text>
+      </span>
+    </Menu.Item>
+  )
+}
 
 ThreadActions.propTypes = {
+  authorName: PropTypes.string,
   id: PropTypes.string.isRequired,
   onMarkAllAsUnread: PropTypes.func,
   onMarkAllAsRead: PropTypes.func,
@@ -202,15 +247,19 @@ ThreadActions.propTypes = {
   isUnread: PropTypes.bool,
   goToTopic: PropTypes.func,
   goToParent: PropTypes.func,
+  goToQuotedReply: PropTypes.func,
   onEdit: PropTypes.func,
   onDelete: PropTypes.func,
   onOpenInSpeedGrader: PropTypes.func,
+  onReport: PropTypes.func,
+  isReported: PropTypes.bool,
   isSearch: PropTypes.bool
 }
 
 ThreadActions.defaultProps = {
   isUnread: false,
-  isSearch: false
+  isSearch: false,
+  isReported: false
 }
 
 export default ThreadActions

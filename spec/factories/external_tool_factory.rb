@@ -20,10 +20,10 @@
 
 module Factories
   BASE_ATTRS = {
-    :name => "a",
-    :url => "http://google.com",
-    :consumer_key => '12345',
-    :shared_secret => 'secret'
+    name: "a",
+    url: "http://google.com",
+    consumer_key: "12345",
+    shared_secret: "secret"
   }.freeze
 
   def external_tool_model(context: nil, opts: {})
@@ -31,5 +31,11 @@ module Factories
     context.context_external_tools.create(
       BASE_ATTRS.merge(opts)
     )
+  end
+
+  def external_tool_1_3_model(context: nil, opts: {}, developer_key: nil)
+    developer_key ||= DeveloperKey.create!
+    opts = { developer_key_id: developer_key.id, use_1_3: true }.merge(opts)
+    external_tool_model(context: context, opts: opts)
   end
 end

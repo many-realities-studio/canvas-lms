@@ -23,7 +23,7 @@
 </div>
 <% end %>
 <%# Use the legacy to do list for non-students until it works for those roles %>
-<% if planner_enabled? && !@current_user.non_student_enrollment? %>
+<% if planner_enabled? && !@user.non_student_enrollment? %>
   <div class="Sidebar__TodoListContainer"></div>
 <% else %>
   <%= render :partial => 'courses/to_do_list', :locals => {:contexts => nil, :show_legacy_todo_list => true} %>
@@ -45,7 +45,11 @@
             id="start_new_course"
             class="element_toggler btn button-sidebar-wide"
             aria-controls="new_course_form"><%= t('start_new_course', 'Start a New Course') %></button>
-    <%= render :partial => 'shared/new_course_form' %>
+    <% if @domain_root_account.feature_enabled?(:create_course_subaccount_picker) %>
+      <div id="create_course_modal_container"></div>
+    <% else %>
+      <%= render :partial => 'shared/new_course_form' %>
+    <% end %>
   <% end %>
 
   <a href="<%= grades_path %>" class="Button button-sidebar-wide">

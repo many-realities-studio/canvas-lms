@@ -94,43 +94,45 @@ module Schemas::Lti
                       "properties" => {
                         "placement" => {
                           "type" => "string",
-                          "enum" => [
-                            "account_navigation",
-                            "similarity_detection",
-                            "assignment_edit",
-                            "assignment_group_menu",
-                            "assignment_index_menu",
-                            "assignment_menu",
-                            "assignment_selection",
-                            "assignment_view",
-                            "collaboration",
-                            "conference_selection",
-                            "course_assignments_menu",
-                            "course_home_sub_navigation",
-                            "course_navigation",
-                            "course_settings_sub_navigation",
-                            "discussion_topic_menu",
-                            "discussion_topic_index_menu",
-                            "editor_button",
-                            "file_menu",
-                            "file_index_menu",
-                            "global_navigation",
-                            "homework_submission",
-                            "link_selection",
-                            "migration_selection",
-                            "module_group_menu",
-                            "module_index_menu",
-                            "module_menu",
-                            "post_grades",
-                            "quiz_index_menu",
-                            "quiz_menu",
-                            "resource_selection",
-                            "submission_type_selection",
-                            "student_context_card",
-                            "tool_configuration",
-                            "user_navigation",
-                            "wiki_index_menu",
-                            "wiki_page_menu"
+                          "enum" => %w[
+                            account_navigation
+                            similarity_detection
+                            assignment_edit
+                            assignment_group_menu
+                            assignment_index_menu
+                            assignment_menu
+                            assignment_selection
+                            assignment_view
+                            collaboration
+                            conference_selection
+                            course_assignments_menu
+                            course_home_sub_navigation
+                            course_navigation
+                            course_settings_sub_navigation
+                            discussion_topic_menu
+                            discussion_topic_index_menu
+                            editor_button
+                            file_menu
+                            file_index_menu
+                            global_navigation
+                            homework_submission
+                            link_selection
+                            migration_selection
+                            module_group_menu
+                            module_index_menu
+                            module_index_menu_modal
+                            module_menu
+                            module_menu_modal
+                            post_grades
+                            quiz_index_menu
+                            quiz_menu
+                            resource_selection
+                            submission_type_selection
+                            student_context_card
+                            tool_configuration
+                            user_navigation
+                            wiki_index_menu
+                            wiki_page_menu
                           ].freeze
                         }.freeze,
                         "target_link_uri" => {
@@ -149,11 +151,8 @@ module Schemas::Lti
                             "LtiResourceLinkRequest"
                           ].freeze
                         }.freeze,
-                        "canvas_icon_class": {
-                          "type" => "string",
-                          "enum" => [
-                            "icon-lti"
-                          ].freeze
+                        "canvas_icon_class" => {
+                          "type" => "string"
                         }.freeze,
                         "selection_width" => {
                           "type" => "number"
@@ -168,11 +167,11 @@ module Schemas::Lti
               }.freeze,
               "privacy_level" => {
                 "type" => "string",
-                "enum" => [
-                  "public",
-                  "email_only",
-                  "name_only",
-                  "anonymous"
+                "enum" => %w[
+                  public
+                  email_only
+                  name_only
+                  anonymous
                 ].freeze
               }.freeze
             }.freeze
@@ -185,7 +184,7 @@ module Schemas::Lti
           "type" => "string"
         }.freeze,
         "custom_fields" => {
-          "anyOf": [
+          "anyOf" => [
             { "type" => "string" }.freeze,
             { "type" => "object" }.freeze
           ].freeze

@@ -34,7 +34,8 @@ import * as contentInsertion from './contentInsertion'
 import indicatorRegion from './indicatorRegion'
 import editorLanguage from './editorLanguage'
 import normalizeLocale from './normalizeLocale'
-import {sanitizePlugins} from './sanitizeEditorOptions'
+import {sanitizePlugins} from './sanitizePlugins'
+import {getCanvasUrl} from './getCanvasUrl'
 
 import indicate from '../common/indicate'
 import bridge from '../bridge'
@@ -122,10 +123,10 @@ export const editorOptionsPropType = PropTypes.shape({
 // see https://gerrit.instructure.com/c/canvas-lms/+/263299/2/packages/canvas-rce/src/rce/RCEWrapper.js#50
 // for an `import` style solution
 const styles = require('../skins/skin-delta.css')
-const skinCSS = require('../../node_modules/tinymce/skins/ui/oxide/skin.min.css')
+const skinCSS = require('../../../../node_modules/tinymce/skins/ui/oxide/skin.min.css')
   .template()
   .replace(/tinymce__oxide--/g, '')
-const contentCSS = require('../../node_modules/tinymce/skins/ui/oxide/content.css')
+const contentCSS = require('../../../../node_modules/tinymce/skins/ui/oxide/content.css')
   .template()
   .replace(/tinymce__oxide--/g, '')
 
@@ -273,10 +274,7 @@ class RCEWrapper extends React.Component {
     instRecordDisabled: PropTypes.bool,
     highContrastCSS: PropTypes.arrayOf(PropTypes.string),
     maxInitRenderedRCEs: PropTypes.number,
-    // feature flag related props
-    use_rce_pretty_html_editor: PropTypes.bool,
-    use_rce_buttons_and_icons: PropTypes.bool,
-    use_rce_a11y_checker_notifications: PropTypes.bool
+    use_rce_icon_maker: PropTypes.bool
   }
 
   static defaultProps = {
@@ -325,7 +323,8 @@ class RCEWrapper extends React.Component {
       path: [],
       wordCount: 0,
       editorView: props.editorView || WYSIWYG_VIEW,
-      shouldShowOnFocusButton: (props.renderKBShortcutModal === undefined ? true : props.renderKBShortcutModal),
+      shouldShowOnFocusButton:
+        props.renderKBShortcutModal === undefined ? true : props.renderKBShortcutModal,
       KBShortcutModalOpen: false,
       messages: [],
       announcement: null,
@@ -367,6 +366,20 @@ class RCEWrapper extends React.Component {
         // eslint-disable-next-line no-console
         console.error('Failed initializing a11y checker', err)
       })
+  }
+
+  getCanvasUrl() {
+    if (!this.canvasUrl) this.canvasUrl = getCanvasUrl(this.props.trayProps)
+
+    return this.canvasUrl.then(url => {
+      if (!url) {
+        console.warn(
+          'Could not determine Canvas base URL.',
+          'Content will be referenced by relative URL.'
+        )
+      }
+      return url
+    })
   }
 
   // getCode and setCode naming comes from tinyMCE
@@ -595,6 +608,11 @@ class RCEWrapper extends React.Component {
     this.contentInserted(element)
   }
 
+  insertMathEquation(tex) {
+    const editor = this.mceInstance()
+    return this.getCanvasUrl().then(domain => contentInsertion.insertEquation(editor, tex, domain))
+  }
+
   removePlaceholders(name) {
     const placeholder = this.mceInstance().dom.doc.querySelector(
       `[data-placeholder-for="${encodeURIComponent(name)}"]`
@@ -681,11 +699,7 @@ class RCEWrapper extends React.Component {
     let newState
     switch (this.state.editorView) {
       case WYSIWYG_VIEW:
-        if (this.props.use_rce_pretty_html_editor) {
-          newState = {editorView: newView || PRETTY_HTML_EDITOR_VIEW}
-        } else {
-          newState = {editorView: RAW_HTML_EDITOR_VIEW}
-        }
+        newState = {editorView: newView || PRETTY_HTML_EDITOR_VIEW}
         break
       case PRETTY_HTML_EDITOR_VIEW:
         newState = {editorView: newView || WYSIWYG_VIEW}
@@ -864,10 +878,12 @@ class RCEWrapper extends React.Component {
           return
         }
 
-        const popup = document.querySelector('[data-mce-component]')
-        if (popup && popup.contains(document.activeElement)) {
-          // one of our popups has focus
-          return
+        const popups = document.querySelectorAll('[data-mce-component]')
+        for (const popup of popups) {
+          if (popup.contains(document.activeElement)) {
+            // one of our popups has focus
+            return
+          }
         }
 
         bridge.blurEditor(this)
@@ -925,10 +941,12 @@ class RCEWrapper extends React.Component {
     if (event.code === 'F9' && event.altKey) {
       event.preventDefault()
       event.stopPropagation()
+      this.setFocusAbilityForHeader(true);
       focusFirstMenuButton(this._elementRef.current)
     } else if (event.code === 'F10' && event.altKey) {
       event.preventDefault()
       event.stopPropagation()
+      this.setFocusAbilityForHeader(true);
       focusToolbar(this._elementRef.current)
     } else if ((event.code === 'F8' || event.code === 'Digit0') && event.altKey) {
       event.preventDefault()
@@ -992,6 +1010,19 @@ class RCEWrapper extends React.Component {
       tinyapp.setAttribute('role', 'document')
       tinyapp.setAttribute('tabIndex', '-1')
     }
+
+    // Adds a focusout event listener for handling screen reader navigation focus
+    const header = this._elementRef.current.querySelector('.tox-editor-header')
+    if (header) {
+      header.addEventListener('focusout', e => {
+        const leavingHeader = !header.contains(e.relatedTarget)
+        if (leavingHeader) {
+          this.setFocusAbilityForHeader(false)
+        }
+      });
+    }
+    this.setFocusAbilityForHeader(false)
+
     // Probably should do this in tinymce.scss, but we only want it in new rce
     textarea.style.resize = 'none'
     editor.on('ExecCommand', this._forceCloseFloatingToolbar)
@@ -1001,9 +1032,7 @@ class RCEWrapper extends React.Component {
     // document. We need this so that click events get captured properly by instui
     // focus-trapping components, so they properly ignore trapping focus on click.
     editor.on('click', () => window.top.document.body.click(), true)
-    if (this.props.use_rce_a11y_checker_notifications) {
-      editor.on('Cut Paste Change input Undo Redo', debounce(this.handleInputChange, 1000))
-    }
+    editor.on('Cut Paste Change input Undo Redo', debounce(this.handleInputChange, 1000))
     this.announceContextToolbars(editor)
 
     if (this.isAutoSaving) {
@@ -1016,6 +1045,13 @@ class RCEWrapper extends React.Component {
     // readonly should have been handled via the init property passed
     // to <Editor>, but it's not.
     editor.mode.set(this.props.readOnly ? 'readonly' : 'design')
+
+    // Not using iframe_aria_text because compatibility issues.
+    // Not using iframe_attrs because library overwriting.
+    if (this.iframe) {
+      this.iframe.setAttribute('title', formatMessage(
+        'Rich Text Area. Press ALT+0 for Rich Content Editor shortcuts.'))
+    }
 
     this.props.onInitted?.(editor)
   }
@@ -1324,9 +1360,6 @@ class RCEWrapper extends React.Component {
   }
 
   checkAccessibility = () => {
-    if (!this.props.use_rce_a11y_checker_notifications) {
-      return
-    }
     const editor = this.mceInstance()
     editor.execCommand(
       'checkAccessibility',
@@ -1351,7 +1384,7 @@ class RCEWrapper extends React.Component {
     this.setState({KBShortcutModalOpen: false})
   }
 
-  KBShortcutModalClosed = () => {
+  KBShortcutModalExited = () => {
     if (this.state.KBShortcutFocusReturn === this.iframe) {
       // if the iframe has focus, we need to forward it on to tinymce
       this.editor.focus(false)
@@ -1359,6 +1392,16 @@ class RCEWrapper extends React.Component {
       // when the modal is opened from the showOnFocus button, focus doesn't
       // get automatically returned to the button like it should.
       this._showOnFocusButton.focus()
+    } else {
+      this._showOnFocusButton?.focus()
+    }
+  }
+
+  setFocusAbilityForHeader = (focusable) => {
+    // Sets aria-hidden to prevent screen readers focus in RCE menus and toolbar
+    const header = this._elementRef.current.querySelector('.tox-editor-header')
+    if (header) {
+      header.setAttribute('aria-hidden', focusable ? 'false' : 'true')
     }
   }
 
@@ -1394,10 +1437,10 @@ class RCEWrapper extends React.Component {
 
     if (
       rcsExists &&
-      this.props.use_rce_buttons_and_icons &&
+      this.props.use_rce_icon_maker &&
       this.props.trayProps?.contextType === 'course'
     ) {
-      canvasPlugins.push('instructure_buttons')
+      canvasPlugins.push('instructure_icon_maker')
     }
 
     const possibleNewMenubarItems = this.props.editorOptions.menu
@@ -1461,7 +1504,7 @@ class RCEWrapper extends React.Component {
           insert: {
             title: formatMessage('Insert'),
             items:
-              'instructure_links instructure_image instructure_media instructure_document instructure_buttons | instructure_equation inserttable instructure_media_embed | hr'
+              'instructure_links instructure_image instructure_media instructure_document instructure_icon_maker | instructure_equation inserttable instructure_media_embed | hr'
           },
           tools: {title: formatMessage('Tools'), items: 'wordcount lti_tools_menuitem'},
           view: {title: formatMessage('View'), items: 'fullscreen instructure_html_view'}
@@ -1494,7 +1537,7 @@ class RCEWrapper extends React.Component {
               'instructure_image',
               'instructure_record',
               'instructure_documents',
-              'instructure_buttons'
+              'instructure_icon_maker'
             ]
           },
           {
@@ -1527,6 +1570,7 @@ class RCEWrapper extends React.Component {
           'link',
           'directionality',
           'lists',
+          'textpattern',
           'hr',
           'fullscreen',
           'instructure-ui-icons',
@@ -1540,7 +1584,11 @@ class RCEWrapper extends React.Component {
           ...canvasPlugins
         ],
         sanitizePlugins(options.plugins)
-      )
+      ),
+      textpattern_patterns: [
+        {start: '* ', cmd: 'InsertUnorderedList'},
+        {start: '- ', cmd: 'InsertUnorderedList'}
+      ]
     }
 
     if (this.props.trayProps) {
@@ -1706,8 +1754,6 @@ class RCEWrapper extends React.Component {
   }
 
   renderHtmlEditor() {
-    if (!this.props.use_rce_pretty_html_editor) return null
-
     // the div keeps the editor from collapsing while the code editor is downloaded
     return (
       <Suspense
@@ -1809,8 +1855,6 @@ class RCEWrapper extends React.Component {
           onKBShortcutModalOpen={this.openKBShortcutModal}
           onA11yChecker={this.onA11yChecker}
           onFullscreen={this.handleClickFullscreen}
-          use_rce_pretty_html_editor={this.props.use_rce_pretty_html_editor}
-          use_rce_a11y_checker_notifications={this.props.use_rce_a11y_checker_notifications}
           a11yBadgeColor={this.theme.canvasBadgeBackgroundColor}
           a11yErrorsCount={this.state.a11yErrorsCount}
         />
@@ -1820,12 +1864,12 @@ class RCEWrapper extends React.Component {
             bridge={bridge}
             editor={this}
             onTrayClosing={this.handleContentTrayClosing}
-            use_rce_buttons_and_icons={this.props.use_rce_buttons_and_icons}
+            use_rce_icon_maker={this.props.use_rce_icon_maker}
             {...trayProps}
           />
         )}
         <KeyboardShortcutModal
-          onClose={this.KBShortcutModalClosed}
+          onExited={this.KBShortcutModalExited}
           onDismiss={this.closeKBShortcutModal}
           open={this.state.KBShortcutModalOpen}
         />

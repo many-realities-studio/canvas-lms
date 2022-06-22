@@ -16,7 +16,7 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import I18n from 'i18n!conversations'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import $ from 'jquery'
 import _ from 'underscore'
 import Backbone from '@canvas/backbone'
@@ -35,6 +35,9 @@ import React from 'react'
 import ReactDOM from 'react-dom'
 import {decodeQueryString} from 'query-string-encoding'
 import ConversationStatusFilter from './react/ConversationStatusFilter'
+import ready from '@instructure/ready'
+
+const I18n = useI18nScope('conversations')
 
 const ConversationsRouter = Backbone.Router.extend({
   routes: {
@@ -198,7 +201,7 @@ const ConversationsRouter = Backbone.Router.extend({
       $(trigger).focus()
       return
     }
-    const messages = this.batchUpdate(action, function(m) {
+    const messages = this.batchUpdate(action, function (m) {
       const newState = action === 'mark_as_read' ? 'read' : 'archived'
       m.set('workflow_state', newState)
       this.header.onArchivedStateChange(m)
@@ -220,8 +223,7 @@ const ConversationsRouter = Backbone.Router.extend({
   onDelete(focusNext, trigger) {
     const confirmMsg = I18n.t(
       {
-        one:
-          'Are you sure you want to delete your copy of this conversation? This action cannot be undone.',
+        one: 'Are you sure you want to delete your copy of this conversation? This action cannot be undone.',
         other:
           'Are you sure you want to delete your copy of these conversations? This action cannot be undone.'
       },
@@ -345,7 +347,7 @@ const ConversationsRouter = Backbone.Router.extend({
   //
   // Returns a boolean.
   _isRemoteLaunch() {
-    return !!window.location.search.match(/user_id/)
+    return !!window.location.search.match(/user_id/);
   },
 
   // Internal: Open and populate the new message dialog from a remote launch.
@@ -559,5 +561,7 @@ const ConversationsRouter = Backbone.Router.extend({
   }
 })
 
-window.conversationsRouter = new ConversationsRouter()
-Backbone.history.start()
+ready(() => {
+  window.conversationsRouter = new ConversationsRouter()
+  Backbone.history.start()
+})

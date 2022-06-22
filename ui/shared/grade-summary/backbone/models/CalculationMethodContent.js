@@ -15,8 +15,10 @@
 // with this program. If not, see <http://www.gnu.org/licenses/>.
 
 import _ from 'underscore'
-import I18n from 'i18n!CalculationMethodContent'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import numberFormat from '@canvas/i18n/numberFormat'
+
+const I18n = useI18nScope('CalculationMethodContent')
 
 _.mixin({
   sum(array, accessor = null, start = 0) {
@@ -68,11 +70,25 @@ class NMastery {
   }
 }
 
+class Average {
+  constructor(range) {
+    this.range = range
+  }
+
+  value() {
+    if (this.range.length > 0) {
+      return Math.round((_.sum(this.range) / this.range.length) * 100) / 100
+    } else {
+      return I18n.t('N/A')
+    }
+  }
+}
+
 export default class CalculationMethodContent {
   constructor(model) {
     // We can pass in a straight object or a backbone model
     _.each(
-      ['calculation_method', 'calculation_int', 'mastery_points'],
+      ['calculation_method', 'calculation_int', 'mastery_points', 'is_individual_outcome'],
       attr => (this[attr] = model.get != null ? model.get(attr) : model[attr])
     )
   }
@@ -82,7 +98,7 @@ export default class CalculationMethodContent {
   }
 
   exampleScoreIntegers() {
-    return [1, 4, 2, 3, 5, 3, 6]
+    return [1, 4, 2, 3, 5, 3, 6, 1, 4, 2, 3, 5, 3, 6]
   }
 
   nMastery() {
@@ -93,20 +109,73 @@ export default class CalculationMethodContent {
     ).value()
   }
 
+  average(range) {
+    return new Average(range).value()
+  }
+
   present() {
     return this.toJSON()[this.calculation_method]
   }
 
   toJSON() {
+    const outcomeAllowAverageCalculationFF = ENV.OUTCOME_AVERAGE_CALCULATION
+    const alternativeCalculationValues = this.is_individual_outcome
+      ? {
+          decaying_average: {
+            method: I18n.t('Decaying Average - %{recentInt}%/%{remainderInt}%', {
+              recentInt: this.calculation_int,
+              remainderInt: 100 - this.calculation_int
+            }),
+            calculationIntLabel: I18n.t('% weighting for last item'),
+            calculationIntDescription: I18n.t('must be between 1 and 99')
+          },
+          n_mastery: {
+            calculationIntLabel: I18n.t('# of times'),
+            calculationIntDescription: I18n.t('must be between 1 and 10')
+          },
+          latest: {
+            method: I18n.t('Most Recent Score')
+          },
+          highest: {
+            exampleScores: this.exampleScoreIntegers().join(', '),
+            exampleResult: numberFormat.outcomeScore(_.max(this.exampleScoreIntegers()))
+          },
+          average: {
+            method: I18n.t('Average')
+          }
+        }
+      : {
+          decaying_average: {
+            method: I18n.t('%{recentInt}/%{remainderInt} Decaying Average', {
+              recentInt: this.calculation_int,
+              remainderInt: 100 - this.calculation_int
+            }),
+            calculationIntLabel: I18n.t('Last Item: '),
+            calculationIntDescription: I18n.t('Between 1% and 99%')
+          },
+          n_mastery: {
+            calculationIntLabel: I18n.t('Items: '),
+            calculationIntDescription: I18n.t('Between 1 and 10')
+          },
+          latest: {
+            method: I18n.t('Latest Score')
+          },
+          highest: {
+            exampleScores: this.exampleScoreIntegers().slice(0, 4).join(', '),
+            exampleResult: numberFormat.outcomeScore(_.max(this.exampleScoreIntegers().slice(0, 4)))
+          },
+          average: {
+            method: I18n.t('Average')
+          }
+        }
+
     return {
       decaying_average: {
-        method: I18n.t('%{recentInt}/%{remainderInt} Decaying Average', {
-          recentInt: this.calculation_int,
-          remainderInt: 100 - this.calculation_int
-        }),
+        method: alternativeCalculationValues.decaying_average.method,
         friendlyCalculationMethod: I18n.t('Decaying Average'),
-        calculationIntLabel: I18n.t('Last Item: '),
-        calculationIntDescription: I18n.t('Between 1% and 99%'),
+        calculationIntLabel: alternativeCalculationValues.decaying_average.calculationIntLabel,
+        calculationIntDescription:
+          alternativeCalculationValues.decaying_average.calculationIntDescription,
         exampleText: I18n.t(
           'Most recent result counts as %{calculation_int} of mastery weight, average of all other results count as %{remainder} of weight. If there is only one result, the single score will be returned.',
           {
@@ -130,12 +199,11 @@ export default class CalculationMethodContent {
           }
         ),
         friendlyCalculationMethod: I18n.t('n Number of Times'),
-        calculationIntLabel: I18n.t('Items: '),
-        calculationIntDescription: I18n.t('Between 1 and 5'),
+        calculationIntLabel: alternativeCalculationValues.n_mastery.calculationIntLabel,
+        calculationIntDescription: alternativeCalculationValues.n_mastery.calculationIntDescription,
         exampleText: I18n.t(
           {
-            one:
-              'Must achieve mastery at least one time. Scores above mastery will be averaged to calculate final score.',
+            one: 'Must achieve mastery at least one time. Scores above mastery will be averaged to calculate final score.',
             other:
               'Must achieve mastery at least %{count} times. Scores above mastery will be averaged to calculate final score.'
           },
@@ -146,15 +214,13 @@ export default class CalculationMethodContent {
         exampleScores: this.exampleScoreIntegers().join(', '),
         exampleResult: numberFormat.outcomeScore(this.nMastery()),
         defaultInt: 5,
-        validRange: [1, 5]
+        validRange: [1, 10]
       },
       latest: {
-        method: I18n.t('Latest Score'),
+        method: alternativeCalculationValues.latest.method,
         friendlyCalculationMethod: I18n.t('Most Recent Score'),
         exampleText: I18n.t('Mastery score reflects the most recent graded assignment or quiz.'),
-        exampleScores: this.exampleScoreIntegers()
-          .slice(0, 4)
-          .join(', '),
+        exampleScores: this.exampleScoreIntegers().slice(0, 4).join(', '),
         exampleResult: numberFormat.outcomeScore(_.last(this.exampleScoreIntegers().slice(0, 4)))
       },
       highest: {
@@ -163,11 +229,25 @@ export default class CalculationMethodContent {
         exampleText: I18n.t(
           'Mastery score reflects the highest score of a graded assignment or quiz.'
         ),
-        exampleScores: this.exampleScoreIntegers()
-          .slice(0, 4)
-          .join(', '),
-        exampleResult: numberFormat.outcomeScore(_.max(this.exampleScoreIntegers().slice(0, 4)))
-      }
+        exampleScores: alternativeCalculationValues.highest.exampleScores,
+        exampleResult: alternativeCalculationValues.highest.exampleResult
+      },
+      ...(outcomeAllowAverageCalculationFF && {
+        average: {
+          method: alternativeCalculationValues.average.method,
+          friendlyCalculationMethod: I18n.t('Average'),
+          exampleText: I18n.t(
+            'Central value in a set of results. Calculated by dividing the sum of all item scores by the number of scores.'
+          ),
+          exampleWarning: I18n.t(
+            'Average is not a good fit for most outcomes-based or mastery-based learning use cases because students may need time to reach mastery of an outcome and early poorer performance can bring down an average.'
+          ),
+          exampleScores: this.exampleScoreIntegers().slice(0, 7).join(', '),
+          exampleResult: numberFormat.outcomeScore(
+            this.average(this.exampleScoreIntegers().slice(0, 7))
+          )
+        }
+      })
     }
   }
 }

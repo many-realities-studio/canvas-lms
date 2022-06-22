@@ -18,8 +18,8 @@
 
 import React, {Component} from 'react'
 import ReactDOM from 'react-dom'
-import {func, instanceOf} from 'prop-types'
-import I18n from 'i18n!ImportOutcomesModal'
+import {array, func, instanceOf} from 'prop-types'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import Modal from '@canvas/instui-bindings/react/InstuiModal'
 import {FileDrop} from '@instructure/ui-file-drop'
 import {Billboard} from '@instructure/ui-billboard'
@@ -28,6 +28,8 @@ import {Text} from '@instructure/ui-text'
 import {View} from '@instructure/ui-view'
 import {PresentationContent} from '@instructure/ui-a11y-content'
 import SVGWrapper from '@canvas/svg-wrapper'
+
+const I18n = useI18nScope('ImportOutcomesModal')
 
 export function showImportOutcomesModal(props) {
   const parent = document.createElement('div')
@@ -48,7 +50,9 @@ export default class ImportOutcomesModal extends Component {
   static propTypes = {
     parent: instanceOf(Element),
     toolbar: instanceOf(Element),
-    onFileDrop: func
+    onFileDrop: func,
+    learningOutcomeGroup: instanceOf(Object),
+    learningOutcomeGroupAncestorIds: array
   }
 
   static defaultProps = {
@@ -65,14 +69,16 @@ export default class ImportOutcomesModal extends Component {
   }
 
   onSelection(accepted, rejected) {
-    const {toolbar, onFileDrop} = this.props
+    const {toolbar, onFileDrop, learningOutcomeGroup, learningOutcomeGroupAncestorIds} = this.props
 
     if (accepted.length > 0) {
       this.hide()
       if (toolbar) {
         toolbar.trigger('start_sync', accepted[0])
       } else if (onFileDrop) {
-        onFileDrop(accepted[0])
+        // Warning! The 'id' was aliased as '_id', some layers
+        // above, in useGroupDetail.js
+        onFileDrop(accepted[0], learningOutcomeGroup?._id, learningOutcomeGroupAncestorIds)
       }
     } else if (rejected.length > 0) {
       this.setState({messages: [{text: I18n.t('Invalid file type'), type: 'error'}]})
@@ -99,7 +105,13 @@ export default class ImportOutcomesModal extends Component {
         open={this.state.show}
         onDismiss={this.onCancel}
         size="fullscreen"
-        label={I18n.t('Import Outcomes')}
+        label={
+          this.props.learningOutcomeGroup
+            ? I18n.t('Import Outcomes to "%{groupName}"', {
+                groupName: this.props.learningOutcomeGroup.title
+              })
+            : I18n.t('Import Outcomes')
+        }
       >
         <Modal.Body>
           <FileDrop

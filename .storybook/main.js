@@ -1,6 +1,5 @@
-const I18nPlugin = require('../frontend_build/i18nPlugin')
 const path = require('path')
-const baseWebpackConfig = require('../frontend_build/baseWebpackConfig')
+const baseWebpackConfig = require('../ui-build/webpack')
 
 const root = path.resolve(__dirname, '..')
 
@@ -15,9 +14,8 @@ module.exports = {
   ],
   webpackFinal: async (config) => {
     config.module.noParse = [/i18nliner\/dist\/lib\/i18nliner/]
-    config.plugins.push(new I18nPlugin())
     config.resolveLoader.modules = [
-      path.resolve(__dirname, '../frontend_build/'),
+      path.resolve(__dirname, '../ui-build/webpack'),
       'node_modules'
     ]
 

@@ -26,11 +26,10 @@ module ActiveModel
     # take a long time though.
     class InstructureHashReporter < HashReporter
       def to_hash
-        error_hash = collection.to_hash.inject({}) do |hash, (attribute, error_message_set)|
+        error_hash = collection.to_hash.each_with_object({}) do |(attribute, error_message_set), hash|
           hash[attribute] = error_message_set.map do |error_message|
             format_error_message(attribute, error_message)
           end
-          hash
         end
         { errors: error_hash }
       end
@@ -55,10 +54,10 @@ module ActiveModel
         key  = keys.shift
 
         options = {
-          :default => keys,
-          :model => base.class.name.humanize,
-          :attribute => base.class.human_attribute_name(attribute),
-          :value => value
+          default: keys,
+          model: base.class.name.humanize,
+          attribute: base.class.human_attribute_name(attribute),
+          value: value
         }.merge(self.options)
         options[:default] ||= keys
 
@@ -68,7 +67,7 @@ module ActiveModel
         end
         if result.is_a?(I18n::MissingTranslation)
           # fallback on activerecord.errors scope if translation is missing for rails 3
-          result = I18n.send(:translate, key, options.merge(:scope => [:activerecord, :errors], :throw => false))
+          result = I18n.send(:translate, key, options.merge(scope: [:activerecord, :errors], throw: false))
         end
         result
       end
@@ -110,12 +109,12 @@ module ActiveModel
       def full_message(attribute, message)
         return message if attribute == :base
 
-        str = attribute.to_s.gsub('.', '_').humanize
+        str = attribute.to_s.tr(".", "_").humanize
         str = base.class.human_attribute_name(attribute, default: str)
 
         keys = [
-          :'full_messages.format',
-          '%{attribute} %{message}'
+          :"full_messages.format",
+          "%{attribute} %{message}"
         ]
 
         I18n.send(:t,
@@ -134,7 +133,7 @@ module ActiveModel
 
     module AutosaveAssociation
       def _ensure_no_duplicate_errors
-        errors.error_collection.keys.each do |attribute|
+        errors.error_collection.each_key do |attribute|
           errors[attribute].uniq!
         end
       end
@@ -142,7 +141,7 @@ module ActiveModel
   end
 end
 
-module Rails5Errors
+module RailsErrorsExtensions
   def details
     error_collection
   end
@@ -151,9 +150,19 @@ module Rails5Errors
     @error_collection = ActiveModel::BetterErrors::ErrorCollection.new(base)
     @error_collection.instance_variable_set(:@collection, other.error_collection.instance_variable_get(:@collection).dup)
   end
+
+  def group_by_attribute
+    error_collection.instance_variable_get(:@collection)
+  end
+
+  def import(error, override_options = {})
+    attribute = override_options.key?(:attribute) ? override_options[:attribute].to_sym : error.attribute
+
+    error_collection[attribute] << error
+  end
 end
 
-module Rails5ErrorCollection
+module RailsErrorCollectionExtensions
   def each_key(&block)
     @collection.each_key(&block)
   end
@@ -170,7 +179,7 @@ ActiveModel::BetterErrors.formatter = ActiveModel::BetterErrors::InstructureForm
 # old format. The ApiReporter is specifically activated by the API error
 # response code.
 
-# make better errors compatible with Rails 5
+# make better errors compatible with newer versions of Rails
 ActiveRecord::Base.include(ActiveModel::BetterErrors::AutosaveAssociation)
-ActiveModel::BetterErrors::Errors.include(Rails5Errors)
-ActiveModel::BetterErrors::ErrorCollection.include(Rails5ErrorCollection)
+ActiveModel::BetterErrors::Errors.include(RailsErrorsExtensions)
+ActiveModel::BetterErrors::ErrorCollection.include(RailsErrorCollectionExtensions)

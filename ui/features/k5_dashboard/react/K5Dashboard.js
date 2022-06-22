@@ -15,12 +15,12 @@
  * You should have received a copy of the GNU Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-import React, {useCallback, useEffect, useState} from 'react'
+import React, {useCallback, useEffect, useState, useLayoutEffect} from 'react'
 import {connect, Provider} from 'react-redux'
-import I18n from 'i18n!k5_dashboard'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import PropTypes from 'prop-types'
 
-import {startLoadingAllOpportunities, responsiviser, store} from '@instructure/canvas-planner'
+import {responsiviser, store} from '@instructure/canvas-planner'
 import {
   IconBankLine,
   IconCalendarMonthLine,
@@ -31,7 +31,7 @@ import {
   IconCalendarReservedLine
 } from '@instructure/ui-icons'
 import {ApplyTheme} from '@instructure/ui-themeable'
-import {Button, IconButton} from '@instructure/ui-buttons'
+import {IconButton} from '@instructure/ui-buttons'
 import {Flex} from '@instructure/ui-flex'
 import {Heading} from '@instructure/ui-heading'
 import {Menu} from '@instructure/ui-menu'
@@ -39,19 +39,20 @@ import {ScreenReaderContent} from '@instructure/ui-a11y-content'
 import {Tray} from '@instructure/ui-tray'
 import {View} from '@instructure/ui-view'
 
-import K5Tabs from '@canvas/k5/react/K5Tabs'
+import K5Tabs, {scrollElementIntoViewIfCoveredByHeader} from '@canvas/k5/react/K5Tabs'
 import GradesPage from './GradesPage'
 import HomeroomPage from './HomeroomPage'
 import TodosPage from './TodosPage'
 import K5DashboardContext from '@canvas/k5/react/K5DashboardContext'
-import loadCardDashboard, {resetDashboardCards} from '@canvas/dashboard-card'
+import {CardDashboardLoader} from '@canvas/dashboard-card'
 import {mapStateToProps} from '@canvas/k5/redux/redux-helpers'
 import SchedulePage from '@canvas/k5/react/SchedulePage'
 import ResourcesPage from '@canvas/k5/react/ResourcesPage'
 import {
   groupAnnouncementsByHomeroom,
   saveElementaryDashboardPreference,
-  TAB_IDS
+  TAB_IDS,
+  MOBILE_NAV_BREAKPOINT_PX
 } from '@canvas/k5/react/utils'
 import {theme} from '@canvas/k5/react/k5-theme'
 import useFetchApi from '@canvas/use-fetch-api-hook'
@@ -59,10 +60,11 @@ import usePlanner from '@canvas/k5/react/hooks/usePlanner'
 import useTabState from '@canvas/k5/react/hooks/useTabState'
 import {showFlashError} from '@canvas/alerts/react/FlashAlert'
 import ImportantDates from './ImportantDates'
-import ObserverOptions, {
-  ObserverListShape,
-  defaultSelectedObserverId
-} from '@canvas/k5/react/ObserverOptions'
+import ObserverOptions, {ObservedUsersListShape} from '@canvas/observer-picker'
+import {savedObservedId} from '@canvas/observer-picker/ObserverGetObservee'
+import {fetchShowK5Dashboard} from '@canvas/observer-picker/react/utils'
+
+const I18n = useI18nScope('k5_dashboard')
 
 const DASHBOARD_TABS = [
   {
@@ -96,9 +98,13 @@ const K5DashboardOptionsMenu = ({onDisableK5Dashboard}) => {
   return (
     <Menu
       trigger={
-        <Button variant="icon" icon={IconMoreLine} data-testid="k5-dashboard-options">
-          <ScreenReaderContent>{I18n.t('Dashboard Options')}</ScreenReaderContent>
-        </Button>
+        <IconButton
+          renderIcon={IconMoreLine}
+          withBackground={false}
+          withBorder={false}
+          data-testid="k5-dashboard-options"
+          screenReaderLabel={I18n.t('Dashboard Options')}
+        />
       }
     >
       <Menu.Group
@@ -113,40 +119,57 @@ const K5DashboardOptionsMenu = ({onDisableK5Dashboard}) => {
   )
 }
 
-const toRenderTabs = (currentUserRoles, hideGradesTabForStudents) =>
-  DASHBOARD_TABS.filter(
-    ({id}) =>
-      (id !== TAB_IDS.TODO &&
-        !(
-          hideGradesTabForStudents &&
-          id === TAB_IDS.GRADES &&
-          currentUserRoles.includes('student')
-        )) ||
-      currentUserRoles.includes('teacher')
-  )
+const toRenderTabs = (currentUserRoles, hideGradesTabForStudents, selectedSelfUser) =>
+  DASHBOARD_TABS.filter(({id}) => {
+    switch (id) {
+      case TAB_IDS.TODO:
+        return currentUserRoles.includes('teacher')
+      case TAB_IDS.GRADES:
+        return (
+          currentUserRoles.includes('teacher') ||
+          currentUserRoles.includes('admin') ||
+          (currentUserRoles.includes('student') && !hideGradesTabForStudents) ||
+          (currentUserRoles.includes('observer') && !selectedSelfUser)
+        )
+      default:
+        return true
+    }
+  })
+
+const getWindowSize = () => ({
+  width: window.innerWidth,
+  height: window.innerHeight
+})
 
 export const K5Dashboard = ({
   assignmentsDueToday,
   assignmentsMissing,
   assignmentsCompletedForToday,
-  createPermissions,
+  createPermission,
+  restrictCourseCreation,
   currentUser,
   currentUserRoles,
-  loadingOpportunities,
-  loadAllOpportunities,
   timeZone,
   defaultTab = TAB_IDS.HOMEROOM,
   plannerEnabled = false,
   responsiveSize = 'large',
   hideGradesTabForStudents = false,
-  showImportantDates,
   selectedContextCodes,
   selectedContextsLimit,
-  parentSupportEnabled,
-  observerList,
-  canAddObservee
+  observedUsersList,
+  canAddObservee,
+  openTodosInNewTab,
+  loadingOpportunities,
+  observerPickerEnabled
 }) => {
-  const availableTabs = toRenderTabs(currentUserRoles, hideGradesTabForStudents)
+  const initialObservedId = observedUsersList.find(o => o.id === savedObservedId(currentUser.id))
+    ? savedObservedId(currentUser.id)
+    : undefined
+  const [observedUserId, setObservedUserId] = useState(initialObservedId)
+  const observerMode = currentUserRoles.includes('observer')
+  const selectedSelfUser = observerMode && currentUser.id === observedUserId
+
+  const availableTabs = toRenderTabs(currentUserRoles, hideGradesTabForStudents, selectedSelfUser)
   const {activeTab, currentTab, handleTabChange} = useTabState(defaultTab, availableTabs)
   const [cards, setCards] = useState(null)
   const [cardsSettled, setCardsSettled] = useState(false)
@@ -155,33 +178,37 @@ export const K5Dashboard = ({
   const [loadingAnnouncements, setLoadingAnnouncements] = useState(true)
   const [tabsRef, setTabsRef] = useState(null)
   const [trayOpen, setTrayOpen] = useState(false)
-  const [observedUserId, setObservedUserId] = useState(defaultSelectedObserverId)
-  const [observedUsersCards, setObservedUsersCards] = useState([])
+  const [cardDashboardLoader, setCardDashboardLoader] = useState(null)
   const plannerInitialized = usePlanner({
     plannerEnabled,
     isPlannerActive: () => activeTab.current === TAB_IDS.SCHEDULE,
     focusFallback: tabsRef,
-    callback: () => loadAllOpportunities()
+    observedUserId: initialObservedId,
+    isObserver: currentUserRoles.includes('observer')
   })
-  const canDisableElementaryDashboard = currentUserRoles.some(r => ['admin', 'teacher'].includes(r))
+  const canDisableElementaryDashboard =
+    currentUserRoles.some(r => ['admin', 'teacher'].includes(r)) &&
+    (!observerMode || observedUserId === currentUser.id)
   const useImportantDatesTray = responsiveSize !== 'large'
-  const observerMode =
-    parentSupportEnabled && currentUserRoles.includes('observer') && observedUserId
+
+  const [windowSize, setWindowSize] = useState(() => getWindowSize())
+  useLayoutEffect(() => {
+    const updateWindowSize = () => setWindowSize(getWindowSize())
+    window.addEventListener('resize', updateWindowSize)
+    return () => window.removeEventListener('resize', updateWindowSize)
+  }, [])
+  const showingMobileNav = windowSize.width < MOBILE_NAV_BREAKPOINT_PX
 
   // If the view width increases while the tray is open, change the state to close the tray
   if (trayOpen && !useImportantDatesTray) {
     setTrayOpen(false)
   }
 
-  const loadCardDashboardCallBack = (dc, cardsFinishedLoading, observedUser) => {
+  const loadCardDashboardCallBack = (dc, cardsFinishedLoading) => {
     const activeCards = dc.filter(({enrollmentState}) => enrollmentState !== 'invited')
     setCards(activeCards)
-    setCardsSettled(cardsFinishedLoading)
-    if (cardsFinishedLoading && observedUser) {
-      setObservedUsersCards(cachedCards => ({
-        ...cachedCards,
-        [observedUser]: activeCards
-      }))
+    if (cardsFinishedLoading) {
+      setCardsSettled(true)
     }
     if (cardsFinishedLoading && activeCards?.length === 0) {
       setLoadingAnnouncements(false)
@@ -190,21 +217,38 @@ export const K5Dashboard = ({
     }
   }
 
-  useEffect(() => {
-    if (!cards) {
-      loadCardDashboard(loadCardDashboardCallBack, observerMode ? observedUserId : undefined)
-    } else if (observerMode) {
-      const cachedCards = observedUsersCards[observedUserId]
-      if (cachedCards) {
-        setCards(cachedCards) // Using cards from state if the selected user has been requested already
-      } else if (cardsSettled) {
-        // fetching cards if the user hasn't been requested and there is not a request in progress
-        setCardsSettled(false)
-        resetDashboardCards() // Only reset the dashboard cards state if there is not a request in progress
-        loadCardDashboard(loadCardDashboardCallBack, observedUserId)
+  const updateDashboardForObserverCallback = id => {
+    setCardDashboardLoader(null)
+    setCardsSettled(false)
+    setObservedUserId(id)
+  }
+
+  const handleChangeObservedUser = id => {
+    if (id !== observedUserId) {
+      if (observerPickerEnabled) {
+        fetchShowK5Dashboard(id)
+          .then(isK5User => {
+            if (isK5User) {
+              updateDashboardForObserverCallback(id)
+            } else {
+              window.location.reload()
+            }
+          })
+          .catch(err => showFlashError(I18n.t('Unable to switch students'))(err))
+      } else {
+        updateDashboardForObserverCallback(id)
       }
     }
-  }, [cards, observedUserId, observedUsersCards]) // eslint-disable-line react-hooks/exhaustive-deps
+  }
+
+  useEffect(() => {
+    // don't call on the initial load when we know we're in observer mode but don't have the ID yet
+    if (!observerMode || (observerMode && observedUserId)) {
+      const dcl = new CardDashboardLoader()
+      dcl.loadCardDashboard(loadCardDashboardCallBack, observerMode ? observedUserId : undefined)
+      setCardDashboardLoader(dcl)
+    }
+  }, [observedUserId, observerMode])
 
   useFetchApi({
     path: '/api/v1/announcements',
@@ -249,17 +293,29 @@ export const K5Dashboard = ({
   }
 
   const renderDashboardHeader = sticky => {
-    const showingIcons =
-      (useImportantDatesTray && showImportantDates) || canDisableElementaryDashboard
-    return (
-      <Flex as="section" margin={`medium 0 ${sticky && showingIcons ? '0' : 'small'} 0`}>
-        <Flex.Item shouldGrow shouldShrink margin="0 small 0 0">
-          <Heading as="h1" level={sticky ? 'h2' : 'h1'}>
-            {I18n.t('Welcome, %{name}!', {name: currentUser.display_name})}
-          </Heading>
-        </Flex.Item>
-        {useImportantDatesTray && showImportantDates && (
-          <Flex.Item align="start">
+    const showingAdditionalOptions =
+      useImportantDatesTray || canDisableElementaryDashboard || observerMode
+    const placeAdditionalOptionsAbove = observerMode && showingMobileNav
+    const additionalOptions = (
+      <>
+        {observerMode && (
+          <Flex.Item
+            as="div"
+            size={placeAdditionalOptionsAbove ? undefined : '16em'}
+            shouldGrow={placeAdditionalOptionsAbove}
+            margin="0 x-small 0 0"
+          >
+            <ObserverOptions
+              observedUsersList={observedUsersList}
+              currentUser={currentUser}
+              handleChangeObservedUser={handleChangeObservedUser}
+              canAddObservee={canAddObservee}
+              currentUserRoles={currentUserRoles}
+            />
+          </Flex.Item>
+        )}
+        {useImportantDatesTray && (
+          <Flex.Item>
             <IconButton
               screenReaderLabel={I18n.t('View Important Dates')}
               onClick={() => setTrayOpen(true)}
@@ -270,50 +326,67 @@ export const K5Dashboard = ({
           </Flex.Item>
         )}
         {canDisableElementaryDashboard && (
-          <Flex.Item align="start">
+          <Flex.Item>
             <K5DashboardOptionsMenu onDisableK5Dashboard={handleDisableK5Dashboard} />
           </Flex.Item>
         )}
-      </Flex>
+      </>
+    )
+    const welcomeMessage = I18n.t('Welcome, %{name}!', {name: currentUser.display_name})
+    return (
+      <View as="div" margin={`medium 0 ${sticky && showingAdditionalOptions ? '0' : 'small'} 0`}>
+        {placeAdditionalOptionsAbove && (
+          <Flex margin={`0 0 ${sticky ? 'small' : 'medium'} 0`}>
+            {/* place the Welcome... heading above the observer picker when necessary since
+                the h1 should be the first item on the page */}
+            <ScreenReaderContent>
+              <Heading as="h1">{welcomeMessage}</Heading>
+            </ScreenReaderContent>
+            {additionalOptions}
+          </Flex>
+        )}
+        <Flex alignItems="center">
+          <Flex.Item shouldGrow shouldShrink margin="0 small 0 0">
+            <Heading as="h1" aria-hidden={placeAdditionalOptionsAbove} level={sticky ? 'h2' : 'h1'}>
+              {welcomeMessage}
+            </Heading>
+          </Flex.Item>
+          {!placeAdditionalOptionsAbove && additionalOptions}
+        </Flex>
+      </View>
     )
   }
 
   const importantDates = (
     <ImportantDates
       timeZone={timeZone}
-      contexts={cards?.filter(c => c.isK5Subject)}
+      contexts={cards?.filter(c => c.isK5Subject || c.isHomeroom)}
       handleClose={useImportantDatesTray ? () => setTrayOpen(false) : undefined}
       selectedContextCodes={selectedContextCodes}
       selectedContextsLimit={selectedContextsLimit}
+      observedUserId={observedUserId}
     />
   )
 
   return (
     <>
       <Flex as="section" alignItems="start">
-        <Flex.Item shouldGrow shouldShrink padding="x-small medium medium medium">
-          {parentSupportEnabled && currentUserRoles.includes('observer') && (
-            <View as="div" maxWidth="16em">
-              <ObserverOptions
-                observerList={observerList}
-                currentUser={currentUser}
-                handleChangeObservedUser={setObservedUserId}
-                margin="medium 0 xx-small 0"
-                canAddObservee={canAddObservee}
-                currentUserRoles={currentUserRoles}
-              />
-            </View>
-          )}
+        <Flex.Item
+          shouldGrow
+          shouldShrink
+          padding="x-small medium medium medium"
+          onFocus={scrollElementIntoViewIfCoveredByHeader(tabsRef)}
+        >
           <K5DashboardContext.Provider
             value={{
               assignmentsDueToday,
               assignmentsMissing,
               assignmentsCompletedForToday,
               loadingAnnouncements,
-              loadingOpportunities,
               isStudent: plannerEnabled,
               responsiveSize,
-              subjectAnnouncements
+              subjectAnnouncements,
+              loadingOpportunities
             }}
           >
             {currentTab && (
@@ -328,7 +401,8 @@ export const K5Dashboard = ({
             )}
             <HomeroomPage
               cards={cards}
-              createPermissions={createPermissions}
+              createPermission={createPermission}
+              restrictCourseCreation={restrictCourseCreation}
               homeroomAnnouncements={homeroomAnnouncements}
               loadingAnnouncements={loadingAnnouncements}
               visible={currentTab === TAB_IDS.HOMEROOM}
@@ -341,11 +415,12 @@ export const K5Dashboard = ({
               userHasEnrollments={!!cards?.length}
               visible={currentTab === TAB_IDS.SCHEDULE}
               singleCourse={false}
+              observedUserId={observedUserId}
             />
             <GradesPage
               visible={currentTab === TAB_IDS.GRADES}
               currentUserRoles={currentUserRoles}
-              observedUserId={observedUserId}
+              observedUserId={observerMode ? observedUserId : null}
               currentUser={currentUser}
             />
             {cards && (
@@ -358,17 +433,21 @@ export const K5Dashboard = ({
               />
             )}
             {currentUserRoles.includes('teacher') && (
-              <TodosPage timeZone={timeZone} visible={currentTab === TAB_IDS.TODO} />
+              <TodosPage
+                timeZone={timeZone}
+                openTodosInNewTab={openTodosInNewTab}
+                visible={currentTab === TAB_IDS.TODO}
+              />
             )}
           </K5DashboardContext.Provider>
         </Flex.Item>
-        {!useImportantDatesTray && showImportantDates && (
+        {!useImportantDatesTray && (
           <Flex.Item as="div" size="18rem" id="important-dates-sidebar">
             {importantDates}
           </Flex.Item>
         )}
       </Flex>
-      {useImportantDatesTray && showImportantDates && (
+      {useImportantDatesTray && (
         <Tray
           label={I18n.t('Important Dates Tray')}
           open={trayOpen}
@@ -389,36 +468,29 @@ K5Dashboard.propTypes = {
   assignmentsDueToday: PropTypes.object.isRequired,
   assignmentsMissing: PropTypes.object.isRequired,
   assignmentsCompletedForToday: PropTypes.object.isRequired,
-  createPermissions: PropTypes.oneOf(['admin', 'teacher', 'none']).isRequired,
+  loadingOpportunities: PropTypes.bool.isRequired,
+  createPermission: PropTypes.oneOf(['admin', 'teacher', 'student', 'no_enrollments']),
+  restrictCourseCreation: PropTypes.bool.isRequired,
   currentUser: PropTypes.shape({
     id: PropTypes.string,
     display_name: PropTypes.string,
     avatar_image_url: PropTypes.string
   }).isRequired,
   currentUserRoles: PropTypes.arrayOf(PropTypes.string).isRequired,
-  loadingOpportunities: PropTypes.bool.isRequired,
-  loadAllOpportunities: PropTypes.func.isRequired,
   timeZone: PropTypes.string.isRequired,
   defaultTab: PropTypes.string,
   plannerEnabled: PropTypes.bool,
   responsiveSize: PropTypes.string,
   hideGradesTabForStudents: PropTypes.bool,
-  showImportantDates: PropTypes.bool.isRequired,
   selectedContextCodes: PropTypes.arrayOf(PropTypes.string),
   selectedContextsLimit: PropTypes.number.isRequired,
-  parentSupportEnabled: PropTypes.bool.isRequired,
-  observerList: ObserverListShape.isRequired,
-  canAddObservee: PropTypes.bool.isRequired
+  observedUsersList: ObservedUsersListShape.isRequired,
+  canAddObservee: PropTypes.bool.isRequired,
+  openTodosInNewTab: PropTypes.bool.isRequired,
+  observerPickerEnabled: PropTypes.bool.isRequired
 }
 
-const mapDispatchToProps = {
-  loadAllOpportunities: startLoadingAllOpportunities
-}
-
-const WrappedK5Dashboard = connect(
-  mapStateToProps,
-  mapDispatchToProps
-)(responsiviser()(K5Dashboard))
+const WrappedK5Dashboard = connect(mapStateToProps)(responsiviser()(K5Dashboard))
 
 export default props => (
   <ApplyTheme theme={theme}>

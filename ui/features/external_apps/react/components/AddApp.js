@@ -16,7 +16,7 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import I18n from 'i18n!external_tools'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import _ from 'underscore'
 import $ from 'jquery'
 import React from 'react'
@@ -29,13 +29,14 @@ import '@canvas/jquery/jquery.disableWhileLoading'
 import '@canvas/rails-flash-notifications'
 import {Button} from '@instructure/ui-buttons'
 
+const I18n = useI18nScope('external_tools')
+
 export default createReactClass({
   displayName: 'AddApp',
 
   propTypes: {
     handleToolInstalled: PropTypes.func.isRequired,
-    app: PropTypes.object.isRequired,
-    canAddEdit: PropTypes.bool.isRequired
+    app: PropTypes.object.isRequired
   },
 
   getInitialState() {
@@ -225,8 +226,8 @@ export default createReactClass({
           {I18n.t('Add App')}
         </a>
 
-        <Modal 
-          open={this.state.modalIsOpen} 
+        <Modal
+          open={this.state.modalIsOpen}
           onDismiss={this.closeModal}
           label={I18n.t('Add App')}
           shouldCloseOnDocumentClick={false}
@@ -238,7 +239,7 @@ export default createReactClass({
           <Modal.Footer>
             <Button onClick={this.closeModal}>{I18n.t('Close')}</Button>
             &nbsp;
-            <Button onClick={this.submit} variant="primary">
+            <Button onClick={this.submit} color="primary">
               {I18n.t('Add App')}
             </Button>
           </Modal.Footer>

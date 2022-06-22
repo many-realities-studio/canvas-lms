@@ -20,14 +20,17 @@ import {AlertManagerContext} from '@canvas/alerts/react/AlertManager'
 import CanvasInbox from '../CanvasInbox'
 import {ApolloProvider} from 'react-apollo'
 import React from 'react'
-import {render, fireEvent, waitFor} from '@testing-library/react'
+import {render, fireEvent} from '@testing-library/react'
+import {responsiveQuerySizes} from '../../../util/utils'
 import {mswClient} from '../../../../../shared/msw/mswClient'
 import {mswServer} from '../../../../../shared/msw/mswServer'
 import {handlers} from '../../../graphql/mswHandlers'
 import waitForApolloLoading from '../../../util/waitForApolloLoading'
-import {graphql} from 'msw'
-import {ConversationParticipant} from '../../../graphql/ConversationParticipant'
-import {Conversation} from '../../../graphql/Conversation'
+
+jest.mock('../../../util/utils', () => ({
+  ...jest.requireActual('../../../util/utils'),
+  responsiveQuerySizes: jest.fn()
+}))
 
 describe('CanvasInbox Full Page', () => {
   const server = mswServer(handlers)
@@ -43,10 +46,26 @@ describe('CanvasInbox Full Page', () => {
         id: '9'
       }
     }
+
+    window.matchMedia = jest.fn().mockImplementation(() => {
+      return {
+        matches: true,
+        media: '',
+        onchange: null,
+        addListener: jest.fn(),
+        removeListener: jest.fn()
+      }
+    })
+
+    // Repsonsive Query Mock Default
+    responsiveQuerySizes.mockImplementation(() => ({
+      desktop: {minWidth: '768px'}
+    }))
   })
 
   beforeEach(() => {
     mswClient.cache.reset()
+    window.location.hash = ''
   })
 
   afterEach(() => {
@@ -71,115 +90,214 @@ describe('CanvasInbox Full Page', () => {
     )
   }
 
-  test('toggles between inbox and sent scopes', async () => {
-    const container = setup()
-    await waitForApolloLoading()
-    const conversationNode = await container.findByTestId('conversation')
-    expect(conversationNode).toHaveTextContent('this is a message for the inbox')
+  describe('Desktop', () => {
+    beforeAll(() => {
+      responsiveQuerySizes.mockImplementation(() => ({
+        desktop: {minWidth: '768px'}
+      }))
+    })
 
-    const mailboxDropdown = await container.findByLabelText('Mailbox Selection')
-    fireEvent.click(mailboxDropdown)
-    await waitForApolloLoading()
+    test('toggles between inbox and sent scopes', async () => {
+      const container = setup()
+      await waitForApolloLoading()
+      const conversationNode = await container.findByTestId('conversation')
+      expect(conversationNode).toHaveTextContent('this is a message for the inbox')
 
-    const option = await container.findByText('Sent')
+      const mailboxDropdown = await container.findByLabelText('Mailbox Selection')
+      fireEvent.click(mailboxDropdown)
+      await waitForApolloLoading()
 
-    expect(option).toBeTruthy()
+      const option = await container.findByText('Sent')
 
-    fireEvent.click(option)
+      expect(option).toBeTruthy()
 
-    await waitForApolloLoading()
+      fireEvent.click(option)
 
-    const sentConversationNodes = await container.findAllByTestId('conversation')
-    expect(sentConversationNodes[0]).toHaveTextContent('this is the first reply message')
-    expect(sentConversationNodes[1]).toHaveTextContent('this is the second reply message')
-  })
+      await waitForApolloLoading()
 
-  it('renders the conversation messages', async () => {
-    const container = setup()
+      const sentConversationNodes = await container.findAllByTestId('conversation')
+      expect(sentConversationNodes[0]).toHaveTextContent('this is the first reply message')
+      expect(sentConversationNodes[1]).toHaveTextContent('this is the second reply message')
+    })
 
-    const conversation = await container.findByTestId('messageListItem-Checkbox')
-    fireEvent.click(conversation)
+    it('renders the conversation messages', async () => {
+      const container = setup()
+      await waitForApolloLoading()
 
-    expect(await container.findByText('Watch out for that Magneto guy')).toBeInTheDocument()
-    expect(
-      await container.findByText('Wolverine is not so bad when you get to know him')
-    ).toBeInTheDocument()
-  })
+      const conversation = await container.findByTestId('conversationListItem-Checkbox')
+      fireEvent.click(conversation)
+      await waitForApolloLoading()
 
-  it.skip('should change the read state of a message', async () => {
-    const container = setup()
-    const conversation = await container.findByTestId('messageListItem-Checkbox')
-    fireEvent.click(conversation)
-    await container.findByText('Watch out for that Magneto guy')
-    expect(container.queryByTestId('unread-badge')).toBeTruthy()
-    const settings = await container.findByTestId('settings')
-    fireEvent.click(settings)
-    const markAsReadButton = await container.findByText('Mark as read')
-    fireEvent.click(markAsReadButton)
-    expect(container.queryByTestId('unread-badge')).toBeFalsy()
-  })
+      expect(await container.findByText('this is the first reply message')).toBeInTheDocument()
+      expect(await container.findByText('this is a reply all')).toBeInTheDocument()
+      expect(await container.findByText('testing 123')).toBeInTheDocument()
+    })
 
-  it('Successfully star selected conversation', async () => {
-    const {findAllByTestId, findByTestId, getByText} = setup()
+    it('should check then uncheck a checkbox', async () => {
+      const container = setup()
 
-    const checkboxes = await findAllByTestId('messageListItem-Checkbox')
-    expect(checkboxes.length).toBe(1)
-    fireEvent.click(checkboxes[0])
+      const checkbox = await container.findByTestId('conversationListItem-Checkbox')
+      expect(checkbox.checked).toBeFalsy()
+      fireEvent.click(checkbox)
+      expect(checkbox.checked).toBeTruthy()
+      fireEvent.click(checkbox)
+      expect(checkbox.checked).toBeFalsy()
+    })
 
-    const settingsCog = await findByTestId('settings')
-    fireEvent.click(settingsCog)
+    it('should trigger confirm when deleting from message kebab menu', async () => {
+      window.confirm = jest.fn(() => true)
+      const container = setup()
 
-    const star = getByText('Star')
-    fireEvent.click(star)
+      const conversation = await container.findByTestId('conversationListItem-Checkbox')
+      fireEvent.click(conversation)
 
-    await waitFor(() =>
-      expect(setOnSuccess).toHaveBeenCalledWith('The conversation has been successfully starred.')
-    )
-  })
+      const moreOptionsButtons = await container.findAllByTestId('message-more-options')
+      fireEvent.click(moreOptionsButtons[1])
+      const deleteOption = await container.findByTestId('message-delete')
+      fireEvent.click(deleteOption)
+      expect(window.confirm).toHaveBeenCalled()
+    })
 
-  it('Successfully star selected conversations', async () => {
-    server.use(
-      graphql.query('GetConversationsQuery', (req, res, ctx) => {
-        const data = {
-          legacyNode: {
-            _id: '9',
-            id: 'VXNlci05',
-            conversationsConnection: {
-              nodes: [
-                {
-                  ...ConversationParticipant.mock({_id: 251}),
-                  conversation: Conversation.mock()
-                },
-                {
-                  ...ConversationParticipant.mock({_id: 252}),
-                  conversation: Conversation.mock()
-                }
-              ],
-              __typename: 'ConversationParticipantConnection'
-            },
-            __typename: 'User'
-          }
-        }
+    it('should find desktop message list container', () => {
+      const container = setup()
 
-        return res.once(ctx.data(data))
+      expect(container.queryByTestId('desktop-message-action-header')).toBeInTheDocument()
+    })
+
+    describe('URL routing', () => {
+      it('should load default URL as inbox Scope', async () => {
+        const container = setup()
+        await waitForApolloLoading()
+        expect(window.location.hash).toBe('#filter=type=inbox')
+
+        const mailboxDropdown = await container.findByLabelText('Mailbox Selection')
+        expect(mailboxDropdown.getAttribute('value')).toBe('Inbox')
       })
-    )
 
-    const {findAllByTestId, findByTestId, getByText} = setup()
+      it('should respect the initial loading url hash', async () => {
+        window.location.hash = '#filter=type=sent'
+        const container = setup()
+        await waitForApolloLoading()
+        expect(window.location.hash).toBe('#filter=type=sent')
 
-    const checkboxes = await findAllByTestId('messageListItem-Checkbox')
-    expect(checkboxes.length).toBe(2)
-    fireEvent.click(checkboxes[0])
-    fireEvent.click(checkboxes[1])
+        const mailboxDropdown = await container.findByLabelText('Mailbox Selection')
+        expect(mailboxDropdown.getAttribute('value')).toBe('Sent')
+      })
 
-    const settingsCog = await findByTestId('settings')
-    fireEvent.click(settingsCog)
+      describe('scope select', () => {
+        it('should update filter if url filter value is updated', async () => {
+          const container = setup()
+          await waitForApolloLoading()
 
-    const star = getByText('Star')
-    fireEvent.click(star)
+          let mailboxDropdown = await container.findByLabelText('Mailbox Selection')
+          expect(mailboxDropdown.getAttribute('value')).toBe('Inbox')
 
-    await waitFor(() =>
-      expect(setOnSuccess).toHaveBeenCalledWith('The conversations has been successfully starred.')
-    )
+          window.location.hash = '#filter=type=archived'
+          await waitForApolloLoading()
+
+          mailboxDropdown = await container.findByLabelText('Mailbox Selection')
+          expect(mailboxDropdown.getAttribute('value')).toBe('Archived')
+        })
+
+        it('should update the url correctly if scope filter is changed in UI', async () => {
+          const container = setup()
+          await waitForApolloLoading()
+
+          expect(window.location.hash).toBe('#filter=type=inbox')
+
+          const mailboxDropdown = await container.findByLabelText('Mailbox Selection')
+          fireEvent.click(mailboxDropdown)
+          await waitForApolloLoading()
+
+          const option = await container.findByText('Sent')
+          fireEvent.click(option)
+          await waitForApolloLoading()
+
+          expect(window.location.hash).toBe('#filter=type=sent')
+        })
+
+        it('should not update filter if url filter is invalid', async () => {
+          const container = setup()
+          await waitForApolloLoading()
+
+          let mailboxDropdown = await container.findByLabelText('Mailbox Selection')
+          expect(mailboxDropdown.getAttribute('value')).toBe('Inbox')
+
+          window.location.hash = '#filter=type=FAKEFILTER'
+          await waitForApolloLoading()
+
+          mailboxDropdown = await container.findByLabelText('Mailbox Selection')
+          expect(mailboxDropdown.getAttribute('value')).toBe('Inbox')
+        })
+      })
+
+      describe('course select', () => {
+        it('should set the filter if a valid filter option is given in the initialurl', async () => {
+          window.location.hash = '#filter=type=inbox&course=course_195'
+          const container = setup()
+          await waitForApolloLoading()
+
+          const mailboxDropdown = await container.findByTestId('course-select')
+          expect(window.location.hash).toBe('#filter=type=inbox&course=course_195')
+          expect(mailboxDropdown.getAttribute('value')).toBe('XavierSchool')
+        })
+        it('should update filter if url filter value is updated', async () => {
+          window.location.hash = '#filter=type=inbox'
+          const container = setup()
+          await waitForApolloLoading()
+
+          let mailboxDropdown = await container.findByTestId('course-select')
+          expect(window.location.hash).toBe('#filter=type=inbox')
+          expect(mailboxDropdown.getAttribute('value')).toBe('')
+
+          window.location.hash = '#filter=type=inbox&course=course_195'
+          await waitForApolloLoading()
+
+          mailboxDropdown = await container.findByTestId('course-select')
+          expect(mailboxDropdown.getAttribute('value')).toBe('XavierSchool')
+        })
+        it('should update the url correctly if scope filter is changed in UI', async () => {
+          const container = setup()
+          await waitForApolloLoading()
+
+          expect(window.location.hash).toBe('#filter=type=inbox')
+
+          const courseDropdown = await container.findByTestId('course-select')
+          fireEvent.click(courseDropdown)
+          await waitForApolloLoading()
+
+          const option = await container.findByText('XavierSchool')
+          fireEvent.click(option)
+          await waitForApolloLoading()
+
+          expect(window.location.hash).toBe('#filter=type=inbox&course=course_195')
+        })
+        it('should remove the courseFilter if the url filter is invalid', async () => {
+          const container = setup()
+          await waitForApolloLoading()
+
+          window.location.hash = '#filter=type=inbox&course=FAKE_COURSE'
+          await waitForApolloLoading()
+
+          const mailboxDropdown = await container.findByTestId('course-select')
+          expect(window.location.hash).toBe('#filter=type=inbox')
+          expect(mailboxDropdown.getAttribute('value')).toBe('')
+        })
+      })
+    })
+  })
+
+  describe('Mobile', () => {
+    beforeAll(() => {
+      responsiveQuerySizes.mockImplementation(() => ({
+        mobile: {minWidth: '0px'}
+      }))
+    })
+
+    it('should find mobile message action header', () => {
+      const container = setup()
+
+      expect(container.queryByTestId('mobile-message-action-header')).toBeInTheDocument()
+    })
   })
 })

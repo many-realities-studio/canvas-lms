@@ -110,7 +110,7 @@ module.exports = {
     'react/require-default-props': 'off',
     'react/prop-types': ['error', {skipUndeclared: true}],
     'react/default-props-match-prop-types': ['error', {allowRequiredDefaults: true}], // add the `allowRequiredDefaults: true` option to allow specifying something as a required prop (so you get propType error messages), but in case it's not present at runtime, I'll use `[]` as the default (so it is resilient)".
-    'react/forbid-foreign-prop-types': 'off', // You can refer to proptypes within proptypes, but you shouldn't use proptypes in actual app code of the component
+    'react/forbid-foreign-prop-types': ['error', {allowInPropTypes: true}], // You can refer to proptypes within proptypes, but you shouldn't use proptypes in actual app code of the component
     'react/jsx-no-bind': 'off',
     'react/jsx-props-no-spreading': 'off',
     'react/no-danger': 'off', // dangerouslySetInnerHTML is already pretty explicit on making you aware of its danger
@@ -189,6 +189,7 @@ module.exports = {
     // These are things we care about
     'react/jsx-filename-extension': ['error', {extensions: ['.js', 'ts', 'tsx']}],
     'eslint-comments/no-unused-disable': 'error',
+    'jest/no-disabled-tests': 'off',
     'import/extensions': ['error', 'ignorePackages', {js: 'never', ts: 'never', tsx: 'never'}],
     'import/no-commonjs': 'off', // This is overridden where it counts
     'import/no-extraneous-dependencies': ['error', {devDependencies: true}],
@@ -208,6 +209,7 @@ module.exports = {
     ],
     'no-unused-expressions': 'off', // the babel version allows optional chaining a?.b
     'babel/no-unused-expressions': ['error', {allowShortCircuit: true, allowTernary: true}],
+    'prettier/prettier': 'warn',
 
     // Some rules need to be replaced with typescript versions to work with TS
     'no-redeclare': 'off',
@@ -269,6 +271,15 @@ module.exports = {
       }
     },
     {
+      files: ['jest/**/*'],
+      rules: {
+        'import/extensions': 'off',
+        'import/no-commonjs': 'off',
+        'import/no-extraneous-dependencies': 'off',
+        'import/order': 'off',
+      }
+    },
+    {
       files: [
         'ui/features/quiz_log_auditing/**/*',
         'ui/features/quiz_statistics/**/*',
@@ -278,7 +289,6 @@ module.exports = {
       rules: {
         'react/prop-types': 'off',
         'prefer-const': 'warn',
-        'prettier/prettier': 'off',
         'react/no-string-refs': 'warn'
       }
     }

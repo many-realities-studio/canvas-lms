@@ -18,7 +18,6 @@
 
 import React from 'react'
 import {render, fireEvent} from '@testing-library/react'
-import formatMessage from '../../../../../format-message'
 import Link from '../Link'
 
 function renderComponent(props) {
@@ -46,10 +45,50 @@ function queryIconByName(elem, name) {
 }
 
 describe('RCE "Documents" Plugin > Document', () => {
+  beforeAll(() => {
+    ENV = {
+      // 	UTC/GMT -7 hours
+      TIMEZONE: 'America/Denver'
+    }
+  })
+
   describe('renders', () => {
     it('the date', () => {
       const value = '2019-04-24T13:00:00Z'
-      const formattedValue = formatMessage.date(Date.parse(value), 'long')
+      const formattedValue = 'April 24, 2019'
+
+      const {getByText} = renderComponent({date: value})
+
+      expect(getByText(formattedValue)).toBeInTheDocument()
+    })
+
+    describe('when the file is pending', () => {
+      let props
+
+      const subject = () => renderComponent(props)
+
+      beforeEach(() => (props = {disabled: true, disabledMessage: 'Media is processing'}))
+
+      it('renders the disabled message', () => {
+        const {getByText} = subject()
+
+        expect(getByText(props.disabledMessage)).toBeInTheDocument()
+      })
+
+      it('does not add callbacks', () => {
+        const onClick = jest.fn()
+        const {getByText} = renderComponent({display_name: 'click me', onClick, ...props})
+
+        const btn = getByText('click me')
+        btn.click()
+
+        expect(onClick).not.toHaveBeenCalled()
+      })
+    })
+
+    it('the date that change by timezone', () => {
+      const value = '2019-04-24T01:00:00Z'
+      const formattedValue = 'April 23, 2019'
 
       const {getByText} = renderComponent({date: value})
 
@@ -128,6 +167,33 @@ describe('RCE "Documents" Plugin > Document', () => {
       const btn = getByText('click me')
       btn.click()
       expect(onClick).toHaveBeenCalled()
+    })
+
+    it('passes all attributes to the click handler', () => {
+      const onClick = jest.fn()
+      const {getByText} = renderComponent({
+        display_name: 'click me',
+        onClick,
+        media_entry_id: 'media-entry-id',
+        title: 'title',
+        type: 'type'
+      })
+
+      const btn = getByText('click me')
+      btn.click()
+      expect(onClick).toHaveBeenCalledWith({
+        class: 'instructure_file_link instructure_scribd_file inline_disabled',
+        content_type: 'text/plain',
+        'data-canvas-previewable': true,
+        embedded_iframe_url: undefined,
+        href: 'http://192.168.86.175:3000/files/469/download?download_frd=1',
+        id: 469,
+        media_entry_id: 'media-entry-id',
+        target: '_blank',
+        text: 'click me',
+        title: 'title',
+        type: 'type'
+      })
     })
 
     it('calls onClick on <Enter>', () => {

@@ -18,7 +18,7 @@
 
 import React, {useState} from 'react'
 import PropTypes from 'prop-types'
-import I18n from 'i18n!homeroom_page'
+import {useScope as useI18nScope} from '@canvas/i18n'
 
 import useImmediate from '@canvas/use-immediate-hook'
 import {Heading} from '@instructure/ui-heading'
@@ -33,12 +33,15 @@ import {createDashboardCards} from '@canvas/dashboard-card'
 import HomeroomAnnouncementsLayout from './HomeroomAnnouncementsLayout'
 import LoadingSkeleton from '@canvas/k5/react/LoadingSkeleton'
 import LoadingWrapper from '@canvas/k5/react/LoadingWrapper'
-import {CreateCourseModal} from './CreateCourseModal'
+import {CreateCourseModal} from '@canvas/create-course-modal/react/CreateCourseModal'
 import EmptyDashboardState from '@canvas/k5/react/EmptyDashboardState'
+
+const I18n = useI18nScope('homeroom_page')
 
 const HomeroomPage = ({
   cards,
-  createPermissions,
+  createPermission,
+  restrictCourseCreation,
   homeroomAnnouncements,
   loadingAnnouncements,
   visible,
@@ -81,8 +84,6 @@ const HomeroomPage = ({
     </div>
   )
 
-  const canCreateCourses = createPermissions === 'admin' || createPermissions === 'teacher'
-
   return (
     <section
       id="dashboard_page_homeroom"
@@ -100,7 +101,7 @@ const HomeroomPage = ({
           <Flex.Item>
             <Heading level="h2">{I18n.t('My Subjects')}</Heading>
           </Flex.Item>
-          {canCreateCourses && (
+          {createPermission && (
             <Flex.Item>
               <Tooltip renderTip={I18n.t('Start a new subject')}>
                 <IconButton
@@ -131,7 +132,9 @@ const HomeroomPage = ({
         <CreateCourseModal
           isModalOpen={courseModalOpen}
           setModalOpen={setCourseModalOpen}
-          permissions={createPermissions}
+          permissions={createPermission}
+          restrictToMCCAccount={restrictCourseCreation}
+          isK5User
         />
       )}
     </section>
@@ -140,7 +143,8 @@ const HomeroomPage = ({
 
 HomeroomPage.propTypes = {
   cards: PropTypes.array,
-  createPermissions: PropTypes.oneOf(['admin', 'teacher', 'none']).isRequired,
+  createPermission: PropTypes.oneOf(['admin', 'teacher', 'student', 'no_enrollments']),
+  restrictCourseCreation: PropTypes.bool.isRequired,
   homeroomAnnouncements: PropTypes.array.isRequired,
   loadingAnnouncements: PropTypes.bool.isRequired,
   visible: PropTypes.bool.isRequired,

@@ -19,10 +19,14 @@ import $ from 'jquery'
 import _ from 'underscore'
 import template from '../../jst/MigrationConverter.handlebars'
 import ValidatedFormView from '@canvas/forms/backbone/views/ValidatedFormView.coffee'
-import I18n from 'i18n!content_migrations'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import 'jquery-tinypubsub'
 import '@canvas/jquery/jquery.disableWhileLoading'
+import {Alert} from '@instructure/ui-alerts'
+import React from 'react'
 import ReactDOM from 'react-dom'
+
+I18n = useI18nScope('content_migrations')
 
 # This is an abstract class that is inherited
 # from by other MigrationConverter views
@@ -40,6 +44,7 @@ export default class MigrationConverterView extends ValidatedFormView
     '#chooseMigrationConverter' : '$chooseMigrationConverter'
     '#submitMigration'          : '$submitBtn'
     '.form-container'           : '$formActions'
+    '#overwrite-warning'        : '$overwriteWarning'
 
   events: _.extend({}, @::events,
     'change #chooseMigrationConverter' : 'selectConverter'
@@ -138,3 +143,12 @@ export default class MigrationConverterView extends ValidatedFormView
     ReactDOM.unmountComponentAtNode(document.getElementById('migration_upload_progress_bar'))
     @$submitBtn.val(@btnText)
 
+  afterRender: ->
+    alert = React.createElement(Alert,
+      {
+        children: I18n.t('Importing the same course content more than once will overwrite any existing content in the course.'),
+        variant: 'warning',
+        hasShadow: false,
+        margin: '0 0 medium 0'
+      })
+    ReactDOM.render(alert, @$overwriteWarning[0])

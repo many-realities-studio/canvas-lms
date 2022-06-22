@@ -20,7 +20,12 @@ import axios from 'axios'
 import parseLinkHeader from 'parse-link-header'
 import {put, select, call, all, takeEvery} from 'redux-saga/effects'
 import {getFirstLoadedMoment, getLastLoadedMoment} from '../utilities/dateUtils'
-import {getContextCodesFromState, transformApiToInternalGrade} from '../utilities/apiUtils'
+import {
+  getContextCodesFromState,
+  transformApiToInternalGrade,
+  observedUserId,
+  getResponseHeader
+} from '../utilities/apiUtils'
 import {alert} from '../utilities/alertUtils'
 import formatMessage from '../format-message'
 
@@ -138,7 +143,7 @@ export function* loadGradesSaga() {
         gradesData[internalGrade.courseId] = internalGrade
       })
 
-      const links = parseLinkHeader(response.headers.link)
+      const links = parseLinkHeader(getResponseHeader(response, 'link'))
       loadingUrl = links && links.next ? links.next.url : null
     }
     yield put(gotGradesSuccess(gradesData))
@@ -152,18 +157,29 @@ export function* loadAllOpportunitiesSaga() {
   try {
     let loadingUrl = '/api/v1/users/self/missing_submissions'
     const items = []
-    const {courses, singleCourse} = yield select()
-    const course_ids = singleCourse ? courses.map(({id}) => id) : undefined
+    const {courses, singleCourse, selectedObservee, currentUser, weeklyDashboard} = yield select()
+    const observed_user_id = observedUserId({selectedObservee, currentUser})
+    let course_ids
+    if (observed_user_id) {
+      course_ids = courses.map(c => c.id)
+    } else {
+      course_ids = singleCourse ? courses.map(c => c.id) : undefined
+    }
     while (loadingUrl != null) {
+      const filter = ['submittable']
+      if (weeklyDashboard) {
+        filter.push('current_grading_period')
+      }
       const response = yield call(sendBasicFetchRequest, loadingUrl, {
+        observed_user_id,
         course_ids,
         include: ['planner_overrides'],
-        filter: ['submittable'],
+        filter,
         per_page: MAX_PAGE_SIZE
       })
       items.push(...response.data)
 
-      const links = parseLinkHeader(response.headers.link)
+      const links = parseLinkHeader(getResponseHeader(response, 'link'))
       loadingUrl = links?.next ? links.next.url : null
     }
     yield put(addOpportunities({items, nextUrl: null}))

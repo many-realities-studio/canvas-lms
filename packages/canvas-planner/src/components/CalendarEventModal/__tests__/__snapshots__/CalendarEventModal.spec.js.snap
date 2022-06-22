@@ -27,6 +27,7 @@ exports[`renders 1`] = `
   variant="default"
 >
   <ModalHeader
+    spacing="default"
     variant="default"
   >
     <Heading
@@ -34,27 +35,15 @@ exports[`renders 1`] = `
       color="inherit"
       level="h2"
     >
-      <Button
-        as="button"
-        cursor="pointer"
-        display="inline-block"
-        elementRef={[Function]}
+      <Link
+        color="link"
         href="http://example.com"
-        margin="0"
+        iconPlacement="start"
+        isWithinText={false}
         size="large"
-        textAlign="center"
-        theme={
-          Object {
-            "largeHeight": "normal",
-            "largePadding": "0",
-          }
-        }
-        type="button"
-        variant="link"
-        withBackground={true}
       >
         event title
-      </Button>
+      </Link>
     </Heading>
     <CloseButton
       as="button"
@@ -63,11 +52,10 @@ exports[`renders 1`] = `
       offset="x-small"
       onClick={[MockFunction]}
       placement="end"
+      screenReaderLabel="Close"
       size="small"
       type="button"
-    >
-      Close
-    </CloseButton>
+    />
   </ModalHeader>
   <ModalBody
     as="div"
@@ -292,6 +280,7 @@ exports[`renders with allDay 1`] = `
   variant="default"
 >
   <ModalHeader
+    spacing="default"
     variant="default"
   >
     <Heading
@@ -299,27 +288,15 @@ exports[`renders with allDay 1`] = `
       color="inherit"
       level="h2"
     >
-      <Button
-        as="button"
-        cursor="pointer"
-        display="inline-block"
-        elementRef={[Function]}
+      <Link
+        color="link"
         href="http://example.com"
-        margin="0"
+        iconPlacement="start"
+        isWithinText={false}
         size="large"
-        textAlign="center"
-        theme={
-          Object {
-            "largeHeight": "normal",
-            "largePadding": "0",
-          }
-        }
-        type="button"
-        variant="link"
-        withBackground={true}
       >
         event title
-      </Button>
+      </Link>
     </Heading>
     <CloseButton
       as="button"
@@ -328,11 +305,10 @@ exports[`renders with allDay 1`] = `
       offset="x-small"
       onClick={[MockFunction]}
       placement="end"
+      screenReaderLabel="Close"
       size="small"
       type="button"
-    >
-      Close
-    </CloseButton>
+    />
   </ModalHeader>
   <ModalBody
     as="div"
@@ -557,6 +533,7 @@ exports[`renders with only the startTime 1`] = `
   variant="default"
 >
   <ModalHeader
+    spacing="default"
     variant="default"
   >
     <Heading
@@ -564,27 +541,15 @@ exports[`renders with only the startTime 1`] = `
       color="inherit"
       level="h2"
     >
-      <Button
-        as="button"
-        cursor="pointer"
-        display="inline-block"
-        elementRef={[Function]}
+      <Link
+        color="link"
         href="http://example.com"
-        margin="0"
+        iconPlacement="start"
+        isWithinText={false}
         size="large"
-        textAlign="center"
-        theme={
-          Object {
-            "largeHeight": "normal",
-            "largePadding": "0",
-          }
-        }
-        type="button"
-        variant="link"
-        withBackground={true}
       >
         event title
-      </Button>
+      </Link>
     </Heading>
     <CloseButton
       as="button"
@@ -593,11 +558,10 @@ exports[`renders with only the startTime 1`] = `
       offset="x-small"
       onClick={[MockFunction]}
       placement="end"
+      screenReaderLabel="Close"
       size="small"
       type="button"
-    >
-      Close
-    </CloseButton>
+    />
   </ModalHeader>
   <ModalBody
     as="div"
@@ -822,6 +786,7 @@ exports[`renders with user displayName for calendar 1`] = `
   variant="default"
 >
   <ModalHeader
+    spacing="default"
     variant="default"
   >
     <Heading
@@ -829,27 +794,15 @@ exports[`renders with user displayName for calendar 1`] = `
       color="inherit"
       level="h2"
     >
-      <Button
-        as="button"
-        cursor="pointer"
-        display="inline-block"
-        elementRef={[Function]}
+      <Link
+        color="link"
         href="http://example.com"
-        margin="0"
+        iconPlacement="start"
+        isWithinText={false}
         size="large"
-        textAlign="center"
-        theme={
-          Object {
-            "largeHeight": "normal",
-            "largePadding": "0",
-          }
-        }
-        type="button"
-        variant="link"
-        withBackground={true}
       >
         event title
-      </Button>
+      </Link>
     </Heading>
     <CloseButton
       as="button"
@@ -858,11 +811,10 @@ exports[`renders with user displayName for calendar 1`] = `
       offset="x-small"
       onClick={[MockFunction]}
       placement="end"
+      screenReaderLabel="Close"
       size="small"
       type="button"
-    >
-      Close
-    </CloseButton>
+    />
   </ModalHeader>
   <ModalBody
     as="div"
@@ -1087,6 +1039,7 @@ exports[`renders without address 1`] = `
   variant="default"
 >
   <ModalHeader
+    spacing="default"
     variant="default"
   >
     <Heading
@@ -1094,27 +1047,15 @@ exports[`renders without address 1`] = `
       color="inherit"
       level="h2"
     >
-      <Button
-        as="button"
-        cursor="pointer"
-        display="inline-block"
-        elementRef={[Function]}
+      <Link
+        color="link"
         href="http://example.com"
-        margin="0"
+        iconPlacement="start"
+        isWithinText={false}
         size="large"
-        textAlign="center"
-        theme={
-          Object {
-            "largeHeight": "normal",
-            "largePadding": "0",
-          }
-        }
-        type="button"
-        variant="link"
-        withBackground={true}
       >
         event title
-      </Button>
+      </Link>
     </Heading>
     <CloseButton
       as="button"
@@ -1123,11 +1064,10 @@ exports[`renders without address 1`] = `
       offset="x-small"
       onClick={[MockFunction]}
       placement="end"
+      screenReaderLabel="Close"
       size="small"
       type="button"
-    >
-      Close
-    </CloseButton>
+    />
   </ModalHeader>
   <ModalBody
     as="div"
@@ -1314,6 +1254,7 @@ exports[`renders without details 1`] = `
   variant="default"
 >
   <ModalHeader
+    spacing="default"
     variant="default"
   >
     <Heading
@@ -1321,27 +1262,15 @@ exports[`renders without details 1`] = `
       color="inherit"
       level="h2"
     >
-      <Button
-        as="button"
-        cursor="pointer"
-        display="inline-block"
-        elementRef={[Function]}
+      <Link
+        color="link"
         href="http://example.com"
-        margin="0"
+        iconPlacement="start"
+        isWithinText={false}
         size="large"
-        textAlign="center"
-        theme={
-          Object {
-            "largeHeight": "normal",
-            "largePadding": "0",
-          }
-        }
-        type="button"
-        variant="link"
-        withBackground={true}
       >
         event title
-      </Button>
+      </Link>
     </Heading>
     <CloseButton
       as="button"
@@ -1350,11 +1279,10 @@ exports[`renders without details 1`] = `
       offset="x-small"
       onClick={[MockFunction]}
       placement="end"
+      screenReaderLabel="Close"
       size="small"
       type="button"
-    >
-      Close
-    </CloseButton>
+    />
   </ModalHeader>
   <ModalBody
     as="div"
@@ -1554,6 +1482,7 @@ exports[`renders without location 1`] = `
   variant="default"
 >
   <ModalHeader
+    spacing="default"
     variant="default"
   >
     <Heading
@@ -1561,27 +1490,15 @@ exports[`renders without location 1`] = `
       color="inherit"
       level="h2"
     >
-      <Button
-        as="button"
-        cursor="pointer"
-        display="inline-block"
-        elementRef={[Function]}
+      <Link
+        color="link"
         href="http://example.com"
-        margin="0"
+        iconPlacement="start"
+        isWithinText={false}
         size="large"
-        textAlign="center"
-        theme={
-          Object {
-            "largeHeight": "normal",
-            "largePadding": "0",
-          }
-        }
-        type="button"
-        variant="link"
-        withBackground={true}
       >
         event title
-      </Button>
+      </Link>
     </Heading>
     <CloseButton
       as="button"
@@ -1590,11 +1507,10 @@ exports[`renders without location 1`] = `
       offset="x-small"
       onClick={[MockFunction]}
       placement="end"
+      screenReaderLabel="Close"
       size="small"
       type="button"
-    >
-      Close
-    </CloseButton>
+    />
   </ModalHeader>
   <ModalBody
     as="div"

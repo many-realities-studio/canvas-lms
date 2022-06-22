@@ -30,12 +30,12 @@ class OriginalityReport < ActiveRecord::Base
   belongs_to :originality_report_attachment, class_name: "Attachment"
   belongs_to :root_account, class_name: "Account"
 
-  has_one :lti_link, class_name: 'Lti::Link', as: :linkable, inverse_of: :linkable, dependent: :destroy
+  has_one :lti_link, class_name: "Lti::Link", as: :linkable, inverse_of: :linkable, dependent: :destroy
   accepts_nested_attributes_for :lti_link, allow_destroy: true
 
   validates :submission, presence: true
   validates :workflow_state, inclusion: { in: ORDERED_VALID_WORKFLOW_STATES }
-  validates :originality_score, inclusion: { in: 0..100, message: 'score must be between 0 and 100' }, allow_nil: true
+  validates :originality_score, inclusion: { in: 0..100, message: "score must be between 0 and 100" }, allow_nil: true
 
   alias_attribute :file_id, :attachment_id
   alias_attribute :originality_report_file_id, :originality_report_attachment_id
@@ -48,7 +48,7 @@ class OriginalityReport < ActiveRecord::Base
   end
 
   def state
-    if workflow_state != 'scored'
+    if workflow_state != "scored"
       return workflow_state
     end
 
@@ -72,7 +72,7 @@ class OriginalityReport < ActiveRecord::Base
                                               assignment_id: assignment.id,
                                               resource_link_id: lti_link.resource_link_id,
                                               host: HostUrl.context_host(assignment.context),
-                                              display: 'borderless')
+                                              display: "borderless")
     else
       originality_report_url
     end
@@ -88,8 +88,8 @@ class OriginalityReport < ActiveRecord::Base
     end
   end
 
-  def self.copy_to_group_submissions!(report_id:, user_id:)
-    report = self.find(report_id)
+  def self.copy_to_group_submissions!(report_id:, user_id:, updated_at: nil, submission_id: nil, attachment_id: nil)
+    report = find(report_id)
     report.copy_to_group_submissions!
   rescue ActiveRecord::RecordNotFound => e
     user = User.where(id: user_id).first
@@ -99,27 +99,64 @@ class OriginalityReport < ActiveRecord::Base
       # gone or is known to be a fake_student, we can ignore this and not
       # continue with the job
       Canvas::Errors.capture(e, { report_id: report_id, user_id: user_id }, :info)
+    elsif updated_at && where("updated_at > ?", updated_at)
+          .where(submission_id: submission_id, attachment_id: attachment_id).exists?
+      # It is possible for the report to have been deleted by another job (of
+      # the same group but different submission/student). In this case it would
+      # have created another report, so if we find that, it's an expected
+      # error.
+      info = {
+        report_id: report_id, submission_id: submission_id,
+        attachment_id: attachment_id, updated_at: updated_at
+      }
+      Canvas::Errors.capture(e, info, :info)
     else
       raise e
     end
   end
 
+  def copy_to_group_submissions_later!
+    # Some providers may actually send a report for each student, but
+    # historically at least some did not, so we need to copy.
+    return if submission.group_id.blank?
+
+    strand = "originality_report_copy_to_group_submissions:" \
+             "#{submission.global_assignment_id}:#{submission.group_id}:#{attachment_id}"
+
+    self.class.delay_if_production(strand: strand).copy_to_group_submissions!(
+      report_id: id,
+      user_id: submission.user_id,
+      submission_id: submission_id,
+      attachment_id: attachment_id,
+      updated_at: updated_at
+    )
+  end
+
   def copy_to_group_submissions!
+    # This normally wouldn't have changed but check again anyway because
+    # updating all submissions with no group id would be bad...
     return if submission.group_id.blank?
 
     group_submissions = assignment.submissions.where.not(id: submission.id).where(group: submission.group)
+
     group_submissions.find_each do |s|
-      copy_of_report = self.dup
+      same_or_later_report_exists =
+        s.originality_reports.where(attachment_id: attachment_id)
+         .where("updated_at >= ?", updated_at).exists?
+      next if same_or_later_report_exists
+
+      copy_of_report = dup
       copy_of_report.submission_time = nil
 
       # We don't want a single submission to have
       # multiple originality reports with the same
       # attachment/submission combo hanging around.
-      s.originality_reports.where(
-        attachment_id: attachment_id
-      ).destroy_all
+      s.originality_reports
+       .where(attachment_id: attachment_id)
+       .where("updated_at < ?", updated_at)
+       .destroy_all
 
-      copy_of_report.update!(submission: s)
+      copy_of_report.update!(submission: s, updated_at: updated_at)
       lti_link&.dup&.update!(
         linkable: copy_of_report,
         resource_link_id: nil
@@ -138,10 +175,10 @@ class OriginalityReport < ActiveRecord::Base
   end
 
   def infer_workflow_state
-    self.workflow_state = 'error' if error_message.present?
-    return if self.workflow_state == 'error'
+    self.workflow_state = "error" if error_message.present?
+    return if workflow_state == "error"
 
-    self.workflow_state = self.originality_score.present? ? 'scored' : 'pending'
+    self.workflow_state = originality_score.present? ? "scored" : "pending"
   end
 
   def set_root_account

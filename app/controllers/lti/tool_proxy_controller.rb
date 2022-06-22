@@ -23,22 +23,24 @@ module Lti
 
     before_action :require_context
     before_action :require_user
-    before_action :set_tool_proxy, only: [:destroy, :update, :accept_update, :dismiss_update, :recreate_subscriptions]
+    before_action :set_tool_proxy, only: %i[destroy update accept_update dismiss_update recreate_subscriptions]
     before_action :require_site_admin, only: [:recreate_subscriptions]
 
     def destroy
       if authorized_action(@context, @current_user, :update)
-        update_workflow_state('deleted')
+        update_workflow_state("deleted")
         render json: '{"status":"success"}'
       end
     end
 
     def update
       if authorized_action(@context, @current_user, :update)
-        update_workflow_state(params['workflow_state'])
+        update_workflow_state(params["workflow_state"])
 
         render json: '{"status":"success"}'
       end
+    rescue Lti::PlagiarismSubscriptionsHelper::PlagiarismSubscriptionError => e
+      render json: { status: "error", errors: [{ message: e }] }, status: :service_unavailable
     end
 
     def accept_update
@@ -75,7 +77,7 @@ module Lti
         if success
           render json: '{"status": "Success"}'
         else
-          render json: '{"status": "Failed"}', status: 424
+          render json: '{"status": "Failed"}', status: :failed_dependency
         end
       end
     end
@@ -93,7 +95,7 @@ module Lti
     end
 
     def recreate_subscriptions
-      if @tool_proxy.nil? || @tool_proxy.workflow_state != 'active'
+      if @tool_proxy.nil? || @tool_proxy.workflow_state != "active"
         render json: '{"status":"error", "error": "active tool proxy not found"}'
         return
       end
@@ -111,13 +113,13 @@ module Lti
     def update_workflow_state(workflow_state)
       Rails.logger.info do
         "in: ToolProxyController::update_workflow_state, tool_id: #{@tool_proxy.id}, "\
-        "old state: #{@tool_proxy.workflow_state}, new state: #{workflow_state}"
+          "old state: #{@tool_proxy.workflow_state}, new state: #{workflow_state}"
       end
       @tool_proxy.update_attribute(:workflow_state, workflow_state)
 
       # destroy or create subscriptions
-      ToolProxyService.delete_subscriptions(@tool_proxy) if workflow_state == 'deleted'
-      ToolProxyService.recreate_missing_subscriptions(@tool_proxy) if workflow_state == 'active'
+      ToolProxyService.delete_subscriptions(@tool_proxy) if workflow_state == "deleted"
+      ToolProxyService.recreate_missing_subscriptions(@tool_proxy) if workflow_state == "active"
 
       # this needs to be moved to whatever changes the workflow state to active
       invalidate_nav_tabs_cache(@tool_proxy)

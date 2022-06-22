@@ -17,11 +17,10 @@
 # You should have received a copy of the GNU Affero General Public License along
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 
-require_relative '../../common'
+require_relative "../../common"
 
 module StudentContextTray
   #------------------------------ Selectors -----------------------------
-
   #------------------------------ Elements ------------------------------
   def student_tray_header
     f(".StudentContextTray-Header")
@@ -48,7 +47,7 @@ module StudentContextTray
   end
 
   def student_tray_quick_links
-    f('.StudentContextTray-QuickLinks')
+    f(".StudentContextTray-QuickLinks")
   end
 
   #------------------------ Actions & Methods ---------------------------
@@ -58,8 +57,8 @@ module StudentContextTray
     wait_for(method: nil, timeout: 5) { ff(".StudentContextTray__Spinner").empty? }
   end
 
-  def todo_tray_select_course_from_dropdown(course_name = 'Optional: Add Course')
+  def todo_tray_select_course_from_dropdown(course_name = "Optional: Add Course")
     todo_tray_course_selector.click
-    todo_tray_dropdown_select_course(course_name).click
+    click_option("#to-do-item-course-select", course_name)
   end
 end

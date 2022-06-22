@@ -19,9 +19,9 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
 
-import AsyncComponents from 'ui/features/gradebook/react/default_gradebook/AsyncComponents.js'
-import AssignmentColumnHeader from 'ui/features/gradebook/react/default_gradebook/GradebookGrid/headers/AssignmentColumnHeader.js'
-import MessageStudentsWhoDialog from 'ui/features/gradebook/react/shared/MessageStudentsWhoDialog.js'
+import AsyncComponents from 'ui/features/gradebook/react/default_gradebook/AsyncComponents'
+import AssignmentColumnHeader from 'ui/features/gradebook/react/default_gradebook/GradebookGrid/headers/AssignmentColumnHeader'
+import MessageStudentsWhoDialog from 'ui/features/gradebook/react/shared/MessageStudentsWhoDialog'
 import {blurElement, getMenuContent, getMenuItem} from './ColumnHeaderSpecHelpers'
 
 /* eslint-disable qunit/no-identical-names */
@@ -31,15 +31,65 @@ QUnit.module('GradebookGrid AssignmentColumnHeader', suiteHooks => {
   let component
   let gradebookElements
   let props
+  let students
 
   suiteHooks.beforeEach(() => {
     $container = document.body.appendChild(document.createElement('div'))
+
+    students = [
+      {
+        id: '1001',
+        isInactive: false,
+        isTestStudent: false,
+        name: 'Adam Jones',
+        sortableName: 'Jones, Adam',
+        submission: {
+          excused: false,
+          postedAt: null,
+          score: 7,
+          submittedAt: null,
+          workflowState: 'graded'
+        }
+      },
+
+      {
+        id: '1002',
+        isInactive: false,
+        isTestStudent: false,
+        name: 'Betty Ford',
+        sortableName: 'Ford, Betty',
+        submission: {
+          excused: false,
+          postedAt: null,
+          score: 8,
+          submittedAt: new Date('Thu Feb 02 2017 16:33:19 GMT-0500 (EST)'),
+          workflowState: 'graded'
+        }
+      },
+
+      {
+        id: '1003',
+        isInactive: false,
+        isTestStudent: false,
+        name: 'Charlie Xi',
+        sortableName: 'Xi, Charlie',
+        submission: {
+          excused: false,
+          postedAt: null,
+          score: null,
+          submittedAt: null,
+          workflowState: 'unsubmitted'
+        }
+      }
+    ]
 
     gradebookElements = []
     props = {
       addGradebookElement($el) {
         gradebookElements.push($el)
       },
+
+      allStudents: [...students],
 
       assignment: {
         anonymizeStudents: false,
@@ -76,6 +126,8 @@ QUnit.module('GradebookGrid AssignmentColumnHeader', suiteHooks => {
         selected: 'points',
         showGradingSchemeOption: true
       },
+
+      getCurrentlyShownStudents: () => students.slice(0, 2),
 
       hideGradesAction: {
         hasGradesOrPostableComments: true,
@@ -124,54 +176,9 @@ QUnit.module('GradebookGrid AssignmentColumnHeader', suiteHooks => {
         settingKey: 'grade'
       },
 
-      students: [
-        {
-          id: '1001',
-          isInactive: false,
-          isTestStudent: false,
-          name: 'Adam Jones',
-          sortableName: 'Jones, Adam',
-          submission: {
-            excused: false,
-            postedAt: null,
-            score: 7,
-            submittedAt: null,
-            workflowState: 'graded'
-          }
-        },
+      submissionsLoaded: true,
 
-        {
-          id: '1002',
-          isInactive: false,
-          isTestStudent: false,
-          name: 'Betty Ford',
-          sortableName: 'Ford, Betty',
-          submission: {
-            excused: false,
-            postedAt: null,
-            score: 8,
-            submittedAt: new Date('Thu Feb 02 2017 16:33:19 GMT-0500 (EST)'),
-            workflowState: 'graded'
-          }
-        },
-
-        {
-          id: '1003',
-          isInactive: false,
-          isTestStudent: false,
-          name: 'Charlie Xi',
-          sortableName: 'Xi, Charlie',
-          submission: {
-            excused: false,
-            postedAt: null,
-            score: null,
-            submittedAt: null,
-            workflowState: 'unsubmitted'
-          }
-        }
-      ],
-
-      submissionsLoaded: true
+      userId: '123'
     }
   })
 
@@ -237,7 +244,7 @@ QUnit.module('GradebookGrid AssignmentColumnHeader', suiteHooks => {
 
     QUnit.module('when the assignment is auto-posted', () => {
       test('displays no icon when no submissions are graded but unposted', () => {
-        props.students.forEach(student => {
+        props.allStudents.forEach(student => {
           if (student.submission.score != null) {
             student.submission.postedAt = new Date()
           }
@@ -259,7 +266,7 @@ QUnit.module('GradebookGrid AssignmentColumnHeader', suiteHooks => {
       })
 
       test('does not display an "off" icon when no submissions are graded but unposted', () => {
-        props.students.forEach(student => {
+        props.allStudents.forEach(student => {
           if (student.submission.workflowState === 'graded') {
             student.submission.postedAt = new Date()
           }
@@ -755,6 +762,7 @@ QUnit.module('GradebookGrid AssignmentColumnHeader', suiteHooks => {
 
     hooks.beforeEach(() => {
       loadMessageStudentsWhoDialogPromise = Promise.resolve(MessageStudentsWhoDialog)
+
       sandbox
         .stub(AsyncComponents, 'loadMessageStudentsWhoDialog')
         .returns(loadMessageStudentsWhoDialogPromise)
@@ -794,13 +802,6 @@ QUnit.module('GradebookGrid AssignmentColumnHeader', suiteHooks => {
         notEqual(document.activeElement, getOptionsMenuTrigger())
       })
 
-      test('opens the message students dialog', async () => {
-        mountAndOpenOptionsMenu()
-        getMenuItem($menuContent, 'Message Students Who').click()
-        await loadMessageStudentsWhoDialogPromise
-        strictEqual(MessageStudentsWhoDialog.show.callCount, 1)
-      })
-
       test('includes a callback for restoring focus upon dialog close', async () => {
         mountAndOpenOptionsMenu()
         getMenuItem($menuContent, 'Message Students Who').click()
@@ -815,11 +816,11 @@ QUnit.module('GradebookGrid AssignmentColumnHeader', suiteHooks => {
         getMenuItem($menuContent, 'Message Students Who').click()
         await loadMessageStudentsWhoDialogPromise
         const [settings] = MessageStudentsWhoDialog.show.lastCall.args
-        strictEqual(settings.students.length, 3)
+        strictEqual(settings.students.length, 2)
       })
 
       test('excludes test students from the "settings" hash', async () => {
-        props.students[0].isTestStudent = true
+        students[0].isTestStudent = true
 
         mountAndOpenOptionsMenu()
         getMenuItem($menuContent, 'Message Students Who').click()
@@ -827,7 +828,7 @@ QUnit.module('GradebookGrid AssignmentColumnHeader', suiteHooks => {
         const [settings] = MessageStudentsWhoDialog.show.lastCall.args
         deepEqual(
           settings.students.map(student => student.name),
-          ['Betty Ford', 'Charlie Xi']
+          ['Betty Ford']
         )
       })
     })

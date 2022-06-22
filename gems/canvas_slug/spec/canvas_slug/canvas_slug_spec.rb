@@ -18,7 +18,7 @@
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-require 'spec_helper'
+require "spec_helper"
 
 describe CanvasSlug do
   let(:subject) { CanvasSlug }
@@ -39,7 +39,7 @@ describe CanvasSlug do
     end
 
     it "prepends a provided purpose" do
-      expect(subject.generate("foobar")).to match /\Afoobar-\w{4}\z/
+      expect(subject.generate("foobar")).to match(/\Afoobar-\w{4}\z/)
     end
   end
 end

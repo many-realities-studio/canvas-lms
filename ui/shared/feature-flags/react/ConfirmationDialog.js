@@ -18,9 +18,11 @@
 
 import React from 'react'
 import ReactDOM from 'react-dom'
-import I18n from 'i18n!ConfirmationDialog'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import {Button} from '@instructure/ui-buttons'
 import CanvasModal from '@canvas/instui-bindings/react/Modal'
+
+const I18n = useI18nScope('ConfirmationDialog')
 
 const dialogHolderId = 'confirmation_dialog_holder'
 
@@ -38,11 +40,16 @@ export default function ConfirmationDialog({
       label={label}
       onDismiss={onReject}
       open={open}
-      size="small"
+      size="medium"
       footer={
         <>
           <Button onClick={onReject}>{I18n.t('Cancel')}</Button>
-          <Button margin="0 0 0 small" variant={confirmColor || 'primary'} onClick={onConfirm}>
+          <Button
+            data-testid="confirm-button"
+            margin="0 0 0 small"
+            color={confirmColor || 'primary'}
+            onClick={onConfirm}
+          >
             {confirmText || I18n.t('Confirm')}
           </Button>
         </>

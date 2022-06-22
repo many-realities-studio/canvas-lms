@@ -18,7 +18,7 @@
 
 import React from 'react'
 import {shape, func, string} from 'prop-types'
-import I18n from 'i18n!account_course_user_search'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import {debounce, isEmpty} from 'lodash'
 import {ScreenReaderContent} from '@instructure/ui-a11y-content'
 import UsersList from './UsersList'
@@ -26,6 +26,8 @@ import UsersToolbar from './UsersToolbar'
 import SearchMessage from './SearchMessage'
 import SRSearchMessage from './SRSearchMessage'
 import UserActions from '../actions/UserActions'
+
+const I18n = useI18nScope('account_course_user_search')
 
 const MIN_SEARCH_LENGTH = 2
 export const SEARCH_DEBOUNCE_TIME = 750
@@ -53,6 +55,11 @@ export default class UsersPane extends React.Component {
       userList: props.store.getState().userList,
       srMessageDisplayed: false
     }
+    this.columnHeader = null
+    this.debouncedDispatchApplySearchFilter = debounce(
+      this.handleApplyingSearchFilter,
+      SEARCH_DEBOUNCE_TIME
+    )
   }
 
   componentDidMount() {
@@ -65,28 +72,41 @@ export default class UsersPane extends React.Component {
     this.props.store.dispatch(UserActions.applySearchFilter(MIN_SEARCH_LENGTH))
   }
 
+  componentDidUpdate() {
+    if (this.columnHeader && this.columnHeader.id) {
+      const columnHeaderButton = document.getElementById(this.columnHeader.id)
+      if (columnHeaderButton) columnHeaderButton.focus()
+    }
+  }
+
   componentWillUnmount() {
     this.unsubscribe()
   }
 
   handleStateChange = () => {
-    this.setState({userList: this.props.store.getState().userList})
+    const userList = this.props.store.getState().userList
+    const lastPage = userList?.links?.last?.page
+    this.setState(oldState => {
+      const newState = {userList}
+      if (lastPage && !oldState.knownLastPage) newState.knownLastPage = lastPage
+      return newState
+    })
   }
 
-  handleApplyingSearchFilter = () => {
+  handleApplyingSearchFilter = (preserveLastPageValue = false) => {
     this.props.store.dispatch(UserActions.applySearchFilter(MIN_SEARCH_LENGTH))
     this.updateQueryString()
+    if (!preserveLastPageValue) this.setState({knownLastPage: undefined})
+  }
+
+  setColumnHeaderRef = element => {
+    if (element) this.columnHeader = element
   }
 
   updateQueryString = () => {
     const searchFilter = this.props.store.getState().userList.searchFilter
     this.props.onUpdateQueryParams(searchFilter)
   }
-
-  debouncedDispatchApplySearchFilter = debounce(
-    this.handleApplyingSearchFilter,
-    SEARCH_DEBOUNCE_TIME
-  )
 
   handleUpdateSearchFilter = searchFilter => {
     this.props.store.dispatch(UserActions.updateSearchFilter({page: null, ...searchFilter}))
@@ -99,7 +119,7 @@ export default class UsersPane extends React.Component {
 
   handleSetPage = page => {
     this.props.store.dispatch(UserActions.updateSearchFilter({page}))
-    this.handleApplyingSearchFilter()
+    this.handleApplyingSearchFilter(true)
   }
 
   render() {
@@ -110,19 +130,17 @@ export default class UsersPane extends React.Component {
           <h1>{I18n.t('People')}</h1>
         </ScreenReaderContent>
 
-        {
-          <UsersToolbar
-            onUpdateFilters={this.handleUpdateSearchFilter}
-            onApplyFilters={this.handleApplyingSearchFilter}
-            errors={errors}
-            {...searchFilter}
-            accountId={accountId.toString()}
-            roles={this.props.roles}
-            toggleSRMessage={(show = false) => {
-              this.setState({srMessageDisplayed: show})
-            }}
-          />
-        }
+        <UsersToolbar
+          onUpdateFilters={this.handleUpdateSearchFilter}
+          onApplyFilters={this.handleApplyingSearchFilter}
+          errors={errors}
+          {...searchFilter}
+          accountId={accountId.toString()}
+          roles={this.props.roles}
+          toggleSRMessage={(show = false) => {
+            this.setState({srMessageDisplayed: show})
+          }}
+        />
 
         {!isEmpty(users) && !isLoading && (
           <UsersList
@@ -132,13 +150,15 @@ export default class UsersPane extends React.Component {
             users={users}
             handleSubmitEditUserForm={this.handleSubmitEditUserForm}
             permissions={this.state.userList.permissions}
+            columnHeaderRef={this.setColumnHeaderRef}
           />
         )}
+
         <SearchMessage
           collection={{data: users, loading: isLoading, links}}
           setPage={this.handleSetPage}
+          knownLastPage={this.state.knownLastPage}
           noneFoundMessage={I18n.t('No users found')}
-          dataType="User"
         />
         {this.state.srMessageDisplayed && (
           <SRSearchMessage collection={{data: users, loading: isLoading, links}} dataType="User" />

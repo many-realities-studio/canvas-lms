@@ -38,12 +38,12 @@ class DeveloperKeysController < ApplicationController
           includesFeatureFlagEnabled: Account.site_admin.feature_enabled?(:developer_key_support_includes)
         )
 
-        render :index_react
+        render :index
       end
 
       format.json do
         @keys = Api.paginate(index_scope, self, account_developer_keys_url(@context))
-        render :json => developer_keys_json(
+        render json: developer_keys_json(
           @keys,
           @current_user,
           session,
@@ -59,9 +59,9 @@ class DeveloperKeysController < ApplicationController
     @key = DeveloperKey.new(developer_key_params)
     @key.account = @context if params[:account_id] && @context != Account.site_admin
     if @key.save
-      render :json => developer_key_json(@key, @current_user, session, account_context)
+      render json: developer_key_json(@key, @current_user, session, account_context)
     else
-      render :json => @key.errors, :status => :bad_request
+      render json: @key.errors, status: :bad_request
     end
   end
 
@@ -69,22 +69,22 @@ class DeveloperKeysController < ApplicationController
     @key.process_event!(params[:developer_key].delete(:event)) if params[:developer_key].key?(:event)
     @key.attributes = developer_key_params unless params[:developer_key].empty?
     if @key.save
-      render :json => developer_key_json(@key, @current_user, session, account_context)
+      render json: developer_key_json(@key, @current_user, session, account_context)
     else
-      render :json => @key.errors, :status => :bad_request
+      render json: @key.errors, status: :bad_request
     end
   end
 
   def destroy
     @key.destroy
-    render :json => developer_key_json(@key, @current_user, session, account_context)
+    render json: developer_key_json(@key, @current_user, session, account_context)
   end
 
   protected
 
   def set_navigation
-    set_active_tab 'developer_keys'
-    add_crumb t('#crumbs.developer_keys', "Developer Keys")
+    set_active_tab "developer_keys"
+    add_crumb t("#crumbs.developer_keys", "Developer Keys")
   end
 
   private
@@ -110,7 +110,22 @@ class DeveloperKeysController < ApplicationController
               DeveloperKey.where(account_id: @context.id)
             end
     scope = scope.eager_load(:tool_configuration) unless params[:inherited]
-    scope.nondeleted.preload(:account).order("developer_keys.id DESC")
+    scope = scope.nondeleted.preload(:account).order("developer_keys.id DESC")
+
+    # query for parent keys is most likely cross-shard,
+    # so doesn't fit into the scope cases above
+    if params[:inherited].present? && !@context.primary_settings_root_account?
+      federated_parent = @context.account_chain(include_federated_parent: true).last
+      parent_keys = DeveloperKey
+                    .shard(federated_parent.shard)
+                    .where(account: federated_parent)
+                    .nondeleted
+                    .order("developer_keys.id DESC")
+
+      return parent_keys + scope
+    end
+
+    scope
   end
 
   def set_key
@@ -126,7 +141,7 @@ class DeveloperKeysController < ApplicationController
     end
 
     # failover to what require_site_admin_with_permission uses
-    return Account.site_admin
+    Account.site_admin
   end
 
   def context_is_domain_root_account?

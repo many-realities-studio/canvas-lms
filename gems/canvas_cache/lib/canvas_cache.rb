@@ -18,8 +18,9 @@
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 module CanvasCache
-  require 'canvas_cache/redis'
-  require 'canvas_cache/hash_ring'
+  require "canvas_cache/redis"
+  require "canvas_cache/hash_ring"
+  require "canvas_cache/memory_settings"
 
   class UnconfiguredError < StandardError; end
 
@@ -27,7 +28,9 @@ module CanvasCache
   # a gem on it's own or some other dependable module.
   # For the moment, this is a convenient way to inject
   # this base class without needing to depend on it directly.
-  mattr_writer :settings_store
+  # This is safe to change after initialization, since none of the
+  # returned settings are persistently cached in memory
+  mattr_writer :settings_store, default: MemorySettings.new
 
   # this is expected to be a lambda which can be invoked
   # and passed an exception object if the caching library

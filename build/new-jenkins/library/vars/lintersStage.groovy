@@ -22,7 +22,7 @@ def nodeRequirementsTemplate() {
     command: 'cat',
     envVars: [
       GERGICH_DB_PATH: '/home/docker/gergich',
-      GERGICH_GIT_PATH: env.GERRIT_PROJECT == 'canvas-lms' ? '/usr/src/app' : "/usr/src/app/gems/plugins/$GERRIT_PROJECT",
+      GERGICH_GIT_PATH: env.DOCKER_WORKDIR,
     ]
   ]
 
@@ -78,21 +78,13 @@ def masterBouncerStage(stages) {
   }
 }
 
-def webpackStage(stages) {
-  { ->
-    callableWithDelegate(queueTestStage())(stages,
-      name: 'webpack',
-      command: './build/new-jenkins/linters/run-gergich-webpack.sh'
-    )
-  }
-}
-
 def featureFlagStage(stages, buildConfig) {
   { ->
     extendedStage('Linters - feature-flag')
+      .hooks(buildSummaryReportHooks.call())
       .nodeRequirements(container: 'feature-flag')
       .obeysAllowStages(false)
-      .required(filesChangedStage.hasFeatureFlagFiles(buildConfig))
+      .required(filesChangedStage.hasFeatureFlagFiles(buildConfig) && env.GERRIT_CHANGE_ID != "0")
       .queue(stages) {
         slackSend(
           channel: configuration.getString('feature-flag-report-channel'),
@@ -127,7 +119,7 @@ def groovyStage(stages, buildConfig) {
     callableWithDelegate(queueTestStage())(stages,
       name: 'groovy',
       required: env.GERRIT_PROJECT == 'canvas-lms' && filesChangedStage.hasGroovyFiles(buildConfig),
-      command: 'npx npm-groovy-lint --path \".\" --ignorepattern \"**/node_modules/**\" --files \"**/*.groovy,**/Jenkinsfile*\" --config \".groovylintrc.json\" --loglevel info --failon info',
+      command: 'npx npm-groovy-lint --path \".\" --ignorepattern \"**/node_modules/**\" --files \"**/*.groovy,**/Jenkinsfile*\" --config \".groovylintrc.json\" --loglevel info --failon warning',
     )
   }
 }
@@ -136,6 +128,7 @@ def queueTestStage() {
   { opts, stages ->
     extendedStage("Linters - ${opts.name}")
       .envVars(opts.containsKey('envVars') ? opts.envVars : [])
+      .hooks(buildSummaryReportHooks.call())
       .nodeRequirements(container: opts.name)
       .required(opts.containsKey('required') ? opts.required : true)
       .queue(stages) {

@@ -19,7 +19,9 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
 import {Pill} from '@instructure/ui-pill'
-import I18n from 'i18n!gradingStatusPill'
+import {useScope as useI18nScope} from '@canvas/i18n'
+
+const I18n = useI18nScope('gradingStatusPill')
 
 function forEachNode(nodeList, fn) {
   for (let i = 0; i < nodeList.length; i += 1) {
@@ -32,17 +34,22 @@ export default {
     const missMountPoints = document.querySelectorAll('.submission-missing-pill')
     const lateMountPoints = document.querySelectorAll('.submission-late-pill')
     const excusedMountPoints = document.querySelectorAll('.submission-excused-pill')
+    const extendedMountPoints = document.querySelectorAll('.submission-extended-pill')
 
     forEachNode(missMountPoints, mountPoint => {
-      ReactDOM.render(<Pill variant="danger" text={I18n.t('missing')} />, mountPoint)
+      ReactDOM.render(<Pill color="danger">{I18n.t('missing')}</Pill>, mountPoint)
     })
 
     forEachNode(lateMountPoints, mountPoint => {
-      ReactDOM.render(<Pill variant="danger" text={I18n.t('late')} />, mountPoint)
+      ReactDOM.render(<Pill color="info">{I18n.t('late')}</Pill>, mountPoint)
     })
 
     forEachNode(excusedMountPoints, mountPoint => {
-      ReactDOM.render(<Pill variant="danger" text={I18n.t('excused')} />, mountPoint)
+      ReactDOM.render(<Pill color="danger">{I18n.t('excused')}</Pill>, mountPoint)
+    })
+
+    forEachNode(extendedMountPoints, mountPoint => {
+      ReactDOM.render(<Pill color="alert">{I18n.t('extended')}</Pill>, mountPoint)
     })
   }
 }

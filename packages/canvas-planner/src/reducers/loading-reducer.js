@@ -20,6 +20,32 @@ import {handleActions} from 'redux-actions'
 import {mergeDays, purgeDuplicateDays} from '../utilities/daysUtils'
 import {findNextLink} from '../utilities/apiUtils'
 
+const INITIAL_STATE = {
+  isLoading: false,
+  loadingPast: false,
+  loadingFuture: false,
+  loadingWeek: false,
+  plannerLoaded: false,
+  allPastItemsLoaded: false,
+  allFutureItemsLoaded: false,
+  allWeekItemsLoaded: false,
+  allOpportunitiesLoaded: false,
+  loadingOpportunities: false,
+  futureNextUrl: null,
+  pastNextUrl: null,
+  seekingNewActivity: false,
+  partialPastDays: [],
+  partialFutureDays: [],
+  partialWeekDays: [],
+  hasSomeItems: null, // Tri-state. Initially null because we haven't checked yet.
+  // Set to true if the first peek into the past returns an item.
+  // Reset to false if an item is deleted, because we can't know
+  // if it was the last one.
+  loadingGrades: false,
+  gradesLoaded: false,
+  gradesLoadingError: null
+}
+
 function loadingState(currentState, loadingState) {
   return {
     ...currentState,
@@ -112,6 +138,9 @@ export default handleActions(
     START_LOADING_OPPORTUNITIES: (state, _action) => {
       return {...state, loadingOpportunities: true}
     },
+    START_LOADING_ALL_OPPORTUNITIES: (state, _action) => {
+      return {...state, loadingOpportunities: true, allOpportunitiesLoaded: false}
+    },
     START_LOADING_ITEMS: (state, _action) => {
       return loadingState(state, {isLoading: true})
     },
@@ -201,34 +230,8 @@ export default handleActions(
     },
     JUMP_TO_THIS_WEEK: (state, _action) => {
       return loadingState(state, {loadingWeek: false})
-    }
+    },
+    CLEAR_LOADING: (_state, _action) => INITIAL_STATE
   },
-  loadingState(
-    {},
-    {
-      isLoading: false,
-      loadingPast: false,
-      loadingFuture: false,
-      loadingWeek: false,
-      plannerLoaded: false,
-      allPastItemsLoaded: false,
-      allFutureItemsLoaded: false,
-      allWeekItemsLoaded: false,
-      allOpportunitiesLoaded: false,
-      loadingOpportunities: false,
-      futureNextUrl: null,
-      pastNextUrl: null,
-      seekingNewActivity: false,
-      partialPastDays: [],
-      partialFutureDays: [],
-      partialWeekDays: [],
-      hasSomeItems: null, // Tri-state. Initially null because we haven't checked yet.
-      // Set to true if the first peek into the past returns an item.
-      // Reset to false if an item is deleted, because we can't know
-      // if it was the last one.
-      loadingGrades: false,
-      gradesLoaded: false,
-      gradesLoadingError: null
-    }
-  )
+  loadingState({}, INITIAL_STATE)
 )

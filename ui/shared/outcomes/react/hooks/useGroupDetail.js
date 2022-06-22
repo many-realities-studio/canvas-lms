@@ -19,11 +19,13 @@
 import {useEffect, useRef} from 'react'
 import {useApolloClient, useQuery} from 'react-apollo'
 import useCanvasContext from './useCanvasContext'
-import I18n from 'i18n!OutcomeManagement'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import {showFlashAlert} from '@canvas/alerts/react/FlashAlert'
 import {SEARCH_GROUP_OUTCOMES} from '@canvas/outcomes/graphql/Management'
 import {uniqWith, uniqBy, uniq, isEqual} from 'lodash'
 import {gql} from '@canvas/apollo'
+
+const I18n = useI18nScope('OutcomeManagement')
 
 const useAbortController = dependencies => {
   const abortRef = useRef()
@@ -61,12 +63,17 @@ const useGroupDetail = ({
   loadOutcomesIsImported = false,
   searchString = '',
   id,
-  rhsGroupIdsToRefetch = []
+  rhsGroupIdsToRefetch = [],
+  targetGroupId
 }) => {
   const {contextType, contextId, rootIds} = useCanvasContext()
   searchString = useSearchString(searchString)
   const abortController = useAbortController([id, searchString])
-  const queryVars = {outcomesContextType: contextType, outcomesContextId: contextId}
+  const queryVars = {
+    outcomesContextType: contextType,
+    outcomesContextId: contextId,
+    targetGroupId
+  }
   const client = useApolloClient()
   const allVariables = useRef([])
   const refetchGroupIds = useRef([])
@@ -156,6 +163,18 @@ const useGroupDetail = ({
         }
       })
     }
+  }
+
+  const refetchLearningOutcome = () => {
+    // only need to call refetch once instead of refetching every group that has cache
+    // that is because the Learning Outcome & Friendly Description cache is stored separately
+    // Later we should look at updating the cache directly however...
+    // When going down the path of writeFragment and readFragment.  As it worked well for updating the
+    // LearningOutcome fragment, it did not for FriendlyDescription fragment.
+    // Mainly b/c when removing the friendly description there is no easy way to remove the
+    // FriendlyDescription cache object from the cache store in graphql v2. v3 does have this ability
+    // so yet another reason to look into upgrading to v3
+    refetch()
   }
 
   const removeLearningOutcomes = (contentTagIds, allVars = true) => {
@@ -261,6 +280,7 @@ const useGroupDetail = ({
     loadMore,
     removeLearningOutcomes,
     readLearningOutcomes,
+    refetchLearningOutcome,
     refetch
   }
 }

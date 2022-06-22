@@ -21,9 +21,9 @@ import commonEventFactory from '@canvas/calendar/jquery/CommonEvent/index'
 import EditCalendarEventDetails from '../EditCalendarEventDetails'
 
 const CONTEXTS = [
-  {name: 'course1', asset_string: 'course_1', can_create_calendar_events: true, k5_subject: false},
-  {name: 'course2', asset_string: 'course_2', can_create_calendar_events: true, k5_subject: true},
-  {name: 'course3', asset_string: 'course_3', can_create_calendar_events: true, k5_subject: false}
+  {name: 'course1', asset_string: 'course_1', can_create_calendar_events: true, k5_course: false},
+  {name: 'course2', asset_string: 'course_2', can_create_calendar_events: true, k5_course: true},
+  {name: 'course3', asset_string: 'course_3', can_create_calendar_events: true, k5_course: false}
 ]
 
 describe('EditCalendarEventDetails', () => {
@@ -72,10 +72,10 @@ describe('EditCalendarEventDetails', () => {
       window.ENV.conferences = {conference_types}
     }
 
-    it('does not show conferencing options when no conference types are enabled', () => {
+    it('does not show conferencing options when no conference types are enabled', async () => {
       render()
-      const conferencingRow = within(document.body).getByText('Conferencing:').closest('tr')
-      expect(conferencingRow.className).toEqual('hide')
+      const conferencingRow = await within(document.body).findByText('Conferencing:')
+      expect(conferencingRow.closest('tr').className).toEqual('hide')
     })
 
     it('shows conferencing options when some conference types are enabled', () => {
@@ -86,19 +86,19 @@ describe('EditCalendarEventDetails', () => {
     })
 
     describe('when context does not support conferences', () => {
-      it('does not show conferencing options when there is no current conference', () => {
+      it('does not show conferencing options when there is no current conference', async () => {
         enableConferences(CONFERENCE_TYPES.slice(1))
         render()
-        const conferencingRow = within(document.body).getByText('Conferencing:').closest('tr')
-        expect(conferencingRow.className).toEqual('hide')
+        const conferencingRow = await within(document.body).findByText('Conferencing:')
+        expect(conferencingRow.closest('tr').className).toEqual('hide')
       })
 
-      it('does show current conference when there is a current conference', () => {
+      it('does show current conference when there is a current conference', async () => {
         enableConferences(CONFERENCE_TYPES.slice(1))
         render({web_conference: {id: 1, conference_type: 'LtiConference', title: 'FooConf'}})
-        const conferencingRow = within(document.body).getByText('Conferencing:').closest('tr')
-        expect(conferencingRow.className).not.toEqual('hide')
-        expect(getByText(conferencingRow, 'FooConf')).not.toBeNull()
+        const conferencingRow = await within(document.body).findByText('Conferencing:')
+        expect(conferencingRow.closest('tr').className).not.toEqual('hide')
+        expect(getByText(conferencingRow.closest('tr'), 'FooConf')).not.toBeNull()
       })
     })
 
@@ -110,7 +110,8 @@ describe('EditCalendarEventDetails', () => {
           id: 1,
           name: 'Foo',
           conference_type: 'type1',
-          lti_settings: {a: 1, b: 2, c: 3}
+          lti_settings: {a: 1, b: 2, c: 3},
+          title: 'Bar'
         }
         view.event.save = jest.fn(params => {
           ;[
@@ -143,11 +144,11 @@ describe('EditCalendarEventDetails', () => {
     })
 
     describe('when event conference cannot be updated', () => {
-      it('does not show conferencing options when there is no current conference', () => {
+      it('does not show conferencing options when there is no current conference', async () => {
         enableConferences()
         render({parent_event_id: 1000})
-        const conferencingRow = within(document.body).getByText('Conferencing:').closest('tr')
-        expect(conferencingRow.className).toEqual('hide')
+        const conferencingRow = await within(document.body).findByText('Conferencing:')
+        expect(conferencingRow.closest('tr').className).toEqual('hide')
       })
 
       it('does not submit web_conference params', () => {
@@ -192,12 +193,6 @@ describe('EditCalendarEventDetails', () => {
   })
 
   describe('important dates section', () => {
-    beforeEach(() => {
-      window.ENV.FEATURES = {
-        important_dates: true
-      }
-    })
-
     it('is hidden by default', () => {
       render()
       expect(within(document.body).queryByText('Mark as Important Date')).not.toBeVisible()

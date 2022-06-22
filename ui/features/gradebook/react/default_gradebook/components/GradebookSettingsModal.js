@@ -17,13 +17,14 @@
  */
 
 import React from 'react'
-import {bool, func, objectOf, shape, string} from 'prop-types'
+import {bool, func, shape, string} from 'prop-types'
 import _ from 'underscore'
-import {Button} from '@instructure/ui-buttons'
-import {Modal} from '@instructure/ui-modal'
+import {Button, CloseButton} from '@instructure/ui-buttons'
+import {Flex} from '@instructure/ui-flex'
+import {Heading} from '@instructure/ui-heading'
 import {Tabs} from '@instructure/ui-tabs'
-import {View} from '@instructure/ui-view'
-import I18n from 'i18n!gradebook'
+import {Tray} from '@instructure/ui-tray'
+import {useScope as useI18nScope} from '@canvas/i18n'
 
 import AdvancedTabPanel from './AdvancedTabPanel'
 import {
@@ -38,6 +39,8 @@ import GradePostingPolicyTabPanel from './GradePostingPolicyTabPanel'
 import ViewOptionsTabPanel from './ViewOptionsTabPanel'
 import {showFlashAlert} from '@canvas/alerts/react/FlashAlert'
 import {confirmViewUngradedAsZero} from '../Gradebook.utils'
+
+const I18n = useI18nScope('gradebook')
 
 function isLatePolicySaveable({latePolicy: {changes, validationErrors}}) {
   return !_.isEmpty(changes) && _.isEmpty(validationErrors)
@@ -89,12 +92,11 @@ function onUpdateSuccess({close}) {
   return Promise.resolve()
 }
 
-const MODAL_CONTENTS_HEIGHT = 550
-
 export default class GradebookSettingsModal extends React.Component {
   static propTypes = {
     allowSortingByModules: bool,
     allowViewUngradedAsZero: bool,
+    allowShowSeparateFirstLastNames: bool,
     anonymousAssignmentsPresent: bool,
     courseFeatures: shape({
       finalGradeOverrideEnabled: bool.isRequired
@@ -108,6 +110,7 @@ export default class GradebookSettingsModal extends React.Component {
     onEntered: func,
     gradebookIsEditable: bool.isRequired,
     gradedLateSubmissionsExist: bool.isRequired,
+    loadCurrentViewOptions: func,
     onCourseSettingsUpdated: func.isRequired,
     onLatePolicyUpdate: func.isRequired,
     onViewOptionsUpdated: func.isRequired,
@@ -117,16 +120,6 @@ export default class GradebookSettingsModal extends React.Component {
       }),
       setAssignmentPostPolicies: func.isRequired,
       setCoursePostPolicy: func.isRequired
-    }),
-    viewOptions: shape({
-      columnSortSettings: shape({
-        criterion: string.isRequired,
-        direction: string.isRequired
-      }).isRequired,
-      showNotes: bool.isRequired,
-      showUnpublishedAssignments: bool.isRequired,
-      statusColors: objectOf(string).isRequired,
-      viewUngradedAsZero: bool.isRequired
     })
   }
 
@@ -145,8 +138,8 @@ export default class GradebookSettingsModal extends React.Component {
     },
     processingRequests: false,
     selectedTab: 'tab-panel-late',
-    viewOptions: _.cloneDeep(this.props.viewOptions),
-    viewOptionsLastSaved: _.cloneDeep(this.props.viewOptions)
+    viewOptions: this.props.loadCurrentViewOptions?.(),
+    viewOptionsLastSaved: this.props.loadCurrentViewOptions?.()
   }
 
   onFetchLatePolicySuccess = ({data}) => {
@@ -270,12 +263,13 @@ export default class GradebookSettingsModal extends React.Component {
   }
 
   open = () => {
-    this.setState(state => ({
+    this.setState(_state => ({
       isOpen: true,
       // We reset the View Options settings to their last-saved state here,
       // instead of on close, because doing the latter causes the reverted
       // settings to be briefly visible.
-      viewOptions: _.cloneDeep(state.viewOptionsLastSaved)
+      viewOptions: this.props.loadCurrentViewOptions?.(),
+      viewOptionsLastSaved: this.props.loadCurrentViewOptions?.()
     }))
   }
 
@@ -298,7 +292,7 @@ export default class GradebookSettingsModal extends React.Component {
     this.setState(state => ({viewOptions: {...state.viewOptions, [key]: value}}))
   }
 
-  changeTab(_ev, {id}) {
+  changeTab = (_ev, {id}) => {
     this.setState({selectedTab: id})
   }
 
@@ -307,18 +301,34 @@ export default class GradebookSettingsModal extends React.Component {
     const tab = this.state.selectedTab
 
     return (
-      <Modal
+      <Tray
         label={I18n.t('Gradebook Settings')}
         onDismiss={this.close}
         onEntered={this.props.onEntered}
         onExited={this.props.onClose}
         onOpen={this.fetchLatePolicy}
         open={this.state.isOpen}
-        size="large"
+        placement="end"
+        size="medium"
       >
-        <Modal.Body>
-          <View as="div" height={MODAL_CONTENTS_HEIGHT}>
-            <Tabs onRequestTabChange={this.changeTab.bind(this)}>
+        <Flex direction="column" height="100vh">
+          <Flex.Item as="header" padding="medium">
+            <Flex direction="row">
+              <Flex.Item shouldGrow shouldShrink>
+                <Heading level="h3">{I18n.t('Gradebook Settings')}</Heading>
+              </Flex.Item>
+
+              <Flex.Item>
+                <CloseButton
+                  placement="static"
+                  onClick={this.close}
+                  screenReaderLabel={I18n.t('Close')}
+                />
+              </Flex.Item>
+            </Flex>
+          </Flex.Item>
+          <Flex.Item shouldGrow shouldShrink overflowX="hidden">
+            <Tabs onRequestTabChange={this.changeTab}>
               <Tabs.Panel
                 renderTitle={I18n.t('Late Policies')}
                 id="tab-panel-late"
@@ -361,7 +371,7 @@ export default class GradebookSettingsModal extends React.Component {
                 </Tabs.Panel>
               )}
 
-              {this.props.viewOptions && (
+              {this.props.loadCurrentViewOptions && (
                 <Tabs.Panel
                   renderTitle={I18n.t('View Options')}
                   id="tab-panel-view-options"
@@ -393,6 +403,25 @@ export default class GradebookSettingsModal extends React.Component {
                         this.setViewOption('showUnpublishedAssignments', value)
                       }
                     }}
+                    showSeparateFirstLastNames={{
+                      allowed: this.props.allowShowSeparateFirstLastNames,
+                      checked: this.state.viewOptions.showSeparateFirstLastNames,
+                      onChange: value => {
+                        this.setViewOption('showSeparateFirstLastNames', value)
+                      }
+                    }}
+                    hideAssignmentGroupTotals={{
+                      checked: this.state.viewOptions.hideAssignmentGroupTotals,
+                      onChange: value => {
+                        this.setViewOption('hideAssignmentGroupTotals', value)
+                      }
+                    }}
+                    hideTotal={{
+                      checked: this.state.viewOptions.hideTotal,
+                      onChange: value => {
+                        this.setViewOption('hideTotal', value)
+                      }
+                    }}
                     viewUngradedAsZero={{
                       allowed: this.props.allowViewUngradedAsZero,
                       checked: this.state.viewOptions.viewUngradedAsZero,
@@ -409,24 +438,28 @@ export default class GradebookSettingsModal extends React.Component {
                 </Tabs.Panel>
               )}
             </Tabs>
-          </View>
-        </Modal.Body>
-
-        <Modal.Footer>
-          <Button id="gradebook-settings-cancel-button" onClick={this.close} margin="0 small">
-            {I18n.t('Cancel')}
-          </Button>
-
-          <Button
-            id="gradebook-settings-update-button"
-            onClick={this.handleUpdateButtonClicked}
-            disabled={!this.isUpdateButtonEnabled()}
-            variant="primary"
+          </Flex.Item>
+          <Flex.Item
+            id="gradebook-settings-modal-footer"
+            align="end"
+            as="footer"
+            overflowY="hidden"
           >
-            {I18n.t('Update')}
-          </Button>
-        </Modal.Footer>
-      </Modal>
+            <Button id="gradebook-settings-cancel-button" onClick={this.close} margin="0 small">
+              {I18n.t('Cancel')}
+            </Button>
+
+            <Button
+              id="gradebook-settings-update-button"
+              onClick={this.handleUpdateButtonClicked}
+              disabled={!this.isUpdateButtonEnabled()}
+              color="primary"
+            >
+              {I18n.t('Apply Settings')}
+            </Button>
+          </Flex.Item>
+        </Flex>
+      </Tray>
     )
   }
 }

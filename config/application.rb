@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU Affero General Public License along
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 
-require_relative 'boot'
+require_relative "boot"
 
 require "active_record/railtie"
 require "action_controller/railtie"
@@ -27,59 +27,28 @@ require "rails/test_unit/railtie"
 
 Bundler.require(*Rails.groups)
 
-# Zeitwerk does not HAVE to be enabled with rails 6
-# Use this environment variable (which may have other file-based ways
-# to trigger it later) in order to determine which autoloader we should
-# use.  The goal is to move to zeitwerk over time.
-# https://guides.rubyonrails.org/autoloading_and_reloading_constants.html
-# One way to set this in development would be to use your docker-compose.override.yml
-# file to pass an env var to the web container:
-#
-#  web:
-#    <<: *BASE
-#    environment:
-#      <<: *BASE-ENV
-#      VIRTUAL_HOST: .canvas.docker
-#      ...
-#      CANVAS_ZEITWERK: 1
-unless defined?(CANVAS_ZEITWERK)
-  CANVAS_ZEITWERK = (ENV['CANVAS_ZEITWERK'] == '1')
-end
-
 module CanvasRails
   class Application < Rails::Application
-    # this CANVAS_ZEITWERK constant flag is defined above in this file.
-    # It should be temporary,
-    # and removed once we've fully upgraded to zeitwerk autoloading,
-    # at which point the stuff inside this conditional block should remain.
-    if CANVAS_ZEITWERK
-      config.autoloader = :zeitwerk
-      # TODO: when we aren't finding copious errors
-      # anymore we can stop logging the autoloading paths.
-      # For now, this lets us figure out why constant loading
-      # is not behaving as expected quickly and easily:
-      Rails.autoloaders.logger = Logger.new("#{Rails.root}/log/autoloading.log")
-      # Rails.autoloaders.log!
+    config.autoloader = :zeitwerk
 
-      # TODO: someday we can use this line, which will NOT
-      # add anything on the autoload paths the actual ruby
-      # $LOAD_PATH because zeitwerk will take care of anything
-      # we autolaod.  This will make ACTUAL require statements
-      # that are necessary work faster because they'll have a smaller
-      # load path to scan.
-      # config.add_autoload_paths_to_load_path = false
-    end
+    # TODO: someday we can use this line, which will NOT
+    # add anything on the autoload paths the actual ruby
+    # $LOAD_PATH because zeitwerk will take care of anything
+    # we autolaod.  This will make ACTUAL require statements
+    # that are necessary work faster because they'll have a smaller
+    # load path to scan.
+    # config.add_autoload_paths_to_load_path = false
 
     $LOAD_PATH << config.root.to_s
-    config.encoding = 'utf-8'
-    require 'logging_filter'
+    config.encoding = "utf-8"
+    require "logging_filter"
     config.filter_parameters.concat LoggingFilter.filtered_parameters
-    config.action_dispatch.rescue_responses['AuthenticationMethods::AccessTokenError'] = 401
-    config.action_dispatch.rescue_responses['AuthenticationMethods::AccessTokenScopeError'] = 401
-    config.action_dispatch.rescue_responses['AuthenticationMethods::LoggedOutError'] = 401
-    config.action_dispatch.rescue_responses['CanvasHttp::CircuitBreakerError'] = 502
-    config.action_dispatch.default_headers.delete('X-Frame-Options')
-    config.action_dispatch.default_headers['Referrer-Policy'] = 'no-referrer-when-downgrade'
+    config.action_dispatch.rescue_responses["AuthenticationMethods::AccessTokenError"] = 401
+    config.action_dispatch.rescue_responses["AuthenticationMethods::AccessTokenScopeError"] = 401
+    config.action_dispatch.rescue_responses["AuthenticationMethods::LoggedOutError"] = 401
+    config.action_dispatch.rescue_responses["CanvasHttp::CircuitBreakerError"] = 502
+    config.action_dispatch.default_headers.delete("X-Frame-Options")
+    config.action_dispatch.default_headers["Referrer-Policy"] = "no-referrer-when-downgrade"
     config.action_controller.forgery_protection_origin_check = true
     ActiveSupport.to_time_preserves_timezone = true
 
@@ -97,68 +66,78 @@ module CanvasRails
     # Make Time.zone default to the specified zone, and make Active Record store time values
     # in the database in UTC, and return them converted to the specified local zone.
     # Run "rake -D time" for a list of tasks for finding time zone names. Comment line to use default local time.
-    config.time_zone = 'UTC'
+    config.time_zone = "UTC"
 
-    log_config = File.exist?(Rails.root + 'config/logging.yml') && Rails.application.config_for(:logging).with_indifferent_access
-    log_config = { 'logger' => 'rails', 'log_level' => 'debug' }.merge(log_config || {})
+    log_config = Rails.root.join("config/logging.yml").file? && Rails.application.config_for(:logging).with_indifferent_access
+    log_config = { "logger" => "rails", "log_level" => "debug" }.merge(log_config || {})
     opts = {}
-    require 'canvas_logger'
+    require "canvas_logger"
 
-    config.log_level = log_config['log_level']
+    config.log_level = log_config["log_level"]
     log_level = ActiveSupport::Logger.const_get(config.log_level.to_s.upcase)
-    opts[:skip_thread_context] = true if log_config['log_context'] == false
+    opts[:skip_thread_context] = true if log_config["log_context"] == false
 
     case log_config["logger"]
     when "syslog"
-      require 'syslog_wrapper'
+      require "syslog_wrapper"
       log_config["app_ident"] ||= "canvas-lms"
       log_config["daemon_ident"] ||= "canvas-lms-daemon"
       facilities = 0
       (log_config["facilities"] || []).each do |facility|
         facilities |= Syslog.const_get "LOG_#{facility.to_s.upcase}"
       end
-      ident = ENV['RUNNING_AS_DAEMON'] == 'true' ? log_config["daemon_ident"] : log_config["app_ident"]
+      ident = ENV["RUNNING_AS_DAEMON"] == "true" ? log_config["daemon_ident"] : log_config["app_ident"]
       opts[:include_pid] = true if log_config["include_pid"] == true
       config.logger = SyslogWrapper.new(ident, facilities, opts)
       config.logger.level = log_level
     else
-      log_path = config.paths['log'].first
+      log_path = config.paths["log"].first
 
-      if ENV['RUNNING_AS_DAEMON'] == 'true'
-        log_path = Rails.root + 'log/delayed_job.log'
+      if ENV["RUNNING_AS_DAEMON"] == "true"
+        log_path = Rails.root.join("log/delayed_job.log")
       end
 
       config.logger = CanvasLogger.new(log_path, log_level, opts)
     end
 
     # Activate observers that should always be running
-    config.active_record.observers = [:cacher, :stream_item_cache, :live_events_observer]
-    config.active_record.allow_unsafe_raw_sql = :disabled
+    config.active_record.observers = %i[cacher stream_item_cache live_events_observer]
 
     config.active_support.encode_big_decimal_as_string = false
 
-    config.paths['lib'].eager_load!
-    config.paths.add('app/middleware', eager_load: true, autoload_once: true)
+    config.paths["lib"].eager_load!
+    config.paths.add("app/middleware", eager_load: true, autoload_once: true)
+    # The main autoloader should ignore it so the `once` autoloader can happily load it
+    Rails.autoloaders.main.ignore("#{__dir__}/../lib/base")
+    config.paths.add("lib/base", eager_load: true, autoload_once: true)
+
+    # This needs to be set for things in the `once` autoloader really early
+    Rails.autoloaders.each do |autoloader|
+      autoloader.inflector.inflect(
+        "csv_with_i18n" => "CSVWithI18n"
+      )
+    end
 
     # prevent directory->module inference in these directories from wreaking
     # havoc on the app (e.g. stylesheets/base -> ::Base)
-    config.eager_load_paths -= %W(#{Rails.root}/app/coffeescripts
-                                  #{Rails.root}/app/stylesheets
-                                  #{Rails.root}/ui)
+    config.eager_load_paths -= [Rails.root.join("app/coffeescripts"),
+                                Rails.root.join("app/stylesheets"),
+                                Rails.root.join("ui")]
 
     config.middleware.use Rack::Chunked
-    config.middleware.use Rack::Deflater, if: ->(*) {
-      ::Canvas::DynamicSettings.find(tree: :private)["enable_rack_deflation", failsafe: true]
+    config.middleware.use Rack::Deflater, if: lambda { |*|
+      ::DynamicSettings.find(tree: :private)["enable_rack_deflation", failsafe: true]
     }
-    config.middleware.use Rack::Brotli, if: ->(*) {
-      ::Canvas::DynamicSettings.find(tree: :private)["enable_rack_brotli", failsafe: true]
+    config.middleware.use Rack::Brotli, if: lambda { |*|
+      ::DynamicSettings.find(tree: :private)["enable_rack_brotli", failsafe: true]
     }
 
-    config.i18n.load_path << Rails.root.join('config', 'locales', 'locales.yml')
-    config.i18n.load_path << Rails.root.join('config', 'locales', 'community.csv')
+    config.i18n.load_path << Rails.root.join("config/locales/locales.yml")
+    config.i18n.load_path << Rails.root.join("config/locales/community.csv")
 
     config.to_prepare do
-      require_dependency 'canvas/plugins/default_plugins'
+      require_dependency "canvas/plugins/default_plugins"
+      Canvas::Plugins::DefaultPlugins.apply_all
       ActiveSupport::JSON::Encoding.escape_html_entities_in_json = true
     end
 
@@ -169,17 +148,15 @@ module CanvasRails
 
           hosts = Array(conn_params[:host]).presence || [nil]
           hosts.each_with_index do |host, index|
-            begin
-              conn_params[:host] = host
-              return super(conn_params)
-              # we _shouldn't_ be catching a NoDatabaseError, but that's what Rails raises
-              # for an error where the database name is in the message (i.e. a hostname lookup failure)
-              # CANVAS_RAILS6_0 rails 6.1 switches from PG::Error to ActiveRecord::ConnectionNotEstablished
-              # for any other error
-            rescue ::PG::Error, ::ActiveRecord::NoDatabaseError, ::ActiveRecord::ConnectionNotEstablished
-              raise if index == hosts.length - 1
-              # else try next host
-            end
+            conn_params[:host] = host
+            return super(conn_params)
+            # we _shouldn't_ be catching a NoDatabaseError, but that's what Rails raises
+            # for an error where the database name is in the message (i.e. a hostname lookup failure)
+            # CANVAS_RAILS="6.0" rails 6.1 switches from PG::Error to ActiveRecord::ConnectionNotEstablished
+            # for any other error
+          rescue ::PG::Error, ::ActiveRecord::NoDatabaseError, ::ActiveRecord::ConnectionNotEstablished
+            raise if index == hosts.length - 1
+            # else try next host
           end
         end
       end
@@ -195,24 +172,22 @@ module CanvasRails
       def connect
         hosts = Array(@connection_parameters[:host]).presence || [nil]
         hosts.each_with_index do |host, index|
-          begin
-            connection_parameters = @connection_parameters.dup
-            connection_parameters[:host] = host
-            @connection = PG::Connection.connect(connection_parameters)
+          connection_parameters = @connection_parameters.dup
+          connection_parameters[:host] = host
+          @connection = PG::Connection.connect(connection_parameters)
 
-            configure_connection
+          configure_connection
 
-            raise "Canvas requires PostgreSQL 9.5 or newer" unless postgresql_version >= 90500
+          raise "Canvas requires PostgreSQL 12 or newer" unless postgresql_version >= 12_00_00 # rubocop:disable Style/NumericLiterals
 
-            break
-          rescue ::PG::Error => error
-            if error.message.include?("does not exist")
-              raise ActiveRecord::NoDatabaseError.new(error.message)
-            elsif index == hosts.length - 1
-              raise
-            end
-            # else try next host
+          break
+        rescue ::PG::Error => e
+          if e.message.include?("does not exist")
+            raise ActiveRecord::NoDatabaseError, e.message
+          elsif index == hosts.length - 1
+            raise
           end
+          # else try next host
         end
       end
     end
@@ -220,7 +195,7 @@ module CanvasRails
     module TypeMapInitializerExtensions
       def query_conditions_for_initial_load
         known_type_names = @store.keys.map { |n| "'#{n}'" } + @store.keys.map { |n| "'_#{n}'" }
-        <<~SQL % [known_type_names.join(", "),]
+        <<~SQL.squish % [known_type_names.join(", "),]
           WHERE
             t.typname IN (%s)
         SQL
@@ -233,10 +208,38 @@ module CanvasRails
     Autoextend.hook(:"ActiveRecord::ConnectionAdapters::PostgreSQLAdapter",
                     PostgreSQLEarlyExtensions,
                     method: :prepend)
-
     Autoextend.hook(:"ActiveRecord::ConnectionAdapters::PostgreSQL::OID::TypeMapInitializer",
                     TypeMapInitializerExtensions,
                     method: :prepend)
+
+    module RailsCacheShim
+      def delete(key, options = nil)
+        if options&.[](:unprefixed_key)
+          super
+        else
+          SUPPORTED_VERSIONS.any? do |version|
+            super(key, (options || {}).merge(explicit_version: version.delete(".")))
+          end
+        end
+      end
+
+      private
+
+      def normalize_key(key, options)
+        if options[:unprefixed_key]
+          super
+        elsif options[:explicit_version]
+          "rails#{options[:explicit_version]}:#{super}"
+        else
+          "rails#{Rails::VERSION::MAJOR}#{Rails::VERSION::MINOR}:#{super}"
+        end
+      end
+    end
+
+    Autoextend.hook(:"ActiveSupport::Cache::Store",
+                    RailsCacheShim,
+                    method: :prepend)
+
     module PatchThorWarning
       # active_model_serializers should be passing `type: :boolean` here:
       # https://github.com/rails-api/active_model_serializers/blob/v0.9.0.alpha1/lib/active_model/serializer/generators/serializer/scaffold_controller_generator.rb#L10
@@ -253,11 +256,8 @@ module CanvasRails
 
     Autoextend.hook(:"Thor::Option", PatchThorWarning, method: :prepend)
 
-    # Extend any base classes, even gem classes
-    Dir.glob("#{Rails.root}/lib/ext/**/*.rb").each { |file| require file }
-
     # tell Rails to use the native XML parser instead of REXML
-    ActiveSupport::XmlMini.backend = 'Nokogiri'
+    ActiveSupport::XmlMini.backend = "Nokogiri"
 
     class NotImplemented < StandardError; end
 
@@ -279,20 +279,22 @@ module CanvasRails
     # don't wrap fields with errors with a <div class="fieldWithErrors" />,
     # since that could leak information (e.g. valid vs invalid username on
     # login page)
-    config.action_view.field_error_proc = Proc.new { |html_tag, instance| html_tag }
+    config.action_view.field_error_proc = proc { |html_tag, _instance| html_tag }
 
     class ExceptionsApp
       def call(env)
         req = ActionDispatch::Request.new(env)
         res = ApplicationController.make_response!(req)
-        ApplicationController.dispatch('rescue_action_dispatch_exception', req, res)
+        ApplicationController.dispatch("rescue_action_dispatch_exception", req, res)
       end
     end
 
     config.exceptions_app = ExceptionsApp.new
 
     config.before_initialize do
-      config.action_controller.asset_host = Canvas::Cdn.method(:asset_host_for)
+      config.action_controller.asset_host = lambda do |source, *_|
+        ::Canvas::Cdn.asset_host_for(source)
+      end
     end
 
     if config.action_dispatch.rack_cache != false
@@ -306,8 +308,7 @@ module CanvasRails
     end
 
     class DummyKeyGenerator
-      def self.generate_key(*)
-      end
+      def self.generate_key(*); end
     end
 
     def key_generator
@@ -323,13 +324,14 @@ module CanvasRails
         # and these resources actually aren't even on disk in those cases.
         # do not remove this conditional until the asset build no longer
         # needs the rails app for anything.
-        require_dependency 'canvas/dynamic_settings'
-        Canvas::DynamicSettingsInitializer.bootstrap!
-      end
-    end
 
-    initializer "canvas.cache_config", before: "canvas.extend_shard" do
-      CanvasCacheInit.apply!
+        # Do it early with the wrong cache for things super early in boot
+        DynamicSettingsInitializer.bootstrap!
+        # Do it at the end when the autoloader is set up correctly
+        config.to_prepare do
+          DynamicSettingsInitializer.bootstrap!
+        end
+      end
     end
 
     initializer "canvas.extend_shard", before: "active_record.initialize_database" do
@@ -343,6 +345,8 @@ module CanvasRails
 
     initializer "canvas.init_credentials", before: "active_record.initialize_database" do
       self.credentials = Canvas::Credentials.new(credentials)
+      # Ensure we load credentials at initailization time to avoid overloading vault
+      credentials.config
     end
 
     # we don't know what middleware to make SessionsTimeout follow until after
@@ -353,6 +357,7 @@ module CanvasRails
       app.config.middleware.insert_after(config.session_store, RequestContext::Session)
       app.config.middleware.insert_before(Rack::Head, RequestThrottle)
       app.config.middleware.insert_before(Rack::MethodOverride, PreventNonMultipartParse)
+      app.config.middleware.insert_before(Sentry::Rails::CaptureExceptions, SentryTraceScrubber)
     end
 
     initializer("set_allowed_request_id_setters", after: :finisher_hook) do |app|

@@ -18,7 +18,8 @@
 
 import React from 'react'
 import ReactDOM from 'react-dom'
-import I18n from 'i18n!account_settings_jsx_bundle'
+import {useScope as useI18nScope} from '@canvas/i18n'
+import CustomEmojiDenyList from './react/custom_emoji_deny_list/CustomEmojiDenyList'
 import CustomHelpLinkSettings from './react/custom_help_link_settings/CustomHelpLinkSettings'
 import {Spinner} from '@instructure/ui-spinner'
 import {View} from '@instructure/ui-view'
@@ -27,6 +28,10 @@ import './backbone/account_quota_settings.coffee'
 import FeatureFlags from '@canvas/feature-flags'
 import ready from '@instructure/ready'
 import MicrosoftSyncAccountSettings from '@canvas/integrations/react/accounts/microsoft_sync/MicrosoftSyncAccountSettings'
+import CourseCreationSettings from './react/course_creation_settings/CourseCreationSettings'
+import {InternalSettings} from './react/internal_settings/InternalSettings'
+
+const I18n = useI18nScope('account_settings_jsx_bundle')
 
 ready(() => {
   ReactDOM.render(<FeatureFlags />, document.getElementById('tab-features'))
@@ -45,6 +50,11 @@ ready(() => {
     )
   }
 
+  const emojiDenyListContainer = document.getElementById('emoji-deny-list')
+  if (emojiDenyListContainer) {
+    ReactDOM.render(<CustomEmojiDenyList />, emojiDenyListContainer)
+  }
+
   if (document.getElementById('tab-security')) {
     ReactDOM.render(
       <View as="div" margin="large" padding="large" textAlign="center">
@@ -54,7 +64,20 @@ ready(() => {
     )
   }
 
+  const internalSettingsMountpoint = document.getElementById('tab-internal-settings')
+  if (internalSettingsMountpoint) {
+    ReactDOM.render(<InternalSettings />, internalSettingsMountpoint)
+  }
+
   if (document.getElementById('tab-integrations')) {
     ReactDOM.render(<MicrosoftSyncAccountSettings />, document.getElementById('tab-integrations'))
+  }
+
+  const courseCreationSettingsContainer = document.getElementById('course_creation_settings')
+  if (courseCreationSettingsContainer) {
+    ReactDOM.render(
+      <CourseCreationSettings currentValues={ENV.COURSE_CREATION_SETTINGS} />,
+      courseCreationSettingsContainer
+    )
   }
 })

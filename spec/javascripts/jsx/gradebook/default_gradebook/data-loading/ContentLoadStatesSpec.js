@@ -19,7 +19,7 @@
 import {
   createGradebook,
   setFixtureHtml
-} from 'ui/features/gradebook/react/default_gradebook/__tests__/GradebookSpecHelper.js'
+} from 'ui/features/gradebook/react/default_gradebook/__tests__/GradebookSpecHelper'
 
 QUnit.module('Gradebook Data Loading: Content Load States', suiteHooks => {
   let $container
@@ -37,11 +37,7 @@ QUnit.module('Gradebook Data Loading: Content Load States', suiteHooks => {
     $container.remove()
   })
 
-  QUnit.module('when Gradebook is initialized', hooks => {
-    hooks.beforeEach(() => {
-      gradebook.initialize()
-    })
-
+  QUnit.module('when Gradebook is instantiated', () => {
     test('sets assignments as "not loaded"', () => {
       strictEqual(gradebook.contentLoadStates.assignmentsLoaded.all, false)
     })
@@ -92,19 +88,6 @@ QUnit.module('Gradebook Data Loading: Content Load States', suiteHooks => {
       gradebook.setAssignmentGroupsLoaded(true)
       gradebook.setAssignmentGroupsLoaded(false)
       strictEqual(gradebook.contentLoadStates.assignmentGroupsLoaded, false)
-    })
-  })
-
-  QUnit.module('#setContextModulesLoaded()', () => {
-    test('optionally sets context modules as "loaded"', () => {
-      gradebook.setContextModulesLoaded(true)
-      strictEqual(gradebook.contentLoadStates.contextModulesLoaded, true)
-    })
-
-    test('optionally sets context modules as "not loaded"', () => {
-      gradebook.setContextModulesLoaded(true)
-      gradebook.setContextModulesLoaded(false)
-      strictEqual(gradebook.contentLoadStates.contextModulesLoaded, false)
     })
   })
 

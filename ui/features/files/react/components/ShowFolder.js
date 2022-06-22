@@ -20,12 +20,12 @@ import React from 'react'
 import createReactClass from 'create-react-class'
 import _ from 'underscore'
 import classnames from 'classnames'
-import I18n from 'i18n!react_files'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import ShowFolder from '../legacy/components/ShowFolder'
 import File from '@canvas/files/backbone/models/File.coffee'
 import FilePreview from '@canvas/files/react/components/FilePreview'
-import DirectShareCourseTray from '../../../../shared/direct-sharing/react/components/DirectShareCourseTray'
-import DirectShareUserModal from '../../../../shared/direct-sharing/react/components/DirectShareUserModal'
+import DirectShareCourseTray from '@canvas/direct-sharing/react/components/DirectShareCourseTray'
+import DirectShareUserModal from '@canvas/direct-sharing/react/components/DirectShareUserModal'
 import FolderChild from './FolderChild'
 import UploadDropZone from './UploadDropZone'
 import FileUpload from './FileUpload'
@@ -34,6 +34,8 @@ import CurrentUploads from '@canvas/files/react/components/CurrentUploads'
 import LoadingIndicator from './LoadingIndicator'
 import page from 'page'
 import FocusStore from '../legacy/modules/FocusStore'
+
+const I18n = useI18nScope('react_files')
 
 ShowFolder.getInitialState = function () {
   return {
@@ -74,36 +76,34 @@ ShowFolder.renderFolderChildOrEmptyContainer = function () {
       </div>
     )
   } else {
-    return this.props.currentFolder
-      .children(this.props.query)
-      .map(child => (
-        <FolderChild
-          key={child.cid}
-          model={child}
-          isSelected={_.indexOf(this.props.selectedItems, child) >= 0}
-          toggleSelected={this.props.toggleItemSelected.bind(null, child)}
-          userCanEditFilesForContext={this.props.userCanEditFilesForContext}
-          userCanDeleteFilesForContext={this.props.userCanDeleteFilesForContext}
-          userCanRestrictFilesForContext={this.props.userCanRestrictFilesForContext}
-          usageRightsRequiredForContext={this.props.usageRightsRequiredForContext}
-          externalToolsForContext={this.props.externalToolsForContext}
-          previewItem={this.props.previewItem.bind(null, child)}
-          dndOptions={this.props.dndOptions}
-          modalOptions={this.props.modalOptions}
-          clearSelectedItems={this.props.clearSelectedItems}
-          onMove={this.props.onMove}
-          onCopyToClick={model => {
-            if (model instanceof File) {
-              this.setState({copyFileId: model.id})
-            }
-          }}
-          onSendToClick={model => {
-            if (model instanceof File) {
-              this.setState({sendFileId: model.id})
-            }
-          }}
-        />
-      ))
+    return this.props.currentFolder.children(this.props.query).map(child => (
+      <FolderChild
+        key={child.cid}
+        model={child}
+        isSelected={_.indexOf(this.props.selectedItems, child) >= 0}
+        toggleSelected={this.props.toggleItemSelected.bind(null, child)}
+        userCanEditFilesForContext={this.props.userCanEditFilesForContext}
+        userCanDeleteFilesForContext={this.props.userCanDeleteFilesForContext}
+        userCanRestrictFilesForContext={this.props.userCanRestrictFilesForContext}
+        usageRightsRequiredForContext={this.props.usageRightsRequiredForContext}
+        externalToolsForContext={this.props.externalToolsForContext}
+        previewItem={this.props.previewItem.bind(null, child)}
+        dndOptions={this.props.dndOptions}
+        modalOptions={this.props.modalOptions}
+        clearSelectedItems={this.props.clearSelectedItems}
+        onMove={this.props.onMove}
+        onCopyToClick={model => {
+          if (model instanceof File) {
+            this.setState({copyFileId: model.id})
+          }
+        }}
+        onSendToClick={model => {
+          if (model instanceof File) {
+            this.setState({sendFileId: model.id})
+          }
+        }}
+      />
+    ))
   }
 }
 
@@ -162,15 +162,17 @@ ShowFolder.render = function () {
         {I18n.t('select_all', 'Select All')}
       </label>
       <div role="grid" style={{flex: '1 1 auto'}}>
-        <div
-          ref="accessibilityMessage"
-          className="ShowFolder__accessbilityMessage col-xs"
-          tabIndex={0}
-        >
-          {I18n.t(
-            'Warning: For improved accessibility in moving files, please use the Move To Dialog option found in the menu.'
-          )}
-        </div>
+        {this.props.userCanEditFilesForContext && (
+          <div
+            ref="accessibilityMessage"
+            className="ShowFolder__accessbilityMessage col-xs"
+            tabIndex={0}
+          >
+            {I18n.t(
+              'Warning: For improved accessibility in moving files, please use the Move To Dialog option found in the menu.'
+            )}
+          </div>
+        )}
         {!showNewFileUpload && (
           <>
             <UploadDropZone currentFolder={this.props.currentFolder} />

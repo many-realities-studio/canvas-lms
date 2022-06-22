@@ -19,9 +19,88 @@
 import assert from 'assert'
 import sinon from 'sinon'
 import * as actions from '../../../src/sidebar/actions/images'
+import {ICON_MAKER_ICONS} from '../../../src/rce/plugins/instructure_icon_maker/svg/constants'
 
 const sortBy = {sort: 'alphabetical', order: 'asc'}
 const searchString = 'hello'
+
+describe('Image dispatch shapes', () => {
+  describe('receiveImages', () => {
+    const contextType = 'course'
+    const response = {
+      bookmark: 'p2',
+      files: [],
+      searchString: 'panda'
+    }
+
+    it('returns a type of RECEIVE_IMAGES', () => {
+      const {type} = actions.receiveImages({response, contextType})
+      assert(type === actions.RECEIVE_IMAGES)
+    })
+
+    describe('returning a payload', () => {
+      it('includes contextType', () => {
+        const {payload} = actions.receiveImages({response, contextType})
+        assert(payload.contextType === 'course')
+      })
+
+      it('includes files', () => {
+        const {payload} = actions.receiveImages({response})
+        assert.deepEqual(payload.files, [])
+      })
+
+      it('includes bookmark', () => {
+        const {payload} = actions.receiveImages({response})
+        assert(payload.bookmark === 'p2')
+      })
+
+      it('includes searchString', () => {
+        const {payload} = actions.receiveImages({response})
+        assert(payload.searchString === 'panda')
+      })
+    })
+
+    describe('when the "category" is set to "icon_maker_icons', () => {
+      let iconMakerResponse, opts
+
+      const subject = () => actions.receiveImages(iconMakerResponse)
+
+      beforeEach(() => {
+        iconMakerResponse = {
+          response: {
+            files: [
+              {id: 1, download_url: 'https://canvas.instructure.com/files/1/download'},
+              {id: 2, download_url: 'https://canvas.instructure.com/files/2/download'},
+              {id: 3, download_url: 'https://canvas.instructure.com/files/3/download'}
+            ]
+          },
+          contextType,
+          opts: {
+            category: ICON_MAKER_ICONS
+          }
+        }
+      })
+
+      it('applies the icon maker attribute to each file', () => {
+        assert.deepEqual(
+          subject().payload.files.map(f => f['data-inst-icon-maker-icon']),
+          [true, true, true]
+        )
+      })
+
+      it('applies the download url data attribute', () => {
+        assert.deepEqual(
+          subject().payload.files.map(f => f['data-download-url']),
+          [
+            'https://canvas.instructure.com/files/1/download?icon_maker_icon=1',
+            'https://canvas.instructure.com/files/2/download?icon_maker_icon=1',
+            'https://canvas.instructure.com/files/3/download?icon_maker_icon=1'
+          ]
+        )
+      })
+    })
+  })
+})
 
 describe('Image actions', () => {
   describe('createAddImage', () => {
@@ -81,6 +160,36 @@ describe('Image actions', () => {
       assert(dispatchSpy.called)
     })
 
+    it('sends specified options', () => {
+      const fetchImageStub = sinon.stub()
+      fetchImageStub.returns(new Promise((res, rej) => res({})))
+
+      const dispatch = fn => {
+        if (typeof fn === 'function') {
+          fn(dispatch, getState)
+        }
+      }
+
+      const getState = () => {
+        return {
+          source: {
+            fetchImages: fetchImageStub
+          },
+          images: {
+            user: {
+              files: [],
+              bookmark: null,
+              hasMore: true,
+              isLoading: false
+            }
+          },
+          contextType: 'user'
+        }
+      }
+      actions.fetchInitialImages({category: 'uncategorized'})(dispatch, getState)
+      assert.equal(fetchImageStub.firstCall.args[0].category, 'uncategorized')
+    })
+
     it('fetches initial page if necessary, part 2', () => {
       const dispatchSpy = sinon.spy()
       const getState = () => {
@@ -98,6 +207,36 @@ describe('Image actions', () => {
       }
       actions.fetchNextImages(sortBy, searchString)(dispatchSpy, getState)
       assert(dispatchSpy.called)
+    })
+
+    it('sends specified options', () => {
+      const fetchImageStub = sinon.stub()
+      fetchImageStub.returns(new Promise((res, rej) => res({})))
+
+      const dispatch = fn => {
+        if (typeof fn === 'function') {
+          fn(dispatch, getState)
+        }
+      }
+
+      const getState = () => {
+        return {
+          source: {
+            fetchImages: fetchImageStub
+          },
+          images: {
+            user: {
+              files: [],
+              bookmark: null,
+              hasMore: true,
+              isLoading: false
+            }
+          },
+          contextType: 'user'
+        }
+      }
+      actions.fetchNextImages({category: 'uncategorized'})(dispatch, getState)
+      assert.equal(fetchImageStub.firstCall.args[0].category, 'uncategorized')
     })
 
     it('skips the fetch if currently loading', () => {

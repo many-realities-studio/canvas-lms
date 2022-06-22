@@ -19,11 +19,11 @@ import React from 'react'
 import {shallow, mount} from 'enzyme'
 import moment from 'moment-timezone'
 import MockDate from 'mockdate'
-import {PlannerItem} from '../index'
+import {PlannerItem_raw as PlannerItem} from '../index'
 
 const MY_TIMEZONE = 'America/Los_Angeles'
 const DEFAULT_DATE = moment.tz('2011-12-17T03:30:00', MY_TIMEZONE)
-const user = {id: '1', displayName: 'Jane', avatarUrl: '/picture/is/here', color: '#00AC18'}
+const user = {id: '1', displayName: 'Jane', avatarUrl: '/picture/is/here', color: '#0B874B'}
 
 function defaultProps(option = {}) {
   return {
@@ -654,6 +654,27 @@ it('renders media feedback if available', () => {
   expect(wrapper).toMatchSnapshot()
 })
 
+describe('with isObserving', () => {
+  it('renders the checkbox as disabled when isObserving', () => {
+    const wrapper = shallow(<PlannerItem {...defaultProps()} isObserving />)
+    expect(wrapper.find('Checkbox').prop('disabled')).toBe(true)
+  })
+
+  it('does not render the edit button when isObserving', () => {
+    const wrapper = shallow(
+      <PlannerItem
+        {...defaultProps({
+          associated_item: 'To Do',
+          completed: false,
+          title: 'I am a to do'
+        })}
+        isObserving
+      />
+    )
+    expect(wrapper.find('[data-testid="edit-event-button"]').exists()).toBeFalsy()
+  })
+})
+
 describe('the "Join" button', () => {
   it('does not show "Join" button for zoom calendar events', () => {
     const wrapper = shallow(
@@ -701,7 +722,7 @@ describe('with simplifiedControls', () => {
 
   it('renders the title link in licorice', () => {
     const wrapper = shallow(<PlannerItem {...props} />)
-    const titleLink = wrapper.find('.PlannerItem-styles__title Button')
+    const titleLink = wrapper.find('Link')
     expect(titleLink.prop('theme').linkColor).toBe('#2D3B45')
   })
 
@@ -866,5 +887,11 @@ describe('with isMissingItem', () => {
     const wrapper = shallow(<PlannerItem {...props} />)
     const dateText = wrapper.find('.PlannerItem-styles__due PresentationContent')
     expect(dateText.childAt(0).text()).toBe('Due: Dec 17, 2011 at 3:30 AM')
+  })
+
+  it('still renders even when there is no date', () => {
+    const wrapper = shallow(<PlannerItem {...props} date={null} />)
+    const dateText = wrapper.find('.PlannerItem-styles__due PresentationContent')
+    expect(dateText.children().length).toEqual(0)
   })
 })

@@ -81,8 +81,58 @@ module DynamicSettings
     # @return [nil] When no value was found
     def fetch(key, ttl: @default_ttl, **kwargs)
       unknown_kwargs = kwargs.keys - [:failsafe]
-      raise ArgumentError, "unknown keyword(s): #{unknown_kwargs.map(&:inspect).join(', ')}" unless unknown_kwargs.empty?
+      raise ArgumentError, "unknown keyword(s): #{unknown_kwargs.map(&:inspect).join(", ")}" unless unknown_kwargs.empty?
 
+      # Within a given request, no reason to talk to redis/consul multiple times for the same key in the same tree
+      # The TTL is only relevant for the underlying cache-within a request we don't exceed the ttl boundary
+      DynamicSettings.request_cache.cache(CACHE_KEY_PREFIX + full_key(key)) do
+        fetch_without_request_cache(key, ttl: ttl, **kwargs)
+      end
+    end
+    alias_method :[], :fetch
+
+    # Extend the prefix from this instance returning a new one.
+    #
+    # @param prefix_extension [String]
+    # @param default_ttl [ActiveSupport::Duration] The default TTL to use when
+    #  fetching keys from the extended keyspace, defaults to the same value as
+    #  the receiver
+    # @return [ProxyPrefix]
+    def for_prefix(prefix_extension, default_ttl: @default_ttl)
+      self.class.new(
+        "#{@prefix}/#{prefix_extension}",
+        tree: tree,
+        service: service,
+        environment: environment,
+        cluster: cluster,
+        default_ttl: default_ttl,
+        data_center: @data_center
+      )
+    end
+
+    # Set multiple key value pairs
+    #
+    # @param kvs [Hash] Key value pairs where the hash key is the key
+    #   and the hash value is the value
+    # @param global [boolean] Is it a global key?
+    # @return Consul txn response
+    def set_keys(kvs, global: false)
+      opts = @data_center.present? && global ? { dc: @data_center } : {}
+      value = kvs.map do |k, v|
+        {
+          "KV" => {
+            "Verb" => "set",
+            "Key" => full_key(k, global: global),
+            "Value" => v,
+          }
+        }
+      end
+      Diplomat::Kv.txn(value, opts)
+    end
+
+    private
+
+    def fetch_without_request_cache(key, ttl: @default_ttl, **kwargs)
       retry_count = 1
 
       keys = [
@@ -114,7 +164,7 @@ module DynamicSettings
         # are fully atomic, this is much less of a concern,
         # we could have one ttl again
         subtree_ttl = ttl * 2
-        cache.fetch(CACHE_KEY_PREFIX + tree_key + '/', expires_in: ttl) do
+        cache.fetch(CACHE_KEY_PREFIX + tree_key + "/", expires_in: ttl) do
           values = kv_fetch(tree_key, recurse: true, stale: true)
           if values.nil?
             # no sense trying to populate the subkeys
@@ -181,47 +231,6 @@ module DynamicSettings
         raise
       end
     end
-    alias [] fetch
-
-    # Extend the prefix from this instance returning a new one.
-    #
-    # @param prefix_extension [String]
-    # @param default_ttl [ActiveSupport::Duration] The default TTL to use when
-    #  fetching keys from the extended keyspace, defaults to the same value as
-    #  the receiver
-    # @return [ProxyPrefix]
-    def for_prefix(prefix_extension, default_ttl: @default_ttl)
-      self.class.new(
-        "#{@prefix}/#{prefix_extension}",
-        tree: tree,
-        service: service,
-        environment: environment,
-        cluster: cluster,
-        default_ttl: default_ttl,
-        data_center: @data_center
-      )
-    end
-
-    # Set multiple key value pairs
-    #
-    # @param kvs [Hash] Key value pairs where the hash key is the key
-    #   and the hash value is the value
-    # @param global [boolean] Is it a global key?
-    # @return Consul txn response
-    def set_keys(kvs, global: false)
-      opts = @data_center.present? && global ? { dc: @data_center } : {}
-      Diplomat::Kv.txn(kvs.map do |k, v|
-        {
-          'KV' => {
-            'Verb' => "set",
-            'Key' => full_key(k, global: global),
-            'Value' => v,
-          }
-        }
-      end)
-    end
-
-    private
 
     # bit of helper indirection
     # so that we can log actual
@@ -233,19 +242,17 @@ module DynamicSettings
       error = nil
       method = options[:recurse] ? :get_all : :get
       ms = 1000 * Benchmark.realtime do
-        begin
-          result = Diplomat::Kv.send(method, full_key, options)
-        rescue => e
-          error = e
-        end
+        result = Diplomat::Kv.send(method, full_key, options)
+      rescue => e
+        error = e
       end
       timing = format("CONSUL (%.2fms)", ms)
-      status = 'OK'
+      status = "OK"
       unless error.nil?
-        status = error.is_a?(Diplomat::KeyNotFound) && error.message == full_key ? 'NOT_FOUND' : 'ERROR'
+        status = error.is_a?(Diplomat::KeyNotFound) && error.message == full_key ? "NOT_FOUND" : "ERROR"
       end
       DynamicSettings.logger.debug("  #{timing} get (#{full_key}) -> status:#{status}") if @query_logging
-      return nil if status == 'NOT_FOUND'
+      return nil if status == "NOT_FOUND"
       raise error if error
 
       result
@@ -259,7 +266,7 @@ module DynamicSettings
     def full_key(key, global: false)
       key_array = [tree, service, environment]
       if global
-        key_array.prepend('global')
+        key_array.prepend("global")
       else
         key_array << cluster
       end

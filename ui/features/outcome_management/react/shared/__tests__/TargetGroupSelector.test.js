@@ -42,6 +42,7 @@ describe('TargetGroupSelector', () => {
     parentGroupId: '1',
     setTargetGroup: setTargetGroupMock,
     targetGroupId: '1',
+    notifyGroupCreated: () => {},
     ...props
   })
 
@@ -57,10 +58,15 @@ describe('TargetGroupSelector', () => {
 
   const render = (
     children,
-    {contextType = 'Account', contextId = '1', mocks = accountMocks({childGroupsCount: 0})} = {}
+    {
+      contextType = 'Account',
+      contextId = '1',
+      mocks = accountMocks({childGroupsCount: 0}),
+      treeBrowserRootGroupId = '1'
+    } = {}
   ) => {
     return realRender(
-      <OutcomesContext.Provider value={{env: {contextType, contextId}}}>
+      <OutcomesContext.Provider value={{env: {contextType, contextId, treeBrowserRootGroupId}}}>
         <MockedProvider cache={cache} mocks={mocks}>
           {children}
         </MockedProvider>
@@ -148,13 +154,81 @@ describe('TargetGroupSelector', () => {
     expect(getByText('Create New Group')).toBeInTheDocument()
   })
 
+  describe('passing starterGroupId', () => {
+    it('calls setTargetGroup with a mock group when back button is clicked', async () => {
+      const {getByText} = render(
+        <TargetGroupSelector {...defaultProps({starterGroupId: '123'})} />,
+        {
+          mocks: [
+            ...groupMocks({
+              groupId: '123',
+              parentOutcomeGroupId: '12',
+              parentOutcomeGroupTitle: 'Group 12'
+            }),
+            ...groupMocks({
+              groupId: '12'
+            })
+          ]
+        }
+      )
+      await act(async () => jest.runAllTimers())
+      // We're in group 123
+      fireEvent.click(getByText('Back'))
+      await act(async () => jest.runAllTimers())
+      // Now we're group 12 (parent group of 123)
+      expect(getByText('Group 12')).toBeInTheDocument()
+      // We should se a setTargetGroup with group 12 (parent of 123)
+      expect(setTargetGroupMock.mock.calls[1][0].targetGroup.id).toBe('12')
+    })
+  })
+
   describe('create new group button', () => {
-    it('focuses on the link after the AddContentItem unexpands', async () => {
+    it('focuses on the link after the AddContentItem unexpands after cancellation', async () => {
       const {getByText} = render(<TargetGroupSelector {...defaultProps()} />)
       await act(async () => jest.runAllTimers())
       fireEvent.click(getByText('Create New Group'))
       fireEvent.click(getByText('Cancel'))
       expect(getByText('Create New Group')).toHaveFocus()
+    })
+
+    it('does not focus on link after AddContentItem unexpands after submission', async () => {
+      const {getByText, getByLabelText} = render(<TargetGroupSelector {...defaultProps()} />, {
+        mocks: [
+          ...accountMocks({childGroupsCount: 0}),
+          ...createOutcomeGroupMocks({
+            parentOutcomeGroupId: '1',
+            title: 'new group name'
+          })
+        ]
+      })
+      await act(async () => jest.runAllTimers())
+      fireEvent.click(getByText('Create New Group'))
+      fireEvent.change(getByLabelText('Enter new group name'), {target: {value: 'new group name'}})
+      fireEvent.click(getByText('Create new group'))
+      await act(async () => jest.runAllTimers())
+      expect(getByText('Create New Group')).not.toHaveFocus()
+    })
+
+    it('notifyGroupCreated is called when a group is created', async () => {
+      const notifyMock = jest.fn(() => {})
+      const {getByText, getByLabelText} = render(
+        <TargetGroupSelector {...defaultProps({notifyGroupCreated: notifyMock})} />,
+        {
+          mocks: [
+            ...accountMocks({childGroupsCount: 0}),
+            ...createOutcomeGroupMocks({
+              parentOutcomeGroupId: '1',
+              title: 'new group name'
+            })
+          ]
+        }
+      )
+      await act(async () => jest.runAllTimers())
+      fireEvent.click(getByText('Create New Group'))
+      fireEvent.change(getByLabelText('Enter new group name'), {target: {value: 'new group name'}})
+      fireEvent.click(getByText('Create new group'))
+      await act(async () => jest.runAllTimers())
+      expect(notifyMock).toHaveBeenCalledTimes(1)
     })
 
     it('displays flash confirmation if group is created', async () => {

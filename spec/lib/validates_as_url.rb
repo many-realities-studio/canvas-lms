@@ -18,8 +18,6 @@
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-require File.expand_path(File.dirname(__FILE__) + '/../spec_helper')
-
 shared_examples_for "url validation tests" do
   def test_url_validation(model)
     # should add http://
@@ -54,7 +52,7 @@ shared_examples_for "url validation tests" do
       saved = model.save
       expect([model.url, saved]).to eq [invalid_url, false]
       expect(model.errors.size).to eq 1
-      expect(model.errors.full_messages.join).to match /not a valid URL/
+      expect(model.errors.full_messages.join).to match(/not a valid URL/)
     end
 
     # should work on valid urls

@@ -18,7 +18,7 @@
 
 import $ from 'jquery'
 import _ from 'underscore'
-import I18n from 'i18n!calendar.edit'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import {showFlashAlert} from '@canvas/alerts/react/FlashAlert'
 import tz from '@canvas/timezone'
 import Backbone from '@canvas/backbone'
@@ -30,11 +30,12 @@ import MissingDateDialogView from '@canvas/due-dates/backbone/views/MissingDateD
 import RichContentEditor from '@canvas/rce/RichContentEditor'
 import unflatten from 'obj-unflatten'
 import deparam from 'deparam'
-import KeyboardShortcuts from '@canvas/tinymce-keyboard-shortcuts'
 import coupleTimeFields from '@canvas/calendar/jquery/coupleTimeFields'
 import datePickerFormat from '@canvas/datetime/datePickerFormat'
 import CalendarConferenceWidget from '@canvas/calendar-conferences/react/CalendarConferenceWidget'
 import filterConferenceTypes from '@canvas/calendar-conferences/filterConferenceTypes'
+
+const I18n = useI18nScope('calendar.edit')
 
 RichContentEditor.preloadRemoteModule()
 
@@ -43,7 +44,6 @@ RichContentEditor.preloadRemoteModule()
 export default class EditCalendarEventView extends Backbone.View {
   initialize() {
     this.render = this.render.bind(this)
-    this.attachKeyboardShortcuts = this.attachKeyboardShortcuts.bind(this)
     this.toggleDuplicateOptions = this.toggleDuplicateOptions.bind(this)
     this.destroyModel = this.destroyModel.bind(this)
     // boilerplate that could be replaced with data bindings
@@ -136,12 +136,11 @@ export default class EditCalendarEventView extends Backbone.View {
     })
 
     const $textarea = this.$('textarea')
-    RichContentEditor.initSidebar()
     RichContentEditor.loadNewEditor($textarea, {focus: true, manageParent: true})
 
-    _.defer(this.attachKeyboardShortcuts)
     _.defer(this.toggleDuplicateOptions)
     _.defer(this.renderConferenceWidget)
+    _.defer(this.disableDatePickers)
 
     return this
   }
@@ -176,14 +175,6 @@ export default class EditCalendarEventView extends Backbone.View {
     }
   }
 
-  attachKeyboardShortcuts() {
-    if (!ENV.use_rce_enhancements) {
-      return $('.switch_event_description_view')
-        .first()
-        .before(new KeyboardShortcuts().render().$el)
-    }
-  }
-
   toggleDuplicateOptions() {
     return this.$el.find('.duplicate_event_toggle_row').toggle(this.model.isNew())
   }
@@ -213,12 +204,15 @@ export default class EditCalendarEventView extends Backbone.View {
       'use_section_dates',
       this.model.get('use_section_dates')
     )
-    return $('.show_if_using_sections input').prop('disabled', !this.model.get('use_section_dates'))
   }
 
   toggleUseSectionDates(e) {
     this.model.set('use_section_dates', !this.model.get('use_section_dates'))
     return this.updateRemoveChildEvents(e)
+  }
+
+  disableDatePickers() {
+    $('.date_field:disabled + button').prop('disabled', true)
   }
 
   toggleHtmlView(event) {
@@ -315,9 +309,15 @@ export default class EditCalendarEventView extends Backbone.View {
 
   toJSON() {
     const result = super.toJSON(...arguments)
-    result.use_rce_enhancements = ENV.use_rce_enhancements
     result.recurringEventLimit = 200
-    result.k5_subject = ENV.K5_SUBJECT_COURSE && ENV.FEATURES?.important_dates
+    result.k5_course = ENV.K5_SUBJECT_COURSE || ENV.K5_HOMEROOM_COURSE
+    result.disableSectionDates =
+      result.use_section_dates &&
+      result.course_sections.filter(
+        section => !section.permissions.manage_calendar && section.event
+      ).length > 0
+        ? 'disabled'
+        : ''
     return result
   }
 

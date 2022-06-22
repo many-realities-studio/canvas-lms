@@ -18,14 +18,16 @@
 
 import React from 'react'
 import PropTypes from 'prop-types'
-import I18n from 'i18n!discussion_posts'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import {Text} from '@instructure/ui-text'
 import {Pill} from '@instructure/ui-pill'
 import {InlineList} from '@instructure/ui-list'
 import {responsiveQuerySizes} from '../../utils'
 import {Responsive} from '@instructure/ui-responsive'
 
-const ROLE_HIERARCHY = ['Author', 'TeacherEnrollment', 'TaEnrollment']
+const I18n = useI18nScope('discussion_posts')
+
+const ROLE_HIERARCHY = ['Author', 'TeacherEnrollment', 'TaEnrollment', 'DesignerEnrollment']
 
 export function RolePillContainer({...props}) {
   const baseRolesToDisplay = sortDiscussionRoles(props.discussionRoles)
@@ -41,6 +43,10 @@ export function RolePillContainer({...props}) {
         desktop: {
           display: 'inline-block',
           delimiter: 'none'
+        },
+        mobile: {
+          display: 'inline',
+          delimiter: 'pipe'
         }
       }}
       render={(responsiveProps, matches) => (
@@ -73,6 +79,9 @@ function roleName(baseRole) {
     },
     get TaEnrollment() {
       return I18n.t('TA')
+    },
+    get DesignerEnrollment() {
+      return I18n.t('Designer')
     },
     get Author() {
       return I18n.t('Author')

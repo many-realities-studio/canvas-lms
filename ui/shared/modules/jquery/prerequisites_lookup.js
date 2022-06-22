@@ -16,16 +16,18 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import I18n from 'i18n!prerequisites_lookup'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import $ from 'jquery'
 import htmlEscape from 'html-escape'
 import Spinner from 'spin.js'
 import '@canvas/jquery/jquery.ajaxJSON'
 import '@canvas/jquery/jquery.instructure_misc_helpers'
 
+const I18n = useI18nScope('prerequisites_lookup')
+
 let lookupStarted = false
 
-INST.lookupPrerequisites = function() {
+INST.lookupPrerequisites = function () {
   if (lookupStarted) {
     return
   }
@@ -40,15 +42,13 @@ INST.lookupPrerequisites = function() {
 
   const spinner = new Spinner({radius: 5})
   spinner.spin()
-  $(spinner.el)
-    .css({opacity: 0.5, top: '25px', left: '200px'})
-    .appendTo('.spinner')
+  $(spinner.el).css({opacity: 0.5, top: '25px', left: '200px'}).appendTo('.spinner')
 
   $.ajaxJSON(
     url,
     'GET',
     {},
-    function(data) {
+    function (data) {
       spinner.stop()
       if (data.locked === false) {
         return
@@ -60,10 +60,8 @@ INST.lookupPrerequisites = function() {
         const $li = $('<li/>')
         const $i = $('<i/>')
         $li.addClass('module')
-        $li.click(function() {
-          $(this)
-            .find('ul')
-            .toggle()
+        $li.click(function () {
+          $(this).find('ul').toggle()
         })
         $li.toggleClass('locked', !!module.locked)
         if (module.locked) {
@@ -107,7 +105,7 @@ INST.lookupPrerequisites = function() {
         )
       )
       $link.after(
-        "<br/><h3 style='margin-top: 15px;'>" + htmlEscape(header) + '</h3>' + htmlEscape(sentence)
+        "<br/><h2 style='margin-top: 15px;'>" + htmlEscape(header) + '</h2>' + htmlEscape(sentence)
       )
       $link.prev('a').hide()
     },

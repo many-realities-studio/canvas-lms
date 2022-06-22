@@ -18,7 +18,7 @@
 
 import React, {useCallback, useState} from 'react'
 import PropTypes from 'prop-types'
-import I18n from 'i18n!todos_page'
+import {useScope as useI18nScope} from '@canvas/i18n'
 
 import {showFlashError} from '@canvas/alerts/react/FlashAlert'
 import LoadingSkeleton from '@canvas/k5/react/LoadingSkeleton'
@@ -27,6 +27,8 @@ import useFetchApi from '@canvas/use-fetch-api-hook'
 import EmptyTodos from './EmptyTodos'
 
 import Todo, {getBaseDueAt} from './Todo'
+
+const I18n = useI18nScope('todos_page')
 
 // Sort to-dos based on the assignment's base due date (aka the "Everyone else"
 // override when there are multiple due dates, putting those with no due date last
@@ -39,7 +41,7 @@ export const sortTodos = (t1, t2) => {
   return d1.localeCompare(d2)
 }
 
-export const TodosPage = ({timeZone, visible}) => {
+export const TodosPage = ({timeZone, visible, openTodosInNewTab}) => {
   const [loading, setLoading] = useState(true)
   const [todos, setTodos] = useState(null)
 
@@ -100,7 +102,12 @@ export const TodosPage = ({timeZone, visible}) => {
       >
         {todos?.length > 0 ? (
           todos.map(todo => (
-            <Todo key={`todo-assignment-${todo.assignment?.id}`} timeZone={timeZone} {...todo} />
+            <Todo
+              key={`todo-assignment-${todo.assignment?.id}`}
+              timeZone={timeZone}
+              openInNewTab={openTodosInNewTab}
+              {...todo}
+            />
           ))
         ) : (
           <EmptyTodos />
@@ -112,7 +119,8 @@ export const TodosPage = ({timeZone, visible}) => {
 
 TodosPage.propTypes = {
   timeZone: PropTypes.string.isRequired,
-  visible: PropTypes.bool.isRequired
+  visible: PropTypes.bool.isRequired,
+  openTodosInNewTab: PropTypes.bool.isRequired
 }
 
 export default TodosPage

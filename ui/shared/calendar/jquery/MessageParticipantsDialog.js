@@ -17,9 +17,11 @@
  */
 
 import $ from 'jquery'
-import I18n from 'i18n!calendar'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import messageParticipantsTemplate from '../jst/messageParticipants.handlebars'
 import recipientListTemplate from '../jst/recipientList.handlebars'
+
+const I18n = useI18nScope('calendar')
 
 export default class MessageParticipantsDialog {
   constructor(opts) {
@@ -131,6 +133,7 @@ export default class MessageParticipantsDialog {
 
     if (this.group) {
       data.tags = this.group.context_codes
+      data.context_code = this.group.context_codes[0]
     } else if (this.opts.timeslot) {
       data.tags = this.opts.timeslot.all_context_codes.split(',')
     }

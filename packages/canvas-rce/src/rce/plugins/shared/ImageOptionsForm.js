@@ -33,6 +33,7 @@ import {
   CUSTOM,
   MIN_HEIGHT,
   MIN_WIDTH,
+  MIN_PERCENTAGE,
   imageSizes,
   labelForImageSize
 } from '../instructure_image/ImageEmbedOptions'
@@ -101,7 +102,7 @@ const ImageOptionsForm = ({
         />
       </Flex.Item>
 
-      <Flex.Item margin="small none none none" padding="small">
+      <Flex.Item padding="small">
         <RadioInputGroup
           description={formatMessage('Display Options')}
           disabled={isLinked}
@@ -120,8 +121,8 @@ const ImageOptionsForm = ({
       </Flex.Item>
 
       {!hideDimensions && (
-        <Flex.Item margin="small none xx-small none">
-          <View as="div" padding="small small xx-small small">
+        <Flex.Item>
+          <View as="div" padding="small">
             <SimpleSelect
               id={`${id}-size`}
               disabled={displayAs !== 'embed'}
@@ -140,12 +141,13 @@ const ImageOptionsForm = ({
           </View>
 
           {imageSize === CUSTOM && (
-            <View as="div" padding="xx-small small">
+            <View as="div">
               <DimensionsInput
                 dimensionsState={dimensionsState}
                 disabled={displayAs !== 'embed'}
                 minHeight={MIN_HEIGHT}
                 minWidth={MIN_WIDTH}
+                minPercentage={MIN_PERCENTAGE}
               />
             </View>
           )}

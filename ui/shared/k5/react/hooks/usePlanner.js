@@ -17,12 +17,14 @@
  */
 
 import {useEffect, useState} from 'react'
-import I18n from 'i18n!k5_use_planner'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import {dateString, datetimeString, timeString} from '@canvas/datetime/date-functions'
 
 import apiUserContent from '@canvas/util/jquery/apiUserContent'
 import {initializePlanner} from '@instructure/canvas-planner'
 import {showFlashAlert, showFlashError} from '@canvas/alerts/react/FlashAlert'
+
+const I18n = useI18nScope('k5_use_planner')
 
 /**
  * A hook for setting up the planner prior to first rendering it. This function is
@@ -48,13 +50,21 @@ export default function usePlanner({
   plannerEnabled,
   isPlannerActive,
   focusFallback,
-  callback = () => {},
-  singleCourse = false
+  singleCourse = false,
+  observedUserId,
+  isObserver = false
 }) {
+  const [plannerInitializing, setPlannerInitializing] = useState(false)
   const [plannerInitialized, setPlannerInitialized] = useState(false)
 
   useEffect(() => {
-    if (plannerEnabled) {
+    if (
+      plannerEnabled &&
+      !plannerInitializing &&
+      !plannerInitialized &&
+      (!isObserver || !!observedUserId)
+    ) {
+      setPlannerInitializing(true)
       initializePlanner({
         getActiveApp: () => (isPlannerActive() ? 'planner' : ''),
         flashError: message => showFlashAlert({message, type: 'error'}),
@@ -64,15 +74,19 @@ export default function usePlanner({
         dateTimeFormatters: {dateString, timeString, datetimeString},
         externalFallbackFocusable: focusFallback,
         env: window.ENV,
-        singleCourse
+        singleCourse,
+        observedUserId
       })
-        .then(setPlannerInitialized)
-        .then(callback)
-        .catch(showFlashError(I18n.t('Failed to load the schedule tab')))
+        .then(val => {
+          setPlannerInitialized(val)
+        })
+        .catch(_ex => {
+          showFlashError(I18n.t('Failed to load the schedule tab'))()
+        })
     }
-    // This should only run on mount/unmount, so it shouldn't depend on anything
+    // The rest of the dependencies don't change
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [isObserver, observedUserId])
 
   return plannerInitialized
 }

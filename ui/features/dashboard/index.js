@@ -16,13 +16,15 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import $ from 'jquery'
-import '@canvas/rails-flash-notifications'
-import '@canvas/jquery/jquery.disableWhileLoading'
 import React from 'react'
 import ReactDOM from 'react-dom'
-import DashboardHeader from './react/DashboardHeader'
+import $ from 'jquery'
+
 import ready from '@instructure/ready'
+
+import '@canvas/rails-flash-notifications'
+import '@canvas/jquery/jquery.disableWhileLoading'
+import DashboardHeader from './react/DashboardHeader'
 
 ready(() => {
   const dashboardHeaderContainer = document.getElementById('dashboard_header_container')
@@ -32,7 +34,7 @@ ready(() => {
     ReactDOM.render(
       <DashboardHeader
         dashboard_view={dashboard_view}
-        canEnableElementaryDashboard={!!ENV.CAN_ENABLE_K5_DASHBOARD}
+        allowElementaryDashboard={!!ENV.ALLOW_ELEMENTARY_DASHBOARD}
         isElementaryUser={!!ENV.K5_USER}
         planner_enabled={ENV.STUDENT_PLANNER_ENABLED}
         flashError={$.flashError}

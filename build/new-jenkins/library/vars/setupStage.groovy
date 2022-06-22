@@ -16,6 +16,16 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+import groovy.transform.Field
+
+@Field final static OVERRIDABLE_GEMS = ['inst-jobs', 'switchman', 'switchman-inst-jobs']
+
+def hasGemOverrides() {
+  return OVERRIDABLE_GEMS.any { gem ->
+    return configuration.getString("pin-commit-$gem", "skip") != "skip"
+  }
+}
+
 def call() {
   def refspecToCheckout = env.GERRIT_PROJECT == 'canvas-lms' ? env.GERRIT_REFSPEC : env.CANVAS_LMS_REFSPEC
   checkoutRepo('canvas-lms', refspecToCheckout, 100)
@@ -27,7 +37,7 @@ def call() {
 
     // Plugin builds using the dir step above will create this @tmp file, we need to remove it
     // https://issues.jenkins.io/browse/JENKINS-52750
-    sh 'rm -vr gems/plugins/*@tmp'
+    sh "rm -vrf ${env.LOCAL_WORKDIR}@tmp"
   }
 
   gems = configuration.plugins()
@@ -39,11 +49,32 @@ def call() {
     }
   }
 
-  pluginsToPull.add([name: 'qti_migration_tool', version: _getPluginVersion('qti_migration_tool'), target: 'vendor/qti_migration_tool'])
+  OVERRIDABLE_GEMS.each { gem ->
+    if (configuration.getString("pin-commit-$gem", "skip") != "skip") {
+      pluginsToPull.add([name: gem, version: _getPluginVersion(gem), target: "vendor/$gem"])
+    }
+  }
+
+  if (env.GERRIT_PROJECT != 'qti_migration_tool') {
+    pluginsToPull.add([name: 'qti_migration_tool', version: _getPluginVersion('qti_migration_tool'), target: 'vendor/qti_migration_tool'])
+  }
 
   pullRepos(pluginsToPull)
-
+  echo 'Pulling Crystalball Map'
+  _getCrystalballMap()
   libraryScript.load('bash/docker-tag-remote.sh', './build/new-jenkins/docker-tag-remote.sh')
+}
+
+def _getCrystalballMap() {
+  withCredentials([usernamePassword(credentialsId: 'INSENG_CANVAS_CI_AWS_ACCESS', usernameVariable: 'INSENG_AWS_ACCESS_KEY_ID', passwordVariable: 'INSENG_AWS_SECRET_ACCESS_KEY')]) {
+    def awsCreds = "AWS_DEFAULT_REGION=us-west-2 AWS_ACCESS_KEY_ID=${INSENG_AWS_ACCESS_KEY_ID} AWS_SECRET_ACCESS_KEY=${INSENG_AWS_SECRET_ACCESS_KEY}"
+
+    if (env.CRYSTALBALL_MAP_S3_VERSION && env.CRYSTALBALL_MAP_S3_VERSION != 'latest') {
+      sh "$awsCreds aws s3api get-object --bucket instructure-canvas-ci --key crystalball_map.yml --version-id ${env.CRYSTALBALL_MAP_S3_VERSION} crystalball_map.yml"
+    } else {
+      sh "$awsCreds aws s3 cp s3://instructure-canvas-ci/crystalball_map.yml ."
+    }
+  }
 }
 
 def _getPluginVersion(plugin) {

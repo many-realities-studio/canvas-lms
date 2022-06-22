@@ -16,12 +16,24 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+import '../public/javascripts/translations/_core_en'
 import Enzyme from 'enzyme'
 import Adapter from 'enzyme-adapter-react-16'
 import {filterUselessConsoleMessages} from '@instructure/js-utils'
+import rceFormatMessage from '@instructure/canvas-rce/lib/format-message'
+import plannerFormatMessage from '@instructure/canvas-planner/lib/format-message'
 import {up as configureDateTime} from '../ui/boot/initializers/configureDateTime'
-
 import {up as configureDateTimeMomentParser} from '../ui/boot/initializers/configureDateTimeMomentParser'
+
+rceFormatMessage.setup({
+  locale: 'en',
+  missingTranslation: 'ignore'
+})
+
+plannerFormatMessage.setup({
+  locale: 'en',
+  missingTranslation: 'ignore'
+})
 
 /**
  * We want to ensure errors and warnings get appropriate eyes. If
@@ -35,15 +47,12 @@ const ignoredErrors = [
   /\[object Object\]/,
   /%s has a method called shouldComponentUpdate/,
   /`NaN` is an invalid value for the `%s` css style property/,
-  /`value` prop on `%s` should not be null/,
   /<Provider> does not support changing `store` on the fly/,
   /A component is changing a controlled input of type %s to be uncontrolled/,
   /A theme registry has already been initialized/,
   /An update to (%s|DefaultToolForm) inside a test was not wrapped in act/,
   /Can't perform a React state update on an unmounted component/,
-  /CancelAttemptButton: prop type `submission` is invalid/,
   /Cannot read property '(activeElement|useRealTimers)' of undefined/,
-  /Cannot read property 'length' of null/,
   /Cannot read property 'name' of null/,
   /Cannot update during an existing state transition/,
   /ColorPicker: isMounted is deprecated/,
@@ -59,126 +68,45 @@ const ignoredErrors = [
   /Function components cannot be given refs/,
   /Functions are not valid as a React child/,
   /invalid messageType: (notSupported|undefined)/,
-  /Invalid prop `background` of value `` supplied to `View`, expected one of/,
-  /Invalid prop `children` of type `array` supplied to `Transition`/,
   /Invalid prop `children` supplied to `(Option|View)`/,
-  /Invalid prop `conversation._id` of type `number` supplied to `ComposeModalManager`/,
-  /Invalid prop `currentUserId` of type `number` supplied to `AddStudentModal`/,
   /Invalid prop `editorOptions.plugins` of type `string` supplied to `(ForwardRef|RCEWrapper)`/, // https://instructure.atlassian.net/browse/MAT-453
   /Invalid prop `editorOptions.toolbar\[0\]` of type `string` supplied to `(ForwardRef|RCEWrapper)`/, // https://instructure.atlassian.net/browse/MAT-453
-  /Invalid prop `firstAnnouncement.postedDate` of type `String` supplied to `K5Announcement`/,
   /Invalid prop `heading` of type `object` supplied to `Billboard`/, // https://instructure.atlassian.net/browse/QUIZ-8870
-  /Invalid prop `headingAs` of value `h4` supplied to `Billboard`/,
-  /Invalid prop `id` of type `number` supplied to `Option`/,
-  /Invalid prop `outcomesGroup.contextId` of type `number` supplied to `FindOutcomesView`, expected `string`/,
   /Invalid prop `returnFocusTo` of type `DeprecatedComponent` supplied to `(CourseHomeDialog|HomePagePromptContainer)`/,
   /Invalid prop `selectedDate` of type `date` supplied to `CanvasDateInput`/,
-  /Invalid prop `shares\[0\].content_export.id` of type `number` supplied to `ReceivedTable`/,
   /Invalid prop `value` of type `object` supplied to `CanvasSelect`/,
   /Invariant Violation/,
   /It looks like you're using the wrong act/,
-  /modalProps.onDismiss is not a function/,
   /Prop `children` should be supplied unless/,
   /props.setRCEOpen is not a function/,
   /React does not recognize the `%s` prop on a DOM element/,
   /Render methods should be a pure function of props and state/,
   /The 'screenReaderOnly' prop must be used in conjunction with 'liveRegion'/,
   /The above error occurred in the <.*> component/,
-  /The prop `accountId` is marked as required in `(SecurityPanel|Whitelist)`/,
-  /The prop `activeMailbox` is marked as required in `MailboxSelectionDropdown`/,
-  /The prop `allSubmissions\[0\]._id` is marked as required in `Header`/,
-  /The prop `app.courses\[0\].id` is marked as required in `K5AppLink`/,
-  /The prop `apps\[0\].courses\[0\].id` is marked as required in `AppsList`/,
-  /The prop `assignmentsCompletedForToday` is marked as required in `K5Course`/,
-  /The prop `assignmentsDueToday` is marked as required in `K5Course`/,
-  /The prop `assignmentsMissing` is marked as required in `K5Course`/,
-  /The prop `avatarName` is marked as required in `UserLink`/,
-  /The prop `canAddObservee` is marked as required in `(K5Dashboard|ObserverOptions|ResponsiveK5Dashboard)`/,
-  /The prop `canReadAnnouncements` is marked as required in `(K5Announcement|K5Course)`/,
   /The prop `children` is marked as required in `TruncateText`/,
-  /The prop `closeTray` is marked as required in `HelpTray`/,
-  /The prop `color` is marked as required in `StatusColorListItem`/,
-  /The prop `colors.late` is marked as required in `StatusColorPanel`/,
-  /The prop `conferenceType.type` is marked as required in `Conference`/,
-  /The prop `conferenceTypes\[0\].name` is marked as required in `(AddConference|ConferenceButton)`/,
-  /The prop `containingContext.userId` is marked as required in `CanvasContentTray`/,
   /The prop `courseId` is marked as required in `(LatestAnnouncementLink|PublishButton)`/,
   /The prop `currentUserRoles` is marked as required in `ObserverOptions`/,
   /The prop `dateTime` is marked as required in `FriendlyDatetime`/,
-  /The prop `firstAnnouncement.id` is marked as required in `K5Announcement`/,
-  /The prop `focusAttemptOnInit` is marked as required in `AttemptTab`/,
-  /The prop `focusLastElement` is marked as required in `RSSFeedList`/,
   /The prop `focusOnInit` is marked as required in `(FileUpload|TextEntry|UrlEntry)`/,
   /The prop `groupTitle` is marked as required in `(GroupMoveModal|GroupRemoveModal|SearchBreadcrumb)`/,
-  /The prop `handleAddOutcomes` is marked as required in `ManagementHeader`/,
-  /The prop `handleFileDrop` is marked as required in `ManagementHeader`/,
-  /The prop `hasLoaded` is marked as required in `HistoryList`/,
-  /The prop `homeroomAnnouncements` is marked as required in `HomeroomPage`/,
-  /The prop `host` is marked as required in `CanvasContentTray`/,
   /The prop `id` is marked as required in `(CanvasSelectOption|ColHeader|DashboardCard|FormField|Option)`/,
-  /The prop `imageUrl` is marked as required in `GenericErrorPage`/,
-  /The prop `isLiked` is marked as required in `Like`/,
-  /The prop `isLoading` is marked as required in `LoadingWrapper`/,
-  /The prop `item.assignment.name` is marked as required in `Row`/,
-  /The prop `item.gradedAnonymously` is marked as required in `Row`/,
-  /The prop `jwt` is marked as required in `CanvasContentTray`/,
   /The prop `label` is marked as required in `(CanvasInstUIModal|FormField|FormFieldLayout|Modal)`/,
-  /The prop `listDeveloperKeyScopesSet` is marked as required in `(Scopes|ScopesList)`/,
-  /The prop `liveRegion` is marked as required in `(SecurityPanel|Whitelist)`/,
-  /The prop `loading` is marked as required in `(HomeroomAnnouncementsLayout|LoadingWrapper)`/,
-  /The prop `loadingCards` is marked as required in `HomeroomPage`/,
-  /The prop `ltiKeysSetLtiKey` is marked as required in `DeveloperKeyActionButtons`/,
-  /The prop `name` is marked as required in `Avatar`/,
-  /The prop `onChangeSubmission` is marked as required in `StudentContent`/,
-  /The prop `onClearHandler` is marked as required in `(ManageOutcomesFooter)`/,
-  /The prop `onSelect` is marked as required in `MailboxSelectionDropdown`/,
-  /The prop `outcome.mastery_points` is marked as required in `StudentOutcomeScore`/,
-  /The prop `outcome.title` is marked as required in `StudentOutcomeScore`/,
-  /The prop `outcomeGroup._id` is marked as required in `GroupDescriptionModal`/,
-  /The prop `outcomeGroup.title` is marked as required in `(GroupDescriptionModal|GroupEditModal|ManageOutcomesView)`/,
-  /The prop `outcomes\[0\].mastery_points` is marked as required in `(Gradebook|ScoresGrid)`/,
-  /The prop `permissionName` is marked as required in `PermissionTray`/,
-  /The prop `pollTimeout` is marked as required in `LinkValidator`/,
-  /The prop `pollTimeoutInitial` is marked as required in `LinkValidator`/,
   /The prop `rcsProps.canUploadFiles` is marked as required in `ForwardRef`/,
   /The prop `renderLabel` is marked as required in `(FileDrop|NumberInput|Select)`/,
-  /The prop `reply` is marked as required in `MessageActionButtons`/,
-  /The prop `replyAll` is marked as required in `MessageActionButtons`/,
-  /The prop `rollup.outcomeId` is marked as required in `StudentOutcomeScore`/,
-  /The prop `rollup.rating.mastery` is marked as required in `StudentOutcomeScore`/,
-  /The prop `rollups\[0\].outcomeRollups\[0\].rating.mastery` is marked as required in `Gradebook`/,
-  /The prop `rollups\[0\].outcomeRollups\[0\].rating.mastery` is marked as required in `ScoresGrid`/,
-  /The prop `rootId` is marked as required in `GroupSelectionDrillDown`/,
-  /The prop `rubric.criteria\[0\].id` is marked as required in `Rubric`/,
-  /The prop `rubric.id` is marked as required in `RubricTab`/,
-  /The prop `rubricAssessment.data\[0\].criterion_id` is marked as required in `Rubric`/,
-  /The prop `screenReaderLabel` is marked as required in `IconButton`/,
-  /The prop `selectedRoles\[0\].value` is marked as required in `PermissionsIndex`/,
-  /The prop `text` is marked as required in `(SVGWithTextPlaceholder|TextPlaceholder)`/,
-  /The prop `trayProps.canUploadFiles` is marked as required in `RCEWrapper`/,
-  /The prop `userId` is marked as required in `(CourseNotificationSettingsManager|GeneratePairingCode|NotificationPreferences)`/,
-  /The prop `value` is marked as required in `CanvasSelectOption`/,
   /Unexpected keys "searchPermissions", "filterRoles", "tabChanged", "setAndOpenAddTray" found in preloadedState argument passed to createStore/,
-  /Use the `defaultValue` or `value` props on <select> instead of setting `selected` on <option>/,
   /validateDOMNesting\(...\): %s cannot appear as a child of <%s>/,
   /WARNING: heuristic fragment matching going on!/,
+  /Warning: Failed prop type: Expected one of Checkbox in CheckboxGroup but found `View`/,
   /You are using the simple \(heuristic\) fragment matcher, but your queries contain union or interface types./,
   /You seem to have overlapping act\(\) calls/
 ]
 const globalWarn = global.console.warn
 const ignoredWarnings = [
   /\[View|Button|Text\] .* in version 8.0.0/i,
-  /`wait` has been deprecated and replaced by `waitFor`/,
-  /`waitForElement` has been deprecated/,
   /Error getting \/media_objects\/dummy_media_id\/info/,
   /Exactly one focusable child is required/,
-  /is deprecated and will be removed/,
-  /Missing field errors in/,
-  /Missing field moduleItem in/,
   /Please update the following components: %s/,
   /shared_brand_configs.* not called/,
-  /toBeEmpty has been deprecated/,
-  /Translation for .* is missing/,
   /value provided is not in a recognized RFC2822 or ISO format/
 ]
 global.console = {
@@ -211,7 +139,10 @@ require('jest-fetch-mock').enableFetchMocks()
 
 window.scroll = () => {}
 window.ENV = {
-  use_rce_enhancements: true
+  use_rce_enhancements: true,
+  FEATURES: {
+    extended_submission_state: true
+  }
 }
 
 Enzyme.configure({adapter: new Adapter()})
@@ -254,21 +185,6 @@ if (!Array.prototype.flatMap) {
 }
 
 require('@instructure/ui-themes')
-
-if (process.env.DEPRECATION_SENTRY_DSN) {
-  const Raven = require('raven-js')
-  Raven.config(process.env.DEPRECATION_SENTRY_DSN, {
-    ignoreErrors: ['renderIntoDiv', 'renderSidebarIntoDiv'], // silence the `Cannot read property 'renderIntoDiv' of null` errors we get from the pre- rce_enhancements old rce code
-    release: process.env.GIT_COMMIT,
-    autoBreadcrumbs: {
-      xhr: false
-    }
-  }).install()
-
-  const setupRavenConsoleLoggingPlugin =
-    require('../ui/boot/initializers/setupRavenConsoleLoggingPlugin').default
-  setupRavenConsoleLoggingPlugin(Raven, {loggerName: 'console-jest'})
-}
 
 // set up mocks for native APIs
 if (!('MutationObserver' in window)) {
@@ -329,3 +245,33 @@ if (!('matchMedia' in window)) {
 if (!('scrollIntoView' in window.HTMLElement.prototype)) {
   window.HTMLElement.prototype.scrollIntoView = () => {}
 }
+
+// Suppress errors for APIs that exist in JSDOM but aren't implemented
+Object.defineProperty(window, 'scrollTo', {configurable: true, writable: true, value: () => {}})
+
+const locationProperties = Object.getOwnPropertyDescriptors(window.location)
+Object.defineProperty(window, 'location', {
+  configurable: true,
+  enumerable: true,
+  get: () =>
+    Object.defineProperties(
+      {},
+      {
+        ...locationProperties,
+        href: {
+          ...locationProperties.href,
+          // Prevents JSDOM errors from doing window.location.href = ...
+          set: () => {}
+        },
+        reload: {
+          configurable: true,
+          enumerable: true,
+          writeable: true,
+          // Prevents JSDOM errors from doing window.location.reload()
+          value: () => {}
+        }
+      }
+    ),
+  // Prevents JSDOM errors from doing window.location = ...
+  set: () => {}
+})

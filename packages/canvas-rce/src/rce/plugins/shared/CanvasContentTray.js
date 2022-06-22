@@ -30,6 +30,7 @@ import formatMessage from '../../../format-message'
 import Filter, {useFilterSettings} from './Filter'
 import {StoreProvider} from './StoreContext'
 import {getTrayHeight} from './trayUtils'
+import {ICON_MAKER_ICONS} from '../instructure_icon_maker/svg/constants'
 
 /**
  * Returns the translated tray label
@@ -46,8 +47,8 @@ function getTrayLabel(contentType, contentSubtype, contextType) {
   }
 
   switch (contentSubtype) {
-    case 'buttons_and_icons':
-      return formatMessage('Buttons and Icons')
+    case ICON_MAKER_ICONS:
+      return formatMessage('Icon Maker Icons')
     case 'images':
       if (contentType === 'course_files') return formatMessage('Course Images')
       if (contentType === 'group_files') return formatMessage('Group Images')
@@ -66,7 +67,9 @@ function getTrayLabel(contentType, contentSubtype, contextType) {
 }
 
 const thePanels = {
-  buttons_and_icons: React.lazy(() => import('../instructure_buttons/components/SavedButtonList')),
+  icon_maker_icons: React.lazy(() =>
+    import('../instructure_icon_maker/components/SavedIconMakerList')
+  ),
   links: React.lazy(() => import('../instructure_links/components/LinksPanel')),
   images: React.lazy(() => import('../instructure_image/Images')),
   documents: React.lazy(() => import('../instructure_documents/components/DocumentsPanel')),
@@ -185,10 +188,10 @@ const FILTER_SETTINGS_BY_PLUGIN = {
     sortDir: 'desc',
     searchString: ''
   },
-  list_buttons_and_icons: {
+  list_icon_maker_icons: {
     contextType: 'course',
     contentType: 'course_files',
-    contentSubtype: 'buttons_and_icons',
+    contentSubtype: ICON_MAKER_ICONS,
     sortValue: 'date_added',
     sortDir: 'desc',
     searchString: ''
@@ -424,7 +427,7 @@ export default function CanvasContentTray(props) {
                     )
                   }}
                   isContentLoading={isLoading(contentProps)}
-                  use_rce_buttons_and_icons={props.use_rce_buttons_and_icons}
+                  use_rce_icon_maker={props.use_rce_icon_maker}
                 />
               </Flex.Item>
 

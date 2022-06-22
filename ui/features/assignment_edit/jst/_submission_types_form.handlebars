@@ -76,7 +76,6 @@
           {{#t "labels.allow_media_recordings"}}Media Recordings{{/t}}
         </label>
         {{/if}}
-        {{#if annotatedDocumentSubmissionsEnabled}}
         <label class="checkbox" for="assignment_annotated_document">
           {{checkbox "acceptsAnnotatedDocument"
           id="assignment_annotated_document"
@@ -94,7 +93,6 @@
           style="{{hiddenUnless acceptsAnnotatedDocument}}; padding: 0 0 0 42px;">
         </div>
         <input type="hidden" name="annotatable_attachment_id" id="annotatable_attachment_id" />
-        {{/if}}
         <label class="checkbox" for="assignment_online_upload">
           {{checkbox "acceptsOnlineUpload"
           id="assignment_online_upload"
@@ -135,7 +133,7 @@
               maxlength="254"
               placeholder="{{#t "labels.allowed_extensions"}}Allowed File Extensions{{/t}}"
               aria-labelledby="explanation_nest"
-              value="{{join allowedExtensions " ,"}}"
+              value="{{join allowedExtensions ", "}}"
               {{disabledIfIncludes frozenAttributes "submission_types"}} />
             <div id="explanation_nest" class="explanation nest">
               {{#t "descriptions.allowed_extensions"}}
@@ -152,10 +150,16 @@
             id="assignment_turnitin_enabled"
             name="turnitin_enabled"
             aria-controls="advanced_turnitin_settings_link"
-            disabled=submissionTypesFrozen}}
+            disabled=isPlagiarismPlatformLocked}}
             {{#t "label.turnitin_enabled"}}Enable Turnitin Submissions{{/t}}
           </label>
-
+          {{#if isPlagiarismPlatformLocked}}
+            <div class="plagiarism_locked_explanation alert assignment-edit-group-alert">
+              {{#t}}
+                Students have already submitted homework on this assignment, so plagiarism platform settings cannot be changed.
+              {{/t}}
+            </div>
+          {{/if}}
           <div class="nested">
             <a href="#" id="advanced_turnitin_settings_link" aria-expanded="{{turnitinEnabled}}"
               style="{{hiddenUnless turnitinEnabled}}">
@@ -170,9 +174,16 @@
             id="assignment_vericite_enabled"
             name="vericite_enabled"
             aria-controls="advanced_turnitin_settings_link"
-            disabled=submissionTypesFrozen}}
+            disabled=isPlagiarismPlatformLocked}}
             {{#t "label.vericite_enabled"}}Enable VeriCite Submissions{{/t}}
           </label>
+          {{#if isPlagiarismPlatformLocked}}
+            <div class="plagiarism_locked_explanation alert assignment-edit-plagiarism-alert">
+              {{#t}}
+                Students have already submitted homework on this assignment, so plagiarism platform settings cannot be changed.
+              {{/t}}
+            </div>
+          {{/if}}
           <div class="nested">
             <a href="#" id="advanced_turnitin_settings_link" aria-expanded="{{vericiteEnabled}}"
               style="{{hiddenUnless vericiteEnabled}}">
@@ -196,6 +207,7 @@
               <span id="assignment_submission_type_selection_launch_button_text"></span>
             </button>
           </div>
+
           <input type="hidden" id="assignment_submission_type_external_data" name="external_tool_tag_attributes[external_data]"
             value="{{externalToolDataStringified}}" />
           {{!-- this is very specific to Mastery Connect currently. We could potentially make this a dynamic partial
@@ -236,27 +248,56 @@
             <label class="ic-Label" for="assignment_external_tool_tag_attributes_url">
               {{#t}}Enter or find an External Tool URL{{/t}}
             </label>
-            <input type="hidden" id="assignment_external_tool_tag_attributes_custom_params"
-              name="external_tool_tag_attributes[custom_params]" value="{{externalToolCustomParamsStringified}}" />
+
+            <input id="assignment_external_tool_tag_attributes_custom_params"
+                   name="external_tool_tag_attributes[custom_params]"
+                   type="hidden"
+                   value="{{externalToolCustomParamsStringified}}" />
+            <input id="assignment_external_tool_tag_attributes_iframe_width"
+                   name="external_tool_tag_attributes[link_settings][selection_width]"
+                   type="hidden"
+                   value="{{externalToolIframeWidth}}" />
+            <input id="assignment_external_tool_tag_attributes_iframe_height"
+                   name="external_tool_tag_attributes[link_settings][selection_height]"
+                   type="hidden"
+                   value="{{externalToolIframeHeight}}"/>
+
             <div class="ic-Input-group">
               <div class="ic-Input-group__add-on" aria-hidden="true">
                 <i class="icon-link"></i>
               </div>
-              <input id="assignment_external_tool_tag_attributes_url" class="ic-Input" name="external_tool_tag_attributes[url]"
-                type="url" value="{{externalToolUrl}}" placeholder="http://www.example.com/launch" {{disabledIfIncludes
-                frozenAttributes "submission_types"}} />
-              <button class="Button" id="assignment_external_tool_tag_attributes_url_find" type="button">
-                {{#t}}Find{{/t}}
+
+              <input id="assignment_external_tool_tag_attributes_url"
+                     name="external_tool_tag_attributes[url]"
+                     class="ic-Input"
+                     type="url"
+                     value="{{externalToolUrl}}"
+                     placeholder="http://www.example.com/launch"
+                  {{disabledIfIncludes frozenAttributes "submission_types"}} />
+              <button id="assignment_external_tool_tag_attributes_url_find"
+                      class="Button"
+                      type="button"
+                      {{disabledIfIncludes frozenAttributes "submission_types"}}
+              >
+                  {{#t}}Find{{/t}}
               </button>
+
               {{#if submissionTypesFrozen}}
-              <input type="hidden" name="external_tool_tag_attributes[url]" value="{{externalToolUrl}}" />
+              <input name="external_tool_tag_attributes[url]"
+                     type="hidden"
+                     value="{{externalToolUrl}}" />
               {{/if}}
+
             </div>
           </div>
           <input id="assignment_external_tool_tag_attributes_content_type"
-            name="external_tool_tag_attributes[content_type]" type="text" style="display: none" />
-          <input id="assignment_external_tool_tag_attributes_content_id" name="external_tool_tag_attributes[content_id]"
-            type="text" style="display: none" />
+                 name="external_tool_tag_attributes[content_type]"
+                 type="text"
+                 style="display: none" />
+          <input id="assignment_external_tool_tag_attributes_content_id"
+                 name="external_tool_tag_attributes[content_id]"
+                 type="text"
+                 style="display: none" />
         </div>
 
         {{#if groupCategoryId}}
@@ -271,6 +312,7 @@
       {{#unless isQuizLTIAssignment}}
       <div id="external_tool_new_tab_container" style="display: none;">
         <label for="assignment_external_tool_tag_attributes_new_tab" class="checkbox">
+          <!-- creates 2 inputs with the same name: 1st is [type='hidden'] and 2nd is [type='checkbox'] with id -->
           {{checkbox "externalToolNewTab"
           id="assignment_external_tool_tag_attributes_new_tab"
           name="external_tool_tag_attributes[new_tab]"

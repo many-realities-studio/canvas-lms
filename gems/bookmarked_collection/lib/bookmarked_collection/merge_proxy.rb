@@ -60,7 +60,7 @@ class BookmarkedCollection::MergeProxy < BookmarkedCollection::CompositeProxy
     indexed_bookmarks.sort!
 
     last_item, last_leaf_bookmark = nil, nil
-    while indexed_bookmarks.present? && (pager.size < pager.per_page || @merge_proc && indexed_bookmarks.first.first == last_leaf_bookmark)
+    while indexed_bookmarks.present? && (pager.size < pager.per_page || (@merge_proc && indexed_bookmarks.first.first == last_leaf_bookmark))
       # pull the index of the collection with the next lowest bookmark and
       # pull off its first item
       leaf_bookmark, index = indexed_bookmarks.shift
@@ -75,12 +75,12 @@ class BookmarkedCollection::MergeProxy < BookmarkedCollection::CompositeProxy
         last_item, last_leaf_bookmark = item, leaf_bookmark
       end
 
-      unless collection.empty?
-        # collection still has items, put the index back in the list with
-        # the bookmark of the next item, and keep it sorted
-        indexed_bookmarks << indexed_bookmark(collection, index)
-        indexed_bookmarks.sort!
-      end
+      next if collection.empty?
+
+      # collection still has items, put the index back in the list with
+      # the bookmark of the next item, and keep it sorted
+      indexed_bookmarks << indexed_bookmark(collection, index)
+      indexed_bookmarks.sort!
     end
 
     # we have a bookmark if any collection has more pages or, even if this is

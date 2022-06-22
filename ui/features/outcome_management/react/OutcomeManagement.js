@@ -15,9 +15,10 @@
  * You should have received a copy of the GNU Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
+
 import React, {useState, useEffect, useMemo, useRef, useCallback} from 'react'
 import ReactDOM from 'react-dom'
-import I18n from 'i18n!OutcomeManagement'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import WithBreakpoints, {breakpointsShape} from 'with-breakpoints'
 import {Tabs} from '@instructure/ui-tabs'
 import MasteryScale from './MasteryScale/index'
@@ -26,10 +27,13 @@ import {ApolloProvider, createClient} from '@canvas/apollo'
 import OutcomesContext, {getContext} from '@canvas/outcomes/react/contexts/OutcomesContext'
 import ManagementHeader from './ManagementHeader'
 import OutcomeManagementPanel from './Management/index'
+import AlignmentSummary from './Alignments/index'
 import {
   showOutcomesImporter,
   showOutcomesImporterIfInProgress
 } from '@canvas/outcomes/react/OutcomesImporter'
+
+const I18n = useI18nScope('OutcomeManagement')
 
 const unmount = mount => ReactDOM.unmountComponentAtNode(mount)
 
@@ -60,6 +64,13 @@ export const OutcomeManagementWithoutGraphql = ({breakpoints}) => {
     const tabs = {'#mastery_scale': 1, '#mastery_calculation': 2}
     return window.location.hash in tabs ? tabs[window.location.hash] : 0
   })
+  const isMobileView = !breakpoints?.tablet
+  const contextValues = getContext(isMobileView)
+  const {accountLevelMasteryScalesFF, outcomeAlignmentSummaryFF, canManage, contextType} =
+    contextValues.env
+  const shouldDisplayAlignmentsTab =
+    improvedManagement && outcomeAlignmentSummaryFF && canManage && contextType === 'Course'
+  const alignmentTabIndex = accountLevelMasteryScalesFF ? 3 : 1
 
   const onSetImportRef = useCallback(node => {
     setImportRef(node)
@@ -118,15 +129,18 @@ export const OutcomeManagementWithoutGraphql = ({breakpoints}) => {
       if (improvedManagement && selectedIndex === 0 && importRef) {
         await showOutcomesImporterIfInProgress(
           {
+            learningOutcomeGroupId: lhsGroupId,
             disableOutcomeViews: disableManageView,
             resetOutcomeViews: resetManageView,
             mount: importRef,
-            contextUrlRoot: ENV.CONTEXT_URL_ROOT
+            contextUrlRoot: ENV.CONTEXT_URL_ROOT,
+            onSuccessfulCreateOutcome
           },
           ENV.current_user.id
         )
       }
     })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [improvedManagement, selectedIndex, importRef])
 
   const unmountImportRef = () => {
@@ -141,21 +155,22 @@ export const OutcomeManagementWithoutGraphql = ({breakpoints}) => {
     setIsImporting(false)
   }
 
-  const onFileDrop = file => {
+  const onFileDrop = (file, learningOutcomeGroupId, learningOutcomeGroupAncestorIds) => {
     showOutcomesImporter({
+      learningOutcomeGroupId,
+      learningOutcomeGroupAncestorIds,
       file,
       disableOutcomeViews: disableManageView,
       resetOutcomeViews: resetManageView,
       mount: importRef,
-      contextUrlRoot: ENV.CONTEXT_URL_ROOT
+      contextUrlRoot: ENV.CONTEXT_URL_ROOT,
+      onSuccessfulOutcomesImport: onSuccessfulCreateOutcome
     })
   }
 
   const onSuccessfulCreateOutcome = ({selectedGroupAncestorIds}) => {
     setCreatedOutcomeGroupIds(selectedGroupAncestorIds)
   }
-
-  const isMobileView = !breakpoints?.tablet
 
   const onAddOutcomes = addedOutcomes => {
     if (addedOutcomes) {
@@ -164,7 +179,7 @@ export const OutcomeManagementWithoutGraphql = ({breakpoints}) => {
   }
 
   return (
-    <OutcomesContext.Provider value={getContext(isMobileView)}>
+    <OutcomesContext.Provider value={contextValues}>
       {improvedManagement && (
         <ManagementHeader
           handleAddOutcomes={onAddOutcomes}
@@ -186,22 +201,38 @@ export const OutcomeManagementWithoutGraphql = ({breakpoints}) => {
                 importNumber={importNumber}
                 createdOutcomeGroupIds={createdOutcomeGroupIds}
                 onLhsSelectedGroupIdChanged={setLhsGroupId}
+                handleFileDrop={onFileDrop}
               />
             )
           ) : (
             <OutcomePanel />
           )}
         </Tabs.Panel>
-        <Tabs.Panel renderTitle={I18n.t('Mastery')} isSelected={selectedIndex === 1} id="scale">
-          <MasteryScale onNotifyPendingChanges={setHasUnsavedChanges} />
-        </Tabs.Panel>
-        <Tabs.Panel
-          renderTitle={I18n.t('Calculation')}
-          isSelected={selectedIndex === 2}
-          id="calculation"
-        >
-          <MasteryCalculation onNotifyPendingChanges={setHasUnsavedChanges} />
-        </Tabs.Panel>
+        {accountLevelMasteryScalesFF && (
+          <Tabs.Panel renderTitle={I18n.t('Mastery')} isSelected={selectedIndex === 1} id="scale">
+            <div style={{paddingTop: '24px'}}>
+              <MasteryScale onNotifyPendingChanges={setHasUnsavedChanges} />
+            </div>
+          </Tabs.Panel>
+        )}
+        {accountLevelMasteryScalesFF && (
+          <Tabs.Panel
+            renderTitle={I18n.t('Calculation')}
+            isSelected={selectedIndex === 2}
+            id="calculation"
+          >
+            <MasteryCalculation onNotifyPendingChanges={setHasUnsavedChanges} />
+          </Tabs.Panel>
+        )}
+        {shouldDisplayAlignmentsTab && (
+          <Tabs.Panel
+            renderTitle={I18n.t('Alignments')}
+            isSelected={selectedIndex === alignmentTabIndex}
+            id="alignments"
+          >
+            <AlignmentSummary />
+          </Tabs.Panel>
+        )}
       </Tabs>
       <div ref={onSetImportRef} />
     </OutcomesContext.Provider>

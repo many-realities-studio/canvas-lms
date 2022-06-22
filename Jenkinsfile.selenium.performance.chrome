@@ -37,7 +37,6 @@ pipeline {
     RUBY = configuration.ruby()
     RERUNS_RETRY = 0 // no reruns
     POSTGRES_PASSWORD = 'sekret'
-    SELENIUM_VERSION = '3.141.59-20201119'
 
     CASSANDRA_IMAGE_TAG = imageTag.cassandra()
     DYNAMODB_IMAGE_TAG = imageTag.dynamodb()
@@ -45,7 +44,7 @@ pipeline {
   }
 
   stages {
-    stage ('Setup') {
+    stage('Setup') {
       steps {
         cleanAndSetup()
       }
@@ -82,7 +81,7 @@ pipeline {
       }
     }
 
-    stage ('Setup Containers') {
+    stage('Setup Containers') {
       steps {
         timeout(time: 20) {
           sh 'build/new-jenkins/docker-compose-pull.sh'
@@ -92,7 +91,7 @@ pipeline {
       }
     }
 
-    stage ('Selenium Performance Tests') {
+    stage('Selenium Performance Tests') {
       steps {
         timeout(time: 60) {
           sh 'build/new-jenkins/rspec-with-retries.sh performance'
@@ -116,11 +115,11 @@ pipeline {
       script {
         try {
           // [JIRA CCI-168]: need to handle canvas container never being spun up
-          sh 'build/new-jenkins/docker-copy-files.sh /usr/src/app/log/spec_failures/ ./tmp canvas_ --clean-dir'
+          sh "rm -rf tmp && mkdir -p tmp/ && docker cp test-queue_canvas_1:/usr/src/app/log/spec_failures tmp/ || true"
           script {
             def htmlFiles
             // find all results files
-            dir ('tmp') {
+            dir('tmp') {
               htmlFiles = findFiles glob: '**/index.html'
             }
             // publish html

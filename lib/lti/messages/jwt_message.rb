@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU Affero General Public License along
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 
-require 'lti_advantage'
+require "lti_advantage"
 
 module Lti::Messages
   # Base class for all LTI Message "factory" classes.
@@ -36,7 +36,7 @@ module Lti::Messages
   # Canvas, please see the inline documentation of
   # app/models/lti/lti_advantage_adapter.rb.
   class JwtMessage
-    EXTENSION_PREFIX = 'https://www.instructure.com/'.freeze
+    EXTENSION_PREFIX = "https://www.instructure.com/"
 
     def initialize(tool:, context:, user:, expander:, return_url:, opts: {})
       @tool = tool
@@ -54,7 +54,7 @@ module Lti::Messages
     end
 
     def generate_post_payload_message(validate_launch: true)
-      raise 'Class can only be used once.' if @used
+      raise "Class can only be used once." if @used
 
       @used = true
 
@@ -69,6 +69,7 @@ module Lti::Messages
       add_i18n_claims! if include_claims?(:i18n)
       add_roles_claims! if include_claims?(:roles)
       add_custom_params_claims! if include_claims?(:custom_params)
+      add_assignment_and_grade_service_claims! if include_assignment_and_grade_service_claims?
       add_names_and_roles_service_claims! if include_names_and_roles_service_claims?
       add_lti11_legacy_user_id!
       add_lti1p1_claims! if include_lti1p1_claims?
@@ -89,9 +90,9 @@ module Lti::Messages
       @message.aud = @tool.developer_key.global_id.to_s
       @message.azp = @tool.developer_key.global_id.to_s
       @message.deployment_id = @tool.deployment_id
-      @message.exp = Setting.get('lti.oauth2.access_token.exp', 1.hour).to_i.seconds.from_now.to_i
+      @message.exp = Setting.get("lti.oauth2.access_token.exp", 1.hour).to_i.seconds.from_now.to_i
       @message.iat = Time.zone.now.to_i
-      @message.iss = Canvas::Security.config['lti_iss']
+      @message.iss = Canvas::Security.config["lti_iss"]
       @message.nonce = SecureRandom.uuid
       @message.sub = @user&.lookup_lti_id(@context) if include_sub_claim?
       @message.target_link_uri = target_link_uri
@@ -102,8 +103,8 @@ module Lti::Messages
     end
 
     def target_link_uri
-      @opts[:target_link_uri] ||
-        @tool.extension_setting(@opts[:resource_type], :target_link_uri) ||
+      @opts[:target_link_uri].presence ||
+        @tool.extension_setting(@opts[:resource_type], :target_link_uri).presence ||
         @tool.url
     end
 
@@ -117,16 +118,20 @@ module Lti::Messages
     def add_tool_platform_claims!
       @message.tool_platform.guid = @context.root_account.lti_guid
       @message.tool_platform.name = @context.root_account.name
-      @message.tool_platform.version = 'cloud'
-      @message.tool_platform.product_family_code = 'canvas'
+      @message.tool_platform.version = "cloud"
+      @message.tool_platform.product_family_code = "canvas"
     end
 
     def add_launch_presentation_claims!
-      @message.launch_presentation.document_target = 'iframe'
-      @message.launch_presentation.height = @tool.extension_setting(@opts[:resource_type], :selection_height)
-      @message.launch_presentation.width = @tool.extension_setting(@opts[:resource_type], :selection_width)
+      @message.launch_presentation.document_target = "iframe"
       @message.launch_presentation.return_url = @return_url
       @message.launch_presentation.locale = I18n.locale || I18n.default_locale.to_s
+
+      content_tag_link_settings = @expander.content_tag&.link_settings
+      height = content_tag_link_settings&.dig("selection_height")&.to_s&.gsub(/px$/, "").presence || @tool.extension_setting(@opts[:resource_type], :selection_height) || @tool.settings[:selection_height]
+      width = content_tag_link_settings&.dig("selection_width")&.to_s&.gsub(/px$/, "").presence || @tool.extension_setting(@opts[:resource_type], :selection_width) || @tool.settings[:selection_width]
+      @message.launch_presentation.height = height.to_i if height.present?
+      @message.launch_presentation.width = width.to_i if width.present?
     end
 
     def add_i18n_claims!
@@ -136,7 +141,7 @@ module Lti::Messages
     end
 
     def add_roles_claims!
-      @message.roles = expand_variable('$com.instructure.User.allRoles').split ','
+      @message.roles = expand_variable("$com.instructure.User.allRoles").split ","
     end
 
     def add_custom_params_claims!
@@ -147,8 +152,8 @@ module Lti::Messages
       @message.name = @user&.name
       @message.given_name = @user&.first_name
       @message.family_name = @user&.last_name
-      @message.lis.person_sourcedid = expand_variable('$Person.sourcedId')
-      @message.lis.course_offering_sourcedid = expand_variable('$CourseSection.sourcedId')
+      @message.lis.person_sourcedid = expand_variable("$Person.sourcedId")
+      @message.lis.course_offering_sourcedid = expand_variable("$CourseSection.sourcedId")
     end
 
     def add_include_email_claims!
@@ -164,7 +169,7 @@ module Lti::Messages
     end
 
     def add_lti11_legacy_user_id!
-      @message.lti11_legacy_user_id = @tool.opaque_identifier_for(@user) || ''
+      @message.lti11_legacy_user_id = @tool.opaque_identifier_for(@user) || ""
     end
 
     def add_lti1p1_claims!
@@ -179,6 +184,27 @@ module Lti::Messages
       @user&.lti_context_id && @user.lti_context_id != @user.lti_id
     end
 
+    # Follows the spec at https://www.imsglobal.org/spec/lti-ags/v2p0/#assignment-and-grade-service-claim
+    # and only adds this claim if the tool has the right scopes, and not for account-level launches.
+    def include_assignment_and_grade_service_claims?
+      include_claims?(:assignment_and_grade_service) &&
+        (@context.is_a?(Course) || @context.is_a?(Group)) &&
+        (@tool.developer_key.scopes & TokenScopes::LTI_AGS_SCOPES).present?
+    end
+
+    # Follows the spec at https://www.imsglobal.org/spec/lti-ags/v2p0/#assignment-and-grade-service-claim
+    # see ResourceLinkRequest#add_line_item_url_to_ags_claim! for adding the 'lineitem' propertys
+    def add_assignment_and_grade_service_claims!
+      @message.assignment_and_grade_service.scope = @tool.developer_key.scopes & TokenScopes::LTI_AGS_SCOPES
+      @message.assignment_and_grade_service.lineitems = @expander.controller.lti_line_item_index_url(course_id: course_id_for_ags_url)
+    end
+
+    # Used to construct URLs for AGS endpoints like line item index, or line item show
+    # assumes @context is either Group or Course, per #include_assignment_and_grade_service_claims?
+    def course_id_for_ags_url
+      @context.is_a?(Group) ? @context.context_id : @context.id
+    end
+
     def include_names_and_roles_service_claims?
       include_claims?(:names_and_roles_service) &&
         (@context.is_a?(Course) || @context.is_a?(Group)) &&
@@ -188,7 +214,7 @@ module Lti::Messages
     def add_names_and_roles_service_claims!
       @message.names_and_roles_service.context_memberships_url =
         @expander.controller.polymorphic_url([@context, :names_and_roles])
-      @message.names_and_roles_service.service_versions = ['2.0']
+      @message.names_and_roles_service.service_versions = ["2.0"]
     end
 
     def expand_variable(variable)
@@ -199,12 +225,10 @@ module Lti::Messages
       return nil unless @context.is_a?(Course)
       return nil if @user.blank?
 
-      @_current_observee_list ||= begin
-        @user.observer_enrollments.current
-             .where(course_id: @context.id)
-             .preload(:associated_user)
-             .map { |e| e.try(:associated_user).try(:lti_id) }.compact
-      end
+      @_current_observee_list ||= @user.observer_enrollments.current
+                                       .where(course_id: @context.id)
+                                       .preload(:associated_user)
+                                       .filter_map { |e| e.try(:associated_user).try(:lti_id) }
     end
 
     def custom_parameters
@@ -214,7 +238,7 @@ module Lti::Messages
     def unexpanded_custom_parameters
       @tool.set_custom_fields(@opts[:resource_type]).transform_keys do |k|
         key = k.dup
-        key.slice! 'custom_'
+        key.slice! "custom_"
         key
       end
     end

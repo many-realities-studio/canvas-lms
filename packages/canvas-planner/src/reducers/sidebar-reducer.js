@@ -28,7 +28,8 @@ const items = handleActions(
       sortItems(newState)
       return newState
     },
-    DELETED_PLANNER_ITEM: deleteItem
+    DELETED_PLANNER_ITEM: deleteItem,
+    CLEAR_SIDEBAR: () => []
   },
   []
 )
@@ -45,7 +46,8 @@ function deleteItem(state, action) {
 
 const nextUrl = handleActions(
   {
-    SIDEBAR_ITEMS_LOADED: (state, action) => action.payload.nextUrl
+    SIDEBAR_ITEMS_LOADED: (state, action) => action.payload.nextUrl,
+    CLEAR_SIDEBAR: () => null
   },
   null
 )
@@ -55,16 +57,30 @@ const loading = handleActions(
     SIDEBAR_ITEMS_LOADING: () => true,
     SIDEBAR_ITEMS_LOADED: () => false,
     SIDEBAR_ENOUGH_ITEMS_LOADED: () => false,
-    SIDEBAR_ITEMS_LOADING_FAILED: () => false
+    SIDEBAR_ITEMS_LOADING_FAILED: () => false,
+    CLEAR_SIDEBAR: () => false
   },
   false
 )
 
 const loaded = handleActions(
   {
-    SIDEBAR_ENOUGH_ITEMS_LOADED: () => true
+    SIDEBAR_ENOUGH_ITEMS_LOADED: () => true,
+    CLEAR_SIDEBAR: () => false
   },
   false
+)
+
+const loadingError = handleActions(
+  {
+    CLEAR_SIDEBAR: () => null,
+    SIDEBAR_ITEMS_LOADING: () => null,
+    SIDEBAR_ITEMS_LOADING_FAILED: (state, action) => {
+      const error = action.payload.message || action.payload
+      return error
+    }
+  },
+  null
 )
 
 const range = handleActions(
@@ -72,7 +88,8 @@ const range = handleActions(
     SIDEBAR_ITEMS_LOADING: (state, action) => {
       if (action.payload) return {...state, ...action.payload}
       else return state
-    }
+    },
+    CLEAR_SIDEBAR: () => ({})
   },
   {}
 )
@@ -82,7 +99,8 @@ const combinedReducer = combineReducers({
   loading,
   nextUrl,
   loaded,
-  range
+  range,
+  loadingError
 })
 
 function sortItems(items) {

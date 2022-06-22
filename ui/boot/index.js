@@ -23,50 +23,61 @@ import './initializers/fakeRequireJSFallback'
 import {up as configureDateTimeMomentParser} from './initializers/configureDateTimeMomentParser'
 import {up as configureDateTime} from './initializers/configureDateTime'
 import {up as enableDTNPI} from './initializers/enableDTNPI'
+import {initSentry} from './initializers/initSentry'
+import {up as renderRailsFlashNotifications} from './initializers/renderRailsFlashNotifications'
+import {up as activateCourseMenuToggler} from './initializers/activateCourseMenuToggler'
+import {up as enhanceUserContent} from './initializers/enhanceUserContent'
+import {isolate} from '@canvas/sentry'
+
+try {
+  initSentry()
+} catch (e) {
+  // eslint-disable-next-line no-console
+  console.error('Failed to init Sentry, errors will not be captured', e)
+}
 
 // we already put a <script> tag for the locale corresponding ENV.MOMENT_LOCALE
 // on the page from rails, so this should not cause a new network request.
 moment().locale(ENV.MOMENT_LOCALE)
 
-configureDateTimeMomentParser()
-configureDateTime()
-enableDTNPI()
-
-async function setupSentry() {
-  const Raven = await import('raven-js')
-  Raven.config(process.env.DEPRECATION_SENTRY_DSN, {
-    ignoreErrors: ['renderIntoDiv', 'renderSidebarIntoDiv'], // silence the `Cannot read property 'renderIntoDiv' of null` errors we get from the pre- rce_enhancements old rce code
-    release: process.env.GIT_COMMIT
-  }).install()
-
-  try {
-    const {default: setup} = await import('./initializers/setupRavenConsoleLoggingPlugin')
-    setup(Raven, {loggerName: 'console'})
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error(`ERROR: could not set up Raven console logging: ${e.message}`)
-  }
+let runOnceAfterLocaleFiles = () => {
+  configureDateTimeMomentParser()
+  configureDateTime()
+  isolate(renderRailsFlashNotifications)()
+  isolate(activateCourseMenuToggler)()
+  isolate(enhanceUserContent)()
 }
 
-async function setupConsoleMessageFilter() {
-  const {filterUselessConsoleMessages} = await import(
-    '@instructure/js-utils/es/filterUselessConsoleMessages'
-  )
-
-  try {
-    filterUselessConsoleMessages(console)
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error(`ERROR: could not set up console log filtering: ${e.message}`)
+window.addEventListener('canvasReadyStateChange', function ({detail}) {
+  if (detail === 'localeFiles' || window.canvasReadyState === 'complete') {
+    runOnceAfterLocaleFiles()
+    runOnceAfterLocaleFiles = () => {}
   }
-}
+})
+
+isolate(enableDTNPI)({
+  endpoint: window.ENV.DATA_COLLECTION_ENDPOINT
+})
 
 // In non-prod environments only, arrange for filtering of "useless" console
 // messages, and if deprecation reporting is enabled, arrange to inject and
 // set up Sentry for it.
 if (process.env.NODE_ENV !== 'production') {
+  const setupConsoleMessageFilter = async () => {
+    const {filterUselessConsoleMessages} = await import(
+      /* webpackChunkName: "[request]" */
+      '@instructure/js-utils/es/filterUselessConsoleMessages'
+    )
+
+    try {
+      filterUselessConsoleMessages(console)
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error(`ERROR: could not set up console log filtering: ${e.message}`)
+    }
+  }
+
   setupConsoleMessageFilter()
-  if (process.env.DEPRECATION_SENTRY_DSN) setupSentry()
 }
 
 // setup the inst-ui default theme

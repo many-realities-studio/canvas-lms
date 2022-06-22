@@ -16,17 +16,20 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import I18n from 'i18n!theme_editor'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import React, {Component} from 'react'
 import PropTypes from 'prop-types'
 import $ from 'jquery'
 import customTypes from '@canvas/theme-editor/react/PropTypes'
 import Modal from '@canvas/instui-bindings/react/InstuiModal'
 
+const I18n = useI18nScope('theme_editor')
+
 export default class SaveThemeButton extends Component {
   static propTypes = {
     accountID: PropTypes.string.isRequired,
     brandConfigMd5: customTypes.md5,
+    isDefaultConfig: PropTypes.bool.isRequired,
     sharedBrandConfigBeingEdited: customTypes.sharedBrandConfig.isRequired,
     onSave: PropTypes.func.isRequired
   }
@@ -78,7 +81,7 @@ export default class SaveThemeButton extends Component {
     ) {
       disable = true
       disableMessage = I18n.t('There are no unsaved changes')
-    } else if (!this.props.brandConfigMd5) {
+    } else if (this.props.isDefaultConfig) {
       disable = true
     }
 

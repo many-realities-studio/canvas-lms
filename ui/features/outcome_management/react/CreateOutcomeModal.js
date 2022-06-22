@@ -17,9 +17,10 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import React, {useState, useEffect} from 'react'
+import React, {useRef, useState, useEffect} from 'react'
+import useBoolean from '@canvas/outcomes/react/hooks/useBoolean'
 import PropTypes from 'prop-types'
-import I18n from 'i18n!OutcomeManagement'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import {TextInput} from '@instructure/ui-text-input'
 import {TextArea} from '@instructure/ui-text-area'
 import {Button} from '@instructure/ui-buttons'
@@ -41,23 +42,64 @@ import {useManageOutcomes} from '@canvas/outcomes/react/treeBrowser'
 import useCanvasContext from '@canvas/outcomes/react/hooks/useCanvasContext'
 import {useMutation} from 'react-apollo'
 import OutcomesRceField from './shared/OutcomesRceField'
+import ProficiencyCalculation, {
+  defaultProficiencyCalculation
+} from './MasteryCalculation/ProficiencyCalculation'
+import useRatings, {
+  defaultRatings,
+  defaultMasteryPoints
+} from '@canvas/outcomes/react/hooks/useRatings'
+import useOutcomeFormValidate from '@canvas/outcomes/react/hooks/useOutcomeFormValidate'
+import {processRatingsAndMastery} from '@canvas/outcomes/react/helpers/ratingsHelpers'
+import Ratings from './Management/Ratings'
+
+const I18n = useI18nScope('OutcomeManagement')
 
 const CreateOutcomeModal = ({isOpen, onCloseHandler, onSuccess, starterGroupId}) => {
-  const {contextType, contextId, friendlyDescriptionFF, isMobileView} = useCanvasContext()
+  const {contextType, contextId, friendlyDescriptionFF, isMobileView, accountLevelMasteryScalesFF} =
+    useCanvasContext()
+  const createButtonRef = useRef()
   const [title, titleChangeHandler] = useInput()
   const [displayName, displayNameChangeHandler] = useInput()
   const [friendlyDescription, friendlyDescriptionChangeHandler] = useInput()
   const [description, setDescription] = useState('')
   const [showTitleError, setShowTitleError] = useState(false)
+  const [groupCreated, setGroupCreated, setGroupNotCreated] = useBoolean(false)
   const [setOutcomeFriendlyDescription] = useMutation(SET_OUTCOME_FRIENDLY_DESCRIPTION_MUTATION)
   const [createLearningOutcome] = useMutation(CREATE_LEARNING_OUTCOME)
   const {rootId, collections} = useManageOutcomes({
     collection: 'OutcomeManagementPanel',
     initialGroupId: starterGroupId
   })
+  const {
+    ratings,
+    masteryPoints,
+    setRatings,
+    setMasteryPoints,
+    ratingsError,
+    masteryPointsError,
+    clearRatingsFocus,
+    focusOnRatingsError
+  } = useRatings({
+    initialRatings: defaultRatings,
+    initialMasteryPoints: defaultMasteryPoints
+  })
+  const {
+    validateForm,
+    focusOnError,
+    setTitleRef,
+    setDisplayNameRef,
+    setFriendlyDescriptionRef,
+    setMasteryPointsRef,
+    setCalcIntRef
+  } = useOutcomeFormValidate({focusOnRatingsError, clearRatingsFocus})
 
   const [selectedGroup, setSelectedGroup] = useState(null)
   const [selectedGroupAncestorIds, setSelectedGroupAncestorIds] = useState([])
+  const [proficiencyCalculation, setProficiencyCalculation] = useState(
+    defaultProficiencyCalculation
+  )
+  const [proficiencyCalculationError, setProficiencyCalculationError] = useState(false)
 
   useEffect(() => {
     if (rootId && collections[rootId] && !selectedGroup) {
@@ -65,6 +107,13 @@ const CreateOutcomeModal = ({isOpen, onCloseHandler, onSuccess, starterGroupId})
       setSelectedGroupAncestorIds([rootId])
     }
   }, [collections, rootId, selectedGroup, selectedGroupAncestorIds])
+
+  useEffect(() => {
+    if (groupCreated) {
+      createButtonRef.current?.focus()
+      setGroupNotCreated()
+    }
+  }, [groupCreated, setGroupNotCreated])
 
   const invalidTitle = titleValidator(title)
   const invalidDisplayName = displayNameValidator(displayName)
@@ -81,17 +130,49 @@ const CreateOutcomeModal = ({isOpen, onCloseHandler, onSuccess, starterGroupId})
     onCloseHandler()
   }
 
+  const friendlyDescriptionMessages = []
+  if (friendlyDescription.length > 255) {
+    friendlyDescriptionMessages.push({
+      text: I18n.t('Must be 255 characters or less'),
+      type: 'error'
+    })
+  }
+
+  const onCreateHandler = () =>
+    validateForm({
+      proficiencyCalculationError,
+      masteryPointsError,
+      ratingsError,
+      friendlyDescriptionError: friendlyDescriptionMessages.length > 0,
+      displayNameError: invalidDisplayName,
+      titleError: invalidTitle
+    }) && selectedGroup
+      ? onCreateOutcomeHandler()
+      : focusOnError()
+
+  const updateProficiencyCalculation = (calculationMethodKey, calculationInt) =>
+    setProficiencyCalculation({calculationMethod: calculationMethodKey, calculationInt})
+
   const onCreateOutcomeHandler = () => {
     ;(async () => {
       try {
+        const input = {
+          groupId: selectedGroup.id,
+          title,
+          displayName,
+          description
+        }
+        if (!accountLevelMasteryScalesFF) {
+          input.calculationMethod = proficiencyCalculation.calculationMethod
+          input.calculationInt = proficiencyCalculation.calculationInt
+          const {masteryPoints: inputMasteryPoints, ratings: inputRatings} =
+            processRatingsAndMastery(ratings, masteryPoints.value)
+          input.masteryPoints = inputMasteryPoints
+          input.ratings = inputRatings
+        }
         const createLearningOutcomeResult = await createLearningOutcome({
           variables: {
-            input: {
-              groupId: selectedGroup.id,
-              title,
-              displayName,
-              description
-            }
+            input
           }
         })
 
@@ -143,6 +224,7 @@ const CreateOutcomeModal = ({isOpen, onCloseHandler, onSuccess, starterGroupId})
       messages={invalidTitle && showTitleError ? [{text: invalidTitle, type: 'error'}] : []}
       renderLabel={I18n.t('Name')}
       onChange={changeTitle}
+      inputRef={setTitleRef}
     />
   )
 
@@ -155,6 +237,7 @@ const CreateOutcomeModal = ({isOpen, onCloseHandler, onSuccess, starterGroupId})
       messages={invalidDisplayName ? [{text: invalidDisplayName, type: 'error'}] : []}
       renderLabel={I18n.t('Friendly Name')}
       onChange={displayNameChangeHandler}
+      inputRef={setDisplayNameRef}
     />
   )
 
@@ -203,7 +286,36 @@ const CreateOutcomeModal = ({isOpen, onCloseHandler, onSuccess, starterGroupId})
                 placeholder={I18n.t('Enter your friendly description here')}
                 label={I18n.t('Friendly description (for parent/student display)')}
                 onChange={friendlyDescriptionChangeHandler}
+                messages={friendlyDescriptionMessages}
+                textareaRef={setFriendlyDescriptionRef}
               />
+            </View>
+          )}
+          {!accountLevelMasteryScalesFF && (
+            <View as="div" padding="small 0 0">
+              <Ratings
+                ratings={ratings}
+                onChangeRatings={setRatings}
+                masteryPoints={masteryPoints}
+                onChangeMasteryPoints={setMasteryPoints}
+                canManage
+                masteryInputRef={setMasteryPointsRef}
+              />
+              <View as="div" minHeight="14rem">
+                <hr
+                  style={{margin: '1rem 0 0'}}
+                  aria-hidden="true"
+                  data-testid="outcome-create-modal-horizontal-divider"
+                />
+                <ProficiencyCalculation
+                  update={updateProficiencyCalculation}
+                  setError={setProficiencyCalculationError}
+                  masteryPoints={masteryPoints.value}
+                  individualOutcome="edit"
+                  canManage
+                  calcIntInputRef={setCalcIntRef}
+                />
+              </View>
             </View>
           )}
           <View as="div" padding="x-small 0 0">
@@ -217,6 +329,7 @@ const CreateOutcomeModal = ({isOpen, onCloseHandler, onSuccess, starterGroupId})
                 setSelectedGroup(targetGroup)
               }}
               starterGroupId={starterGroupId}
+              notifyGroupCreated={setGroupCreated}
             />
           </View>
         </Modal.Body>
@@ -228,10 +341,10 @@ const CreateOutcomeModal = ({isOpen, onCloseHandler, onSuccess, starterGroupId})
             type="button"
             color="primary"
             margin="0 x-small 0 0"
-            interaction={
-              !invalidTitle && !invalidDisplayName && selectedGroup ? 'enabled' : 'disabled'
-            }
-            onClick={onCreateOutcomeHandler}
+            interaction="enabled"
+            onClick={onCreateHandler}
+            ref={createButtonRef}
+            data-testid="create-button"
           >
             {I18n.t('Create')}
           </Button>

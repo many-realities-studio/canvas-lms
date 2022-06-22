@@ -16,8 +16,8 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import React, {useState, useCallback, useEffect} from 'react'
-import I18n from 'i18n!course_grades_page'
+import React, {useState, useCallback, useEffect, useRef} from 'react'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import PropTypes from 'prop-types'
 
 import {Tabs} from '@instructure/ui-tabs'
@@ -32,6 +32,8 @@ import GradeDetails from './GradeDetails'
 import IndividualStudentMastery from '@canvas/grade-summary'
 import {outcomeProficiencyShape} from '@canvas/grade-summary/react/IndividualStudentMastery/shapes'
 
+const I18n = useI18nScope('course_grades_page')
+
 export const GradesPage = ({
   courseId,
   courseName,
@@ -40,7 +42,8 @@ export const GradesPage = ({
   userIsStudent,
   userIsCourseAdmin,
   showLearningMasteryGradebook,
-  outcomeProficiency
+  outcomeProficiency,
+  observedUserId
 }) => {
   const [loadingGradingPeriods, setLoadingGradingPeriods] = useState(true)
   const [error, setError] = useState(null)
@@ -49,18 +52,24 @@ export const GradesPage = ({
   const [allowTotalsForAllPeriods, setAllowTotalsForAllPeriods] = useState(true)
   const [selectedGradingPeriodId, setSelectedGradingPeriodId] = useState(null)
   const [selectedTab, setSelectedTab] = useState('assignments')
-
+  const [enrollments, setEnrollments] = useState([])
+  const observedUserRef = useRef(null)
+  const include = ['grading_periods', 'current_grading_period_scores', 'total_scores']
+  if (observedUserId) {
+    include.push('observed_users')
+  }
   useFetchApi({
     path: `/api/v1/courses/${courseId}`,
     loading: setLoadingGradingPeriods,
     success: useCallback(data => {
       setGradingPeriods(data.grading_periods)
+      setEnrollments(data.enrollments)
       setCurrentGradingPeriodId(data.enrollments[0]?.current_grading_period_id)
       setAllowTotalsForAllPeriods(data.enrollments[0]?.totals_for_all_grading_periods_option)
     }, []),
     error: setError,
     params: {
-      include: ['grading_periods', 'current_grading_period_scores', 'total_scores']
+      include
     }
   })
 
@@ -72,6 +81,17 @@ export const GradesPage = ({
       setError(null)
     }
   }, [error, courseName])
+
+  useEffect(() => {
+    if (enrollments.length > 0 && observedUserId && observedUserRef.current !== observedUserId) {
+      const enrollment = enrollments.find(
+        e => e.user_id === observedUserId && e.type !== 'observer'
+      )
+      setCurrentGradingPeriodId(enrollment?.current_grading_period_id)
+      setAllowTotalsForAllPeriods(enrollment?.totals_for_all_grading_periods_option)
+      observedUserRef.current = observedUserId
+    }
+  }, [observedUserId, enrollments])
 
   const allGradingPeriodsSelected = gradingPeriods?.length > 0 && selectedGradingPeriodId === null
   const showTotals = !hideFinalGrades && !(allGradingPeriodsSelected && !allowTotalsForAllPeriods)
@@ -95,6 +115,7 @@ export const GradesPage = ({
         currentUser={currentUser}
         loadingGradingPeriods={loadingGradingPeriods}
         userIsCourseAdmin={userIsCourseAdmin}
+        observedUserId={observedUserId}
       />
     </>
   )
@@ -114,7 +135,7 @@ export const GradesPage = ({
     </>
   )
 
-  if (!userIsStudent) {
+  if (!userIsStudent && !observedUserId) {
     return (
       <GradesEmptyPage
         userIsCourseAdmin={userIsCourseAdmin}
@@ -160,7 +181,8 @@ GradesPage.propTypes = {
   userIsStudent: PropTypes.bool.isRequired,
   userIsCourseAdmin: PropTypes.bool.isRequired,
   showLearningMasteryGradebook: PropTypes.bool.isRequired,
-  outcomeProficiency: outcomeProficiencyShape
+  outcomeProficiency: outcomeProficiencyShape,
+  observedUserId: PropTypes.string
 }
 
 export default GradesPage

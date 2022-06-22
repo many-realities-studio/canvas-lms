@@ -20,16 +20,14 @@
 
 module Outcomes
   class LearningOutcomeGroupChildren
+    include OutcomesFeaturesHelper
     attr_reader :context
 
     SHORT_DESCRIPTION = "coalesce(learning_outcomes.short_description, '')"
 
-    # rubocop:disable Layout/LineLength
     # E'<[^>]+>' -> removes html tags
     # E'&\\w+;'  -> removes html entities
     DESCRIPTION = "regexp_replace(regexp_replace(coalesce(learning_outcomes.description, ''), E'<[^>]+>', '', 'gi'), E'&\\w+;', ' ', 'gi')"
-    # rubocop:enable Layout/LineLength
-
     MAP_CANVAS_POSTGRES_LOCALES = {
       "ar" => "arabic", # العربية
       "ca" => "spanish", # Català
@@ -72,12 +70,20 @@ module Outcomes
       end
     end
 
+    def not_imported_outcomes(learning_outcome_group_id, args = {})
+      if group_exists?(args[:target_group_id])
+        target_group = LearningOutcomeGroup.find_by(id: args[:target_group_id])
+        source_group_outcome_ids = outcome_links(learning_outcome_group_id).distinct.pluck(:content_id)
+        target_group_outcome_ids = outcome_links(target_group.id).distinct.pluck(:content_id)
+        (source_group_outcome_ids - (source_group_outcome_ids & target_group_outcome_ids)).size
+      end
+    end
+
     def suboutcomes_by_group_id(learning_outcome_group_id, args = {})
-      learning_outcome_groups_ids = children_ids_with_self(learning_outcome_group_id)
-      relation = ContentTag.active.learning_outcome_links
-                           .where(associated_asset_id: learning_outcome_groups_ids)
-                           .joins(:learning_outcome_content)
-                           .joins("INNER JOIN #{LearningOutcomeGroup.quoted_table_name} AS logs
+      relation = outcome_links(learning_outcome_group_id)
+      relation = filter_outcomes(relation, args[:filter]) unless args[:filter].nil? || !outcome_alignment_summary_enabled?(@context)
+      relation = relation.joins(:learning_outcome_content)
+                         .joins("INNER JOIN #{LearningOutcomeGroup.quoted_table_name} AS logs
               ON logs.id = content_tags.associated_asset_id")
 
       if args[:search_query]
@@ -85,8 +91,8 @@ module Outcomes
         add_search_order(relation, args[:search_query])
       else
         relation.order(
-          LearningOutcomeGroup.best_unicode_collation_key('logs.title'),
-          LearningOutcome.best_unicode_collation_key('short_description')
+          LearningOutcomeGroup.best_unicode_collation_key("logs.title"),
+          LearningOutcome.best_unicode_collation_key("short_description")
         )
       end
     end
@@ -98,17 +104,34 @@ module Outcomes
     def self.supported_languages
       # cache this in the class since this won't change so much
       @supported_languages ||= ContentTag.connection.execute(
-        'SELECT cfgname FROM pg_ts_config'
-      ).to_a.map { |r| r['cfgname'] }
+        "SELECT cfgname FROM pg_ts_config"
+      ).to_a.map { |r| r["cfgname"] }
     end
 
     private
 
-    def total_outcomes_for(learning_outcome_group_id, args = {})
-      learning_outcome_groups_ids = children_ids_with_self(learning_outcome_group_id)
-
+    def outcome_links(learning_outcome_group_id)
+      group_ids = children_ids_with_self(learning_outcome_group_id)
       relation = ContentTag.active.learning_outcome_links
-                           .where(associated_asset_id: learning_outcome_groups_ids)
+                           .where(associated_asset_id: group_ids)
+      # Check that the LearningOutcome the content tag is aligned to is not deleted
+      tag_ids = relation.reject { |tag| LearningOutcome.find(tag.content_id).workflow_state == "deleted" }.map(&:id)
+      ContentTag.where(id: tag_ids)
+    end
+
+    def filter_outcomes(relation, filter)
+      outcomes = LearningOutcome.preload(:alignments).where(id: relation.map(&:content_id))
+      filtered_tag_ids = if filter == "WITH_ALIGNMENTS"
+                           relation.reject { |tag| outcomes.find(tag.content_id).alignments.empty? }.map(&:id)
+                         elsif filter == "NO_ALIGNMENTS"
+                           relation.select { |tag| outcomes.find(tag.content_id).alignments.empty? }.map(&:id)
+                         end
+      filtered_tag_ids.nil? ? relation : relation.where(id: filtered_tag_ids)
+    end
+
+    def total_outcomes_for(learning_outcome_group_id, args = {})
+      relation = outcome_links(learning_outcome_group_id)
+      relation = filter_outcomes(relation, args[:filter]) unless args[:filter].nil? || !outcome_alignment_summary_enabled?(@context)
 
       if args[:search_query]
         relation = relation.joins(:learning_outcome_content)
@@ -133,7 +156,7 @@ module Outcomes
               SQL
             end
 
-      search_query_tokens = ContentTag.connection.execute(sql).to_a.map { |r| r['token'] }.uniq
+      search_query_tokens = ContentTag.connection.execute(sql).to_a.map { |r| r["token"] }.uniq
 
       short_description_query = ContentTag.sanitize_sql_array(["#{SHORT_DESCRIPTION} ~* ANY(array[?])",
                                                                search_query_tokens])
@@ -143,20 +166,20 @@ module Outcomes
     end
 
     def add_search_order(relation, search_query)
-      select_query = ContentTag.sanitize_sql_array([<<-SQL.squish, search_query, search_query])
+      select_query = ContentTag.sanitize_sql_array([<<~SQL.squish, search_query, search_query])
         "content_tags".*,
         GREATEST(public.word_similarity(?, #{SHORT_DESCRIPTION}), public.word_similarity(?, #{DESCRIPTION})) as sim
       SQL
 
       relation.select(select_query).order(
         "sim DESC",
-        LearningOutcomeGroup.best_unicode_collation_key('logs.title'),
-        LearningOutcome.best_unicode_collation_key('short_description')
+        LearningOutcomeGroup.best_unicode_collation_key("logs.title"),
+        LearningOutcome.best_unicode_collation_key("short_description")
       )
     end
 
     def children_ids_with_self(learning_outcome_group_id)
-      sql = <<-SQL.squish
+      sql = <<~SQL.squish
         WITH RECURSIVE levels AS (
           SELECT id, id AS parent_id
             FROM (#{LearningOutcomeGroup.active.where(id: learning_outcome_group_id).to_sql}) AS data
@@ -179,14 +202,14 @@ module Outcomes
     end
 
     def total_outcomes_cache_key(learning_outcome_group_id = nil)
-      ['learning_outcome_group_total_outcomes',
+      ["learning_outcome_group_total_outcomes",
        context_asset_string,
        context_timestamp_cache,
        learning_outcome_group_id].cache_key
     end
 
     def context_timestamp_cache_key
-      ['learning_outcome_group_context_timestamp', context_asset_string].cache_key
+      ["learning_outcome_group_context_timestamp", context_asset_string].cache_key
     end
 
     def context_asset_string
@@ -199,6 +222,10 @@ module Outcomes
                                         else
                                           LoadAccount.default_domain_root_account.feature_enabled?(:improved_outcomes_management)
                                         end
+    end
+
+    def group_exists?(learning_outcome_group_id)
+      LearningOutcomeGroup.find_by(id: learning_outcome_group_id) != nil
     end
 
     def lang

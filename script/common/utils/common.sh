@@ -16,6 +16,7 @@ DOCKER_COMMAND=${DOCKER_COMMAND:-"docker-compose"}
 function trap_result {
   exit_code=$?
   last_command=$BASH_COMMAND
+  exec &>/dev/tty
   set +e
   stop_spinner $exit_code
   if [ "${exit_code}" == "0" ]; then
@@ -44,9 +45,19 @@ function run_command {
   if is_running_on_jenkins; then
     docker-compose exec -T web "$@"
   elif is_docker; then
-    $DOCKER_COMMAND exec -e TELEMETRY_OPT_IN web "$@"
+    # -T needed until https://github.com/docker/compose/issues/9104 is fixed
+    $DOCKER_COMMAND exec -T -e TELEMETRY_OPT_IN web "$@"
   else
     "$@"
+  fi
+}
+# remove once https://github.com/docker/compose/issues/9104 is fixed
+function run_command_tty {
+  if is_running_on_jenkins; then
+    docker-compose exec -T web "$@"
+  elif is_docker; then
+    # -T needed until https://github.com/docker/compose/issues/9104 is fixed
+    $DOCKER_COMMAND exec -e TELEMETRY_OPT_IN web "$@"
   fi
 }
 
@@ -127,12 +138,13 @@ function confirm_command {
 }
 
 function docker_compose_up {
-  if is_mutagen; then
+  if [ "${IS_MUTAGEN:-false}" = true ]; then
     start_spinner "Starting mutagen containers..."
-    _canvas_lms_track_with_log mutagen compose up --no-start web
-    _canvas_lms_track_with_log mutagen compose run -u root --rm web chown docker:docker /usr/src/app
+    _canvas_lms_track_with_log mutagen-compose up --no-start web
+    _canvas_lms_track_with_log mutagen-compose run -u root --rm web chown docker:docker /usr/src/app
     stop_spinner
   fi
+
   start_spinner "Starting docker containers..."
   _canvas_lms_track_with_log $DOCKER_COMMAND up -d web
   stop_spinner
@@ -150,7 +162,7 @@ function check_dependencies {
       continue
     fi
     if [[ ${#dep[@]} -gt 1 ]]; then
-      version=$(eval "${dep[0]}" --version |grep -oE "[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+")
+      version=$(eval "${dep[0]}" version |grep -oE "[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+")
       if (( $(echo "$version ${dep[1]}" | awk '{print ($1 < $2)}') )); then
         wrong_version+=("$dependency or higher. Found: ${dep[0]} $version.")
       fi
@@ -186,10 +198,6 @@ function rebuild_docker_images {
       _canvas_lms_track_with_log $DOCKER_COMMAND build --pull
     fi
   stop_spinner
-}
-
-function is_mutagen {
-  [ -f ".mutagen" ]
 }
 
 function is_docker {

@@ -20,29 +20,42 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import {View} from '@instructure/ui-view'
 import {Menu} from '@instructure/ui-menu'
-import {Button} from '@instructure/ui-buttons'
+import {Button, IconButton} from '@instructure/ui-buttons'
 import {
   IconMoreLine,
   IconEditLine,
   IconTrashLine,
   IconMoveEndLine,
-  IconInfoLine
+  IconInfoLine,
+  IconSearchLine,
+  IconImportLine
 } from '@instructure/ui-icons'
 import {ScreenReaderContent} from '@instructure/ui-a11y-content'
-import I18n from 'i18n!OutcomeManagement'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import {stripHtmlTags} from '@canvas/outcomes/stripHtmlTags'
 
-const OutcomeKebabMenu = ({menuTitle, onMenuHandler, canEdit, canDestroy, groupDescription}) => {
-  const isGroup = groupDescription !== undefined
+const I18n = useI18nScope('OutcomeManagement')
+
+const OutcomeKebabMenu = ({
+  menuTitle,
+  onMenuHandler,
+  canEdit,
+  canDestroy,
+  isGroup,
+  groupDescription
+}) => {
   const hasDescription =
     typeof groupDescription === 'string' &&
     stripHtmlTags(groupDescription).replace(/[\n\r\t\s(&nbsp;)]+/g, '')
   return (
     <Menu
       trigger={
-        <Button variant="icon" icon={IconMoreLine}>
-          <ScreenReaderContent>{menuTitle || I18n.t('Menu')}</ScreenReaderContent>
-        </Button>
+        <IconButton
+          renderIcon={IconMoreLine}
+          withBackground={false}
+          withBorder={false}
+          screenReaderLabel={menuTitle || I18n.t('Menu')}
+        />
       }
       onSelect={onMenuHandler}
     >
@@ -64,6 +77,18 @@ const OutcomeKebabMenu = ({menuTitle, onMenuHandler, canEdit, canDestroy, groupD
           {I18n.t('Move')}
         </View>
       </Menu.Item>
+      {isGroup && (
+        <Menu.Item value="add_outcomes">
+          <IconSearchLine size="x-small" />
+          <View padding="0 small">{I18n.t('Add Outcomes')}</View>
+        </Menu.Item>
+      )}
+      {isGroup && (
+        <Menu.Item value="import_outcomes">
+          <IconImportLine size="x-small" />
+          <View padding="0 small">{I18n.t('Import Outcomes')}</View>
+        </Menu.Item>
+      )}
       {isGroup && <Menu.Separator />}
       {isGroup && (
         <Menu.Item value="description" disabled={!hasDescription}>
@@ -80,12 +105,14 @@ OutcomeKebabMenu.propTypes = {
   menuTitle: PropTypes.string,
   canDestroy: PropTypes.bool.isRequired,
   groupDescription: PropTypes.string,
+  isGroup: PropTypes.bool,
   canEdit: PropTypes.bool
 }
 
 OutcomeKebabMenu.defaultProps = {
   menuTitle: '',
-  canEdit: true
+  canEdit: true,
+  isGroup: false
 }
 
 export default OutcomeKebabMenu

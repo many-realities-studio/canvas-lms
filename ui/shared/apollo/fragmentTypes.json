@@ -21,16 +21,16 @@
         "name": "AssignmentOverrideSet",
         "possibleTypes": [
           {
-            "name": "Section"
+            "name": "AdhocStudents"
           },
           {
             "name": "Group"
           },
           {
-            "name": "AdhocStudents"
+            "name": "Noop"
           },
           {
-            "name": "Noop"
+            "name": "Section"
           }
         ]
       },
@@ -69,6 +69,9 @@
             "name": "AccountDomainLookup"
           },
           {
+            "name": "AssessmentRequest"
+          },
+          {
             "name": "Assignment"
           },
           {
@@ -96,6 +99,9 @@
             "name": "DiscussionEntry"
           },
           {
+            "name": "DiscussionEntryDraft"
+          },
+          {
             "name": "Enrollment"
           },
           {
@@ -120,6 +126,9 @@
             "name": "GroupSet"
           },
           {
+            "name": "InternalSetting"
+          },
+          {
             "name": "LearningOutcome"
           },
           {
@@ -142,6 +151,9 @@
           },
           {
             "name": "NotificationPolicy"
+          },
+          {
+            "name": "OutcomeAlignmentType"
           },
           {
             "name": "OutcomeCalculationMethod"
@@ -213,13 +225,13 @@
             "name": "Discussion"
           },
           {
-            "name": "Quiz"
+            "name": "Module"
           },
           {
             "name": "Page"
           },
           {
-            "name": "Module"
+            "name": "Quiz"
           }
         ]
       },
@@ -309,6 +321,9 @@
             "name": "GroupSet"
           },
           {
+            "name": "InternalSetting"
+          },
+          {
             "name": "LearningOutcome"
           },
           {
@@ -334,6 +349,9 @@
           },
           {
             "name": "NotificationPolicy"
+          },
+          {
+            "name": "OutcomeAlignmentType"
           },
           {
             "name": "OutcomeCalculationMethod"
@@ -417,6 +435,9 @@
             "name": "AccountDomainLookup"
           },
           {
+            "name": "AssessmentRequest"
+          },
+          {
             "name": "Assignment"
           },
           {
@@ -444,6 +465,9 @@
             "name": "DiscussionEntry"
           },
           {
+            "name": "DiscussionEntryDraft"
+          },
+          {
             "name": "Enrollment"
           },
           {
@@ -465,6 +489,9 @@
             "name": "GroupMembership"
           },
           {
+            "name": "InternalSetting"
+          },
+          {
             "name": "LearningOutcome"
           },
           {
@@ -481,6 +508,9 @@
           },
           {
             "name": "NotificationPolicy"
+          },
+          {
+            "name": "OutcomeAlignmentType"
           },
           {
             "name": "OutcomeFriendlyDescriptionType"
@@ -516,10 +546,10 @@
         "name": "TurnitinContext",
         "possibleTypes": [
           {
-            "name": "Submission"
+            "name": "File"
           },
           {
-            "name": "File"
+            "name": "Submission"
           }
         ]
       }

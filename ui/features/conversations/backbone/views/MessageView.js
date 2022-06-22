@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU Affero General Public License along
 // with this program. If not, see <http://www.gnu.org/licenses/>.
 
-import I18n from 'i18n!conversations'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import {View} from '@canvas/backbone'
 import _ from 'underscore'
 import template from '../../jst/message.handlebars'
@@ -23,6 +23,9 @@ import React from 'react'
 import ReactDOM from 'react-dom'
 import {Checkbox} from '@instructure/ui-checkbox'
 import {ScreenReaderContent} from '@instructure/ui-a11y-content'
+import {Tooltip} from '@instructure/ui-tooltip'
+
+const I18n = useI18nScope('conversations')
 
 export default class MessageView extends View {
   initialize(...args) {
@@ -51,6 +54,13 @@ export default class MessageView extends View {
         onChange={() => this.model.set('selected', !this.model.get('selected'))}
       />,
       this.$selectCheckbox[0]
+    )
+  }
+
+  renderUnreadIndicator() {
+    ReactDOM.render(
+      <ConversationTooltip isUnread={this.model.unread()} toggleRead={this.toggleRead} />,
+      this.$readStateTooltip[0]
     )
   }
 
@@ -123,10 +133,6 @@ export default class MessageView extends View {
     e.preventDefault()
     this.model.toggleReadState()
     this.model.save()
-    this.$readBtn.attr({
-      'aria-checked': this.model.unread(),
-      title: this.model.unread() ? this.messages.read : this.messages.unread
-    })
   }
 
   onMouseDown(e) {
@@ -138,6 +144,7 @@ export default class MessageView extends View {
 
   afterRender() {
     this.renderSelectCheckbox()
+    this.renderUnreadIndicator()
   }
 
   remove() {
@@ -157,6 +164,7 @@ Object.assign(MessageView.prototype, {
     '.star-btn': '$starBtn',
     '.StarButton-LabelContainer': '$starBtnScreenReaderMessage',
     '.read-state': '$readBtn',
+    '.read-state-tooltip': '$readStateTooltip',
     '.select-checkbox': '$selectCheckbox'
   },
   events: {
@@ -173,3 +181,38 @@ Object.assign(MessageView.prototype, {
     unstar: I18n.t('Unstar conversation')
   }
 })
+
+const ConversationTooltip = props => {
+  const [isUnread, setIsUnread] = React.useState(props.isUnread)
+  const [hasFocus, setHasFocus] = React.useState(false)
+  return (
+    <Tooltip
+      renderTip={() => (isUnread ? I18n.t('Mark as read') : I18n.t('Mark as unread'))}
+      isShowingContent={hasFocus}
+    >
+      <input
+        href="#"
+        className={isUnread ? 'read-state' : 'read-state read'}
+        type="checkbox"
+        aria-checked={isUnread}
+        title={isUnread ? I18n.t('Mark as read') : I18n.t('Mark as unread')}
+        aria-label={isUnread ? I18n.t('Mark as read') : I18n.t('Mark as unread')}
+        onClick={() => {
+          setIsUnread(!isUnread)
+        }}
+        onFocus={() => {
+          setHasFocus(true)
+        }}
+        onBlur={() => {
+          setHasFocus(false)
+        }}
+        onMouseOver={() => {
+          setHasFocus(true)
+        }}
+        onMouseOut={() => {
+          setHasFocus(false)
+        }}
+      />
+    </Tooltip>
+  )
+}

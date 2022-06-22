@@ -19,12 +19,14 @@
 import React, {Component} from 'react'
 import PropTypes from 'prop-types'
 import ReactDOM from 'react-dom'
-import I18n from 'i18n!OutcomesImporter'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import {Text} from '@instructure/ui-text'
 import {Heading} from '@instructure/ui-heading'
 import {Spinner} from '@instructure/ui-spinner'
 import {showFlashAlert} from '@canvas/alerts/react/FlashAlert'
 import * as apiClient from './apiClient'
+
+const I18n = useI18nScope('OutcomesImporter')
 
 const unmount = mount => () => ReactDOM.unmountComponentAtNode(mount)
 export function showOutcomesImporterIfInProgress({mount, ...props}, userId) {
@@ -57,15 +59,19 @@ export default class OutcomesImporter extends Component {
     hide: PropTypes.func.isRequired,
     disableOutcomeViews: PropTypes.func.isRequired,
     resetOutcomeViews: PropTypes.func.isRequired,
+    learningOutcomeGroupId: PropTypes.string,
+    learningOutcomeGroupAncestorIds: PropTypes.array,
     file: PropTypes.instanceOf(File),
     importId: PropTypes.string,
     contextUrlRoot: PropTypes.string.isRequired,
-    invokedImport: PropTypes.bool.isRequired
+    invokedImport: PropTypes.bool.isRequired,
+    onSuccessfulOutcomesImport: PropTypes.func
   }
 
   static defaultProps = {
     file: null,
-    importId: null
+    importId: null,
+    onSuccessfulOutcomesImport: () => {}
   }
 
   componentDidMount() {
@@ -81,7 +87,11 @@ export default class OutcomesImporter extends Component {
       apiClient.queryImportStatus(this.props.contextUrlRoot, importId).then(response => {
         const workflowState = response.data.workflow_state
         if (workflowState === 'succeeded' || workflowState === 'failed') {
-          this.completeUpload(response.data.processing_errors.length, workflowState === 'succeeded')
+          this.completeUpload(
+            importId,
+            response.data.processing_errors.length,
+            workflowState === 'succeeded'
+          )
           clearInterval(this.pollStatus)
         }
       })
@@ -89,11 +99,18 @@ export default class OutcomesImporter extends Component {
   }
 
   beginUpload() {
-    const {disableOutcomeViews, resetOutcomeViews, contextUrlRoot, file, importId} = this.props
+    const {
+      disableOutcomeViews,
+      resetOutcomeViews,
+      contextUrlRoot,
+      learningOutcomeGroupId,
+      file,
+      importId
+    } = this.props
     disableOutcomeViews()
     if (file !== null) {
       apiClient
-        .createImport(contextUrlRoot, file)
+        .createImport(contextUrlRoot, file, learningOutcomeGroupId)
         .then(resp => this.pollImportStatus(resp.data.id))
         .catch(() => {
           showFlashAlert({
@@ -107,7 +124,7 @@ export default class OutcomesImporter extends Component {
     }
   }
 
-  completeUpload(count, succeeded) {
+  completeUpload(importId, count, succeeded) {
     const {hide, resetOutcomeViews, invokedImport} = this.props
     if (hide) hide()
     resetOutcomeViews()
@@ -129,11 +146,26 @@ export default class OutcomesImporter extends Component {
         )
       })
     } else {
-      showFlashAlert({
-        type: 'success',
-        message: I18n.t('Your outcomes were successfully imported.')
-      })
+      apiClient
+        .queryImportCreatedGroupIds(this.props.contextUrlRoot, importId)
+        .then(response => {
+          this.successfulUpload(response.data)
+        })
+        .catch(err => {
+          throw err
+        })
     }
+  }
+
+  successfulUpload(createdGroupIds) {
+    this.props.onSuccessfulOutcomesImport({
+      selectedGroupAncestorIds: [...this.props.learningOutcomeGroupAncestorIds, ...createdGroupIds]
+    })
+
+    showFlashAlert({
+      type: 'success',
+      message: I18n.t('Your outcomes were successfully imported.')
+    })
   }
 
   render() {
@@ -144,7 +176,7 @@ export default class OutcomesImporter extends Component {
     }
     return (
       <div style={styles}>
-        <Spinner title={I18n.t('importing outcomes')} size="large" />
+        <Spinner renderTitle={I18n.t('importing outcomes')} size="large" />
         <Heading level="h4">
           {invokedImport && I18n.t('Please wait as we upload and process your file.')}
           {!invokedImport && I18n.t('An outcome import is currently in progress.')}

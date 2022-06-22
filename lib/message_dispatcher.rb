@@ -19,8 +19,21 @@
 #
 
 class MessageDispatcher < Delayed::PerformableMethod
+  DeliverWorker = Struct.new(:message) do
+    def perform
+      message.for_queue.deliver
+    rescue Delayed::RetriableError
+      InstStatsd::Statsd.increment("MessageDispatcher.dispatch.failed")
+      raise
+    end
+
+    def on_permanent_failure(error)
+      Canvas::Errors.capture_exception(self.class.name, error)
+    end
+  end
+
   def self.dispatch(message)
-    Delayed::Job.enqueue(self.new(message.for_queue, :deliver),
+    Delayed::Job.enqueue(DeliverWorker.new(message),
                          run_at: message.dispatch_at,
                          priority: 25,
                          max_attempts: 15)
@@ -30,22 +43,20 @@ class MessageDispatcher < Delayed::PerformableMethod
     return if messages.empty?
 
     if messages.size == 1
-      self.dispatch(messages.first)
+      dispatch(messages.first)
       return
     end
 
-    Delayed::Job.enqueue(self.new(self, :deliver_batch, args: [messages.map(&:for_queue)]),
+    Delayed::Job.enqueue(new(self, :deliver_batch, args: [messages.map(&:for_queue)]),
                          run_at: messages.first.dispatch_at,
                          priority: 25,
                          max_attempts: 15)
   end
 
   # Called by delayed_job when a job fails to reschedule it.
-  def reschedule_at(now, num_attempts)
+  def reschedule_at(_now, _num_attempts)
     object.dispatch_at
   end
-
-  protected
 
   def self.deliver_batch(messages)
     if messages.first.is_a?(Message::Queued)
@@ -58,7 +69,7 @@ class MessageDispatcher < Delayed::PerformableMethod
       queued.each_with_index do |m, i|
         start_time ||= m.created_at
         previous_time ||= m.created_at
-        partition = Message.infer_partition_table_name('created_at' => m.created_at)
+        partition = Message.infer_partition_table_name("created_at" => m.created_at)
         current_partition ||= partition
 
         if partition != current_partition || i == queued.length - 1
@@ -68,7 +79,7 @@ class MessageDispatcher < Delayed::PerformableMethod
             previous_time = m.created_at
           end
           range_for_partition = start_time..previous_time
-          messages.concat(Message.in_partition('created_at' => start_time).where(id: message_ids, created_at: range_for_partition).to_a)
+          messages.concat(Message.in_partition("created_at" => start_time).where(id: message_ids, created_at: range_for_partition).to_a)
           message_ids = []
           start_time = m.created_at
           current_partition = partition
@@ -80,12 +91,10 @@ class MessageDispatcher < Delayed::PerformableMethod
       raise ActiveRecord::RecordNotFound unless messages.length == queued.length
     end
     messages.each do |message|
-      begin
-        message.deliver
-      rescue Exception, Timeout::Error => e
-        # this delivery failed, we'll have to make an individual job to retry
-        self.dispatch(message)
-      end
+      message.deliver
+    rescue
+      # this delivery failed, we'll have to make an individual job to retry
+      dispatch(message)
     end
   end
 end

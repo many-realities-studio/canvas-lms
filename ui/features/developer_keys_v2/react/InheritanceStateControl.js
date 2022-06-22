@@ -16,17 +16,26 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import I18n from 'i18n!react_developer_keys'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import PropTypes from 'prop-types'
 import React from 'react'
 import {RadioInputGroup, RadioInput} from '@instructure/ui-radio-input'
 import {ScreenReaderContent} from '@instructure/ui-a11y-content'
 
+const I18n = useI18nScope('react_developer_keys')
+
 export default class DeveloperKeyStateControl extends React.Component {
   setBindingState = newValue => {
+    // eslint-disable-next-line no-alert
+    const confirmation = window.confirm(
+      I18n.t('Are you sure you want to change the state of this developer key?')
+    )
+    if (!confirmation) {
+      return
+    }
     this.props.store.dispatch(
       this.props.actions.setBindingWorkflowState(
-        this.props.developerKey.id,
+        this.props.developerKey,
         this.props.ctx.params.contextId,
         newValue
       )
@@ -34,7 +43,8 @@ export default class DeveloperKeyStateControl extends React.Component {
   }
 
   disabled() {
-    if (this.radioGroupValue() === 'allow') {
+    const devKeyBinding = this.props.developerKey.developer_key_account_binding
+    if (!devKeyBinding || this.radioGroupValue() === 'allow') {
       return false
     }
     return !this.props.developerKey.developer_key_account_binding.account_owns_binding
@@ -52,8 +62,11 @@ export default class DeveloperKeyStateControl extends React.Component {
     const devKeyBinding = this.props.developerKey.developer_key_account_binding
     if (devKeyBinding) {
       return devKeyBinding.workflow_state || 'allow'
+    } else if (!this.isSiteAdmin()) {
+      return 'off'
+    } else {
+      return 'allow'
     }
-    return 'allow'
   }
 
   isSiteAdmin() {
@@ -78,6 +91,10 @@ export default class DeveloperKeyStateControl extends React.Component {
     this.offToggle = node
   }
 
+  getKeyName() {
+    return this.props.developerKey.name || I18n.t('Unnamed Key')
+  }
+
   render() {
     return (
       <RadioInputGroup
@@ -90,19 +107,51 @@ export default class DeveloperKeyStateControl extends React.Component {
         onChange={(e, val) => this.setBindingState(val)}
         disabled={this.disabled()}
         name={this.props.developerKey.id}
+        value={this.radioGroupValue()}
       >
-        <RadioInput ref={this.refOnToggle} label={I18n.t('On')} value="on" context="success" />
+        <RadioInput
+          ref={this.refOnToggle}
+          label={
+            <div>
+              {I18n.t('On')}
+              <ScreenReaderContent>
+                {I18n.t('On for key: %{keyName}', {keyName: this.getKeyName()})}
+              </ScreenReaderContent>
+            </div>
+          }
+          value="on"
+          context="success"
+        />
         {this.isSiteAdmin() && (
           <RadioInput
             ref={node => {
               this.allowToggle = node
             }}
-            label={I18n.t('Allow')}
+            label={
+              <div>
+                {I18n.t('Allow')}
+                <ScreenReaderContent>
+                  {I18n.t('Allow for key: %{keyName}', {keyName: this.getKeyName()})}
+                </ScreenReaderContent>
+              </div>
+            }
             value="allow"
             context="off"
           />
         )}
-        <RadioInput ref={this.refOffToggle} label={I18n.t('Off')} value="off" context="danger" />
+        <RadioInput
+          ref={this.refOffToggle}
+          label={
+            <div>
+              {I18n.t('Off')}
+              <ScreenReaderContent>
+                {I18n.t('Off for key: %{keyName}', {keyName: this.getKeyName()})}
+              </ScreenReaderContent>
+            </div>
+          }
+          value="off"
+          context="danger"
+        />
       </RadioInputGroup>
     )
   }

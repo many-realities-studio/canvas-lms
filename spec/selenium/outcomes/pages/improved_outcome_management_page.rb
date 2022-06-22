@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU Affero General Public License along
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 
-require_relative '../../common'
+require_relative "../../common"
 
 module ImprovedOutcomeManagementPage
   # ---------------------- Elements ----------------------
@@ -47,6 +47,14 @@ module ImprovedOutcomeManagementPage
 
   def create_outcome_title
     f("input[placeholder='Enter name or code']")
+  end
+
+  def friendly_description_textarea
+    f("textarea[placeholder='Enter your friendly description here']")
+  end
+
+  def rce_iframe
+    "textentry_text_ifr"
   end
 
   def edit_outcome_title_input
@@ -104,7 +112,7 @@ module ImprovedOutcomeManagementPage
   end
 
   def individual_outcome_kabob_menu(index)
-    ffj("button:contains('Outcome Menu')")[index]
+    ffj("button:contains('Menu for outcome')")[index]
   end
 
   def edit_outcome_button
@@ -163,6 +171,10 @@ module ImprovedOutcomeManagementPage
     ff("div[data-testid='outcome-management-item']")
   end
 
+  def nth_individual_outcome_text(index)
+    ff("div[data-testid='outcome-management-item']")[index].text
+  end
+
   def nth_individual_outcome_title(index)
     ff("h4[data-testid='outcome-management-item-title']")[index].text
   end
@@ -171,6 +183,40 @@ module ImprovedOutcomeManagementPage
     f("span[data-testid='outcome-management-remove-modal']")
   end
 
+  def expand_outcome_description_button(index)
+    ff("button[data-testid='manage-outcome-item-expand-toggle']")[index]
+  end
+
+  def add_individual_rating_button
+    f("button[data-testid='add-individual-rating-btn']")
+  end
+
+  def nth_individual_rating_description_input(index = nil)
+    rating_descriptions = ff("input[data-testid='rating-description-input']")
+    rating_descriptions[index.nil? ? rating_descriptions.length - 1 : index]
+  end
+
+  def nth_individual_rating_points_input(index = nil)
+    rating_points = ff("input[data-testid='rating-points-input']")
+    rating_points[index.nil? ? rating_points.length - 1 : index]
+  end
+
+  def nth_individual_rating_delete_button(index = nil)
+    rating_delete_buttons = ff("button[data-testid='rating-delete-btn']")
+    rating_delete_buttons[index.nil? ? rating_delete_buttons.length - 1 : index]
+  end
+
+  def confirm_delete_individual_rating_button
+    fj("button:contains('Confirm')")
+  end
+
+  def calculation_int_input
+    f("input[data-testid='calculation-int-input']")
+  end
+
+  def calculation_method_input
+    f("input[data-testid='calculation-method-input']")
+  end
   # ---------------------- Actions -----------------------
 
   def goto_improved_state_outcomes(outcome_url = "/accounts/self/outcomes")
@@ -182,6 +228,10 @@ module ImprovedOutcomeManagementPage
     account.enable_feature!(:improved_outcomes_management)
   end
 
+  def enable_friendly_description
+    Account.site_admin.enable_feature!(:outcomes_friendly_description)
+  end
+
   def open_find_modal
     find_button.click
   end
@@ -189,6 +239,23 @@ module ImprovedOutcomeManagementPage
   def create_outcome(title)
     create_button.click
     insert_create_outcome_title(title)
+    tree_browser_root_group.click
+    # Create button is partially covered by neighboring span, so we force the click
+    force_click(confirm_create_button)
+  end
+
+  def enter_rce_description(desc)
+    driver.switch_to.frame(rce_iframe)
+    rce.send_keys(desc)
+    driver.switch_to.default_content
+  end
+
+  def create_outcome_with_friendly_desc(title, desc, friendly_desc)
+    create_button.click
+    insert_create_outcome_title(title)
+    wait_for(method: nil, timeout: 3) { rce.present? }
+    enter_rce_description(desc)
+    insert_friendly_description(friendly_desc)
     tree_browser_root_group.click
     # Create button is partially covered by neighboring span, so we force the click
     force_click(confirm_create_button)
@@ -234,6 +301,10 @@ module ImprovedOutcomeManagementPage
     set_value(create_outcome_title, title)
   end
 
+  def insert_friendly_description(desc)
+    set_value(friendly_description_textarea, desc)
+  end
+
   def search_common_core(title)
     set_value(common_core_search_text, title)
   end
@@ -251,12 +322,35 @@ module ImprovedOutcomeManagementPage
     outcome_group_container.text.split("\n")[0]
   end
 
-  def select_outcome_group_with_text(text)
-    wait_for(method: nil, timeout: 2) { tree_browser.present? }
-    tree_browser_outcome_groups.select { |group| group.text.split("\n")[0] == text }.first
+  def select_outcome_group_with_text(text, timeout = 2)
+    wait_for(method: nil, timeout: timeout) { tree_browser.present? }
+    tree_browser_outcome_groups.find { |group| group.text.split("\n")[0] == text }
   end
 
   def select_drilldown_outcome_group_with_text(text)
-    drilldown_outcome_groups.select { |group| group.text.split("\n")[0] == text }.first
+    drilldown_outcome_groups.find { |group| group.text.split("\n")[0] == text }
+  end
+
+  def disable_account_level_mastery_scales(account)
+    account.disable_feature!(:account_level_mastery_scales)
+  end
+
+  def edit_individual_outcome_calculation_int(int)
+    replace_content(calculation_int_input, int)
+  end
+
+  def edit_individual_outcome_calculation_method(method)
+    click_option(calculation_method_input, method)
+  end
+
+  def add_individual_outcome_rating(description, points)
+    add_individual_rating_button.click
+    replace_content(nth_individual_rating_description_input, description)
+    replace_content(nth_individual_rating_points_input, points)
+  end
+
+  def delete_nth_individual_outcome_rating(index = nil)
+    nth_individual_rating_delete_button(index).click
+    confirm_delete_individual_rating_button.click
   end
 end

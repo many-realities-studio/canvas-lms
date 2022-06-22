@@ -16,7 +16,7 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import I18n from 'i18n!discussion_posts'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import PropTypes from 'prop-types'
 import React from 'react'
 import {responsiveQuerySizes} from '../../utils'
@@ -27,6 +27,8 @@ import {Link} from '@instructure/ui-link'
 import {Text} from '@instructure/ui-text'
 import {IconPeerGradedLine, IconPeerReviewLine} from '@instructure/ui-icons'
 import {Responsive} from '@instructure/ui-responsive/lib/Responsive'
+
+const I18n = useI18nScope('discussion_posts')
 
 export const PeerReview = props => {
   return (
@@ -72,10 +74,12 @@ export const PeerReview = props => {
 
           return (
             <Flex>
-              <Link href={props.reviewLinkUrl} isWithinText={false} margin="0 xx-small 0 x-small">
-                <Flex.Item>{icon}</Flex.Item>
-                <Flex.Item margin="0 0 0 x-small">{message}</Flex.Item>
-              </Link>
+              <span className="discussions-peer-review">
+                <Link href={props.reviewLinkUrl} isWithinText={false} margin="0 xx-small 0 x-small">
+                  <Flex.Item>{icon}</Flex.Item>
+                  <Flex.Item margin="0 0 0 x-small">{message}</Flex.Item>
+                </Link>
+              </span>
             </Flex>
           )
         } else {
@@ -95,7 +99,9 @@ export const PeerReview = props => {
         return (
           <Flex>
             <Flex.Item margin="0 xx-small 0 x-small">{icon}</Flex.Item>
-            <Flex.Item>{message}</Flex.Item>
+            <Flex.Item>
+              <span className="discussions-peer-review">{message}</span>
+            </Flex.Item>
           </Flex>
         )
       }}

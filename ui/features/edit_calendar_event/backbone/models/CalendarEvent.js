@@ -22,12 +22,25 @@ import $ from 'jquery'
 import _ from 'underscore'
 import Backbone from '@canvas/backbone'
 
-import I18n from 'i18n!calendar.edit'
+import {useScope as useI18nScope} from '@canvas/i18n'
 
 import NaiveRequestDispatch from '@canvas/network/NaiveRequestDispatch/index'
 import splitAssetString from '@canvas/util/splitAssetString'
 
+const I18n = useI18nScope('calendar.edit')
+
+const LOADING_STATE = {
+  PRE_SPINNER: 0,
+  SPINNER_UP: 1,
+  LOADED: 2
+}
+
 export default class CalendarEvent extends Backbone.Model {
+  constructor(event) {
+    super(event)
+    this.loadingState = LOADING_STATE.PRE_SPINNER
+  }
+
   urlRoot = '/api/v1/calendar_events/'
 
   dateAttributes = ['created_at', 'end_at', 'start_at', 'updated_at']
@@ -85,14 +98,17 @@ export default class CalendarEvent extends Backbone.Model {
       syncDfd = (this.sync || Backbone.sync).call(this, 'read', this, options)
     }
 
-    if (this.get('sections_url')) {
+    let sectionsUrl = this.get('sections_url')
+    if (sectionsUrl) {
+      sectionsUrl += '?include[]=permissions'
       const dispatch = new NaiveRequestDispatch()
-      sectionsDfd = dispatch.getDepaginated(this.get('sections_url'))
+      sectionsDfd = dispatch.getDepaginated(sectionsUrl)
     }
 
     const combinedSuccess = (syncArgs = [], sectionsResp = []) => {
       this.hideSpinner()
 
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const [syncResp, syncStatus, syncXhr] = syncArgs
       const calEventData = CalendarEvent.mergeSectionsIntoCalendarEvent(syncResp, sectionsResp)
       if (!this.set(this.parse(calEventData), options)) return false
@@ -105,16 +121,29 @@ export default class CalendarEvent extends Backbone.Model {
   }
 
   showSpinner() {
-    ReactDOM.render(
-      <div>
-        <Spinner renderTitle={I18n.t('Loading')} size="medium" />
-      </div>,
-      this.view.el
-    )
+    function waitForView() {
+      if (this.view?.el) {
+        if (this.loadingState === LOADING_STATE.LOADED) return
+        this.loadingState = LOADING_STATE.SPINNER_UP
+        ReactDOM.render(
+          <div>
+            <Spinner renderTitle={I18n.t('Loading')} size="medium" />
+          </div>,
+          this.view.el
+        )
+        return
+      }
+      requestAnimationFrame(waitForView.bind(this))
+    }
+
+    waitForView.bind(this)()
   }
 
   hideSpinner() {
-    return ReactDOM.unmountComponentAtNode(this.view.el)
+    const curState = this.loadingState
+    this.loadingState = LOADING_STATE.LOADED
+
+    if (curState === LOADING_STATE.SPINNER_UP) ReactDOM.unmountComponentAtNode(this.view.el)
   }
 
   loadFailure(errHandler) {

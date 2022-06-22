@@ -26,6 +26,11 @@ class ConditionalReleaseObjects
       element_exists?("#conditional_content")
     end
 
+    def replace_mastery_path_scores(element, current_value, new_value)
+      current_value.length.times { element.send_keys(:backspace) }
+      element.send_keys(new_value)
+    end
+
     # Assignment Index Page
 
     def assignment_kebob(page_title)
@@ -112,7 +117,7 @@ class ConditionalReleaseObjects
     end
 
     def last_add_assignment_button
-      ff('.cr-scoring-range__add-assignment-button').last
+      ff(".cr-scoring-range__add-assignment-button").last
     end
 
     def mp_assignment_checkbox(assignment_name)
@@ -120,7 +125,7 @@ class ConditionalReleaseObjects
     end
 
     def add_items_button
-      find_button('Add Items')
+      find_button("Add Items")
     end
 
     def assignment_card_exists?(assignment_name)

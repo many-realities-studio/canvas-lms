@@ -21,39 +21,30 @@ import {
   NotificationPreferencesContextProvider
 } from '@canvas/notification-preferences/react/NotificationPreferencesContextProvider'
 import AccountNotificationSettingsQuery from './AccountNotificationSettingsQuery'
-import CourseNotificationSettingsQuery from '../../course_notification_settings/react/CourseNotificationSettingsQuery'
+import CourseNotificationSettingsQuery from '@canvas/notification-preferences-course/react/CourseNotificationSettingsQuery'
 import React from 'react'
 import AlertManager from '@canvas/alerts/react/AlertManager'
-import {bool, string} from 'prop-types'
+import {string} from 'prop-types'
 
-export default function AccountNotificationSettingsView({
-  courseSelectorEnabled,
-  accountId,
-  userId
-}) {
+export default function AccountNotificationSettingsView({accountId, userId}) {
   return (
     <AlertManager>
-      {courseSelectorEnabled ? (
-        <NotificationPreferencesContextProvider>
-          <NotificationPreferencesContext.Consumer>
-            {({currentContext}) =>
-              currentContext === 'account' ? (
-                <AccountNotificationSettingsQuery accountId={accountId} userId={userId} />
-              ) : (
-                <CourseNotificationSettingsQuery courseId={currentContext} userId={userId} />
-              )
-            }
-          </NotificationPreferencesContext.Consumer>
-        </NotificationPreferencesContextProvider>
-      ) : (
-        <AccountNotificationSettingsQuery accountId={accountId} userId={userId} />
-      )}
+      <NotificationPreferencesContextProvider>
+        <NotificationPreferencesContext.Consumer>
+          {({currentContext}) =>
+            currentContext.value === 'account' ? (
+              <AccountNotificationSettingsQuery accountId={accountId} userId={userId} />
+            ) : (
+              <CourseNotificationSettingsQuery courseId={currentContext.value} userId={userId} />
+            )
+          }
+        </NotificationPreferencesContext.Consumer>
+      </NotificationPreferencesContextProvider>
     </AlertManager>
   )
 }
 
 AccountNotificationSettingsView.propTypes = {
-  courseSelectorEnabled: bool,
   accountId: string.isRequired,
   userId: string.isRequired
 }

@@ -18,16 +18,17 @@
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 
 class GradebookGradingPeriodAssignments
-  def initialize(course, student: nil, course_settings: nil)
+  def initialize(course, student: nil, course_settings: nil, includes: [])
     raise "Context must be a course" unless course.is_a?(Course)
     raise "Context must have an id" unless course.id
 
     @course = course
     @student = student
     @settings_for_course = course_settings || {
-      'show_concluded_enrollments' => 'false',
-      'show_inactive_enrollments' => 'false'
+      "show_concluded_enrollments" => "false",
+      "show_inactive_enrollments" => "false"
     }
+    @includes = includes
   end
 
   def to_h
@@ -41,9 +42,15 @@ class GradebookGradingPeriodAssignments
   private
 
   def excluded_workflow_states
-    excluded_workflow_states = ['deleted']
-    excluded_workflow_states << 'completed' if @settings_for_course['show_concluded_enrollments'] != 'true'
-    excluded_workflow_states << 'inactive' if @settings_for_course['show_inactive_enrollments'] != 'true'
+    excluded_workflow_states = ["deleted"]
+    if @settings_for_course["show_concluded_enrollments"] != "true" && @includes.exclude?("completed")
+      excluded_workflow_states << "completed"
+    end
+
+    if @settings_for_course["show_inactive_enrollments"] != "true" && @includes.exclude?("inactive")
+      excluded_workflow_states << "inactive"
+    end
+
     excluded_workflow_states
   end
 
@@ -55,7 +62,7 @@ class GradebookGradingPeriodAssignments
               .joins(:assignment)
               .joins("INNER JOIN #{Enrollment.quoted_table_name} enrollments ON enrollments.user_id = submissions.user_id")
               .merge(Assignment.for_course(@course).active)
-              .where(enrollments: { course_id: @course, type: ['StudentEnrollment', 'StudentViewEnrollment'] })
+              .where(enrollments: { course_id: @course, type: ["StudentEnrollment", "StudentViewEnrollment"] })
               .where.not(enrollments: { workflow_state: excluded_workflow_states })
 
       scope = scope.where(user: @student) if @student

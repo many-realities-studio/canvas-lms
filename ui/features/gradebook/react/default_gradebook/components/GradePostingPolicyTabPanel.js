@@ -22,10 +22,13 @@ import {View} from '@instructure/ui-view'
 import {Text} from '@instructure/ui-text'
 import {List} from '@instructure/ui-list'
 import {RadioInput, RadioInputGroup} from '@instructure/ui-radio-input'
+import {ScreenReaderContent} from '@instructure/ui-a11y-content'
 
 import {showFlashAlert} from '@canvas/alerts/react/FlashAlert'
 
-import I18n from 'i18n!gradebook'
+import {useScope as useI18nScope} from '@canvas/i18n'
+
+const I18n = useI18nScope('gradebook')
 
 const MANUAL_POST = 'manual'
 const AUTOMATIC_POST = 'auto'
@@ -62,7 +65,7 @@ export default class GradePostingPolicyTabPanel extends Component {
   render() {
     const automaticallyPostLabel = (
       <View as="div">
-        <Text>{I18n.t('Automatically Post Grades')}</Text>
+        <Text weight="bold">{I18n.t('Automatically Post Grades')}</Text>
 
         <br />
 
@@ -77,7 +80,7 @@ export default class GradePostingPolicyTabPanel extends Component {
 
     const manuallyPostLabel = (
       <View as="div">
-        <Text>{I18n.t('Manually Post Grades')}</Text>
+        <Text weight="bold">{I18n.t('Manually Post Grades')}</Text>
 
         <br />
 
@@ -115,9 +118,13 @@ export default class GradePostingPolicyTabPanel extends Component {
     )
 
     return (
-      <div id="GradePostingPolicyTabPanel__Container">
+      <View as="div" id="GradePostingPolicyTabPanel__Container" margin="small">
         <RadioInputGroup
-          description={I18n.t('Individual Assignment Grade Posting')}
+          description={
+            <ScreenReaderContent>
+              {I18n.t('Individual Assignment Grade Posting')}
+            </ScreenReaderContent>
+          }
           name="postPolicy"
           onChange={this.handlePostPolicySelected}
           value={this.props.settings.postManually ? MANUAL_POST : AUTOMATIC_POST}
@@ -138,7 +145,7 @@ export default class GradePostingPolicyTabPanel extends Component {
             disabled={!this.props.gradebookIsEditable}
           />
         </RadioInputGroup>
-      </div>
+      </View>
     )
   }
 }

@@ -37,13 +37,15 @@ import {
   loadPastButtonClicked,
   togglePlannerItemCompletion,
   updateTodo,
-  scrollToToday
+  scrollToToday,
+  reloadWithObservee
 } from '../../actions'
 import {notifier} from '../../dynamic-ui'
 import {daysToDaysHash} from '../../utilities/daysUtils'
 import {formatDayKey, isThisWeek} from '../../utilities/dateUtils'
 import {Animator} from '../../dynamic-ui/animator'
 import responsiviser from '../responsiviser'
+import {observedUserId, observedUserContextCodes} from '../../utilities/apiUtils'
 
 export class PlannerApp extends Component {
   static propTypes = {
@@ -82,7 +84,10 @@ export class PlannerApp extends Component {
     weekLoaded: bool,
     loadingOpportunities: bool,
     opportunityCount: number,
-    singleCourseView: bool
+    singleCourseView: bool,
+    isObserving: bool,
+    observedUserId: string,
+    observedUserContextCodes: arrayOf(string)
   }
 
   static defaultProps = {
@@ -97,7 +102,8 @@ export class PlannerApp extends Component {
     focusFallback: () => {},
     isCompletelyEmpty: bool,
     k5Mode: false,
-    singleCourseView: false
+    singleCourseView: false,
+    isObserving: false
   }
 
   constructor(props) {
@@ -122,6 +128,11 @@ export class PlannerApp extends Component {
   }
 
   componentDidUpdate(prevProps) {
+    if (prevProps.observedUserId !== this.props.observedUserId) {
+      reloadWithObservee(this.props.observedUserId, this.props.observedUserContextCodes)
+      return
+    }
+
     this.props.triggerDynamicUiUpdates()
     if (this.props.responsiveSize !== prevProps.responsiveSize) {
       this.afterLayoutChange()
@@ -233,7 +244,7 @@ export class PlannerApp extends Component {
     return (
       <View as="div" textAlign="center" margin="x-small 0 0 0">
         <ShowOnFocusButton
-          buttonRef={ref => (this.loadPriorButton = ref)}
+          elementRef={ref => (this.loadPriorButton = ref)}
           buttonProps={{
             onClick: this.props.loadPastButtonClicked
           }}
@@ -299,6 +310,7 @@ export class PlannerApp extends Component {
         singleCourseView={this.props.singleCourseView}
         showMissingAssignments={this.props.k5Mode}
         responsiveSize={this.props.responsiveSize}
+        isObserving={this.props.isObserving}
       />
     )
     workingDay.add(1, 'days')
@@ -518,7 +530,10 @@ export const mapStateToProps = state => {
     weekLoaded: weeks ? !!weeks[state.weeklyDashboard.weekStart.format()] : false,
     loadingOpportunities: !!state.loading.loadingOpportunities,
     opportunityCount: state.opportunities?.items?.length || 0,
-    singleCourseView: state.singleCourse
+    singleCourseView: state.singleCourse,
+    isObserving: !!observedUserId(state),
+    observeduserId: observedUserId(state),
+    observedUserContextCodes: observedUserContextCodes(state)
   }
 }
 

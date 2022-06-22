@@ -16,7 +16,7 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import I18n from 'i18n!react_developer_keys'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import $ from 'jquery'
 
 import {CloseButton, Button} from '@instructure/ui-buttons'
@@ -27,6 +27,8 @@ import {View} from '@instructure/ui-view'
 import React from 'react'
 import PropTypes from 'prop-types'
 import NewKeyForm from './NewKeyForm'
+
+const I18n = useI18nScope('react_developer_keys')
 
 export default class DeveloperKeyModal extends React.Component {
   state = {
@@ -141,7 +143,7 @@ export default class DeveloperKeyModal extends React.Component {
         const {developer_key, tool_configuration} = data
         developer_key.tool_configuration = tool_configuration.settings
         dispatch(actions.listDeveloperKeysReplace(developer_key))
-        $.flashMessage(I18n.t('Save successful.'))
+        this.props.handleSuccessfulSave()
         this.closeModal()
       })
       .catch(errors => {
@@ -219,7 +221,9 @@ export default class DeveloperKeyModal extends React.Component {
       this.setState({toolConfiguration: update})
     }
 
-    this.updateDeveloperKey('redirect_uris', update.target_link_uri || '')
+    if (!this.state?.developerKey?.redirect_uris?.trim()) {
+      this.updateDeveloperKey('redirect_uris', update.target_link_uri || '')
+    }
   }
 
   updateDeveloperKey = (field, update) => {
@@ -256,19 +260,25 @@ export default class DeveloperKeyModal extends React.Component {
           open={developerKeyModalOpen}
           onDismiss={this.closeModal}
           size="fullscreen"
-          label={editing ? I18n.t('Create developer key') : I18n.t('Edit developer key')}
+          label={editing ? I18n.t('Create Developer Key') : I18n.t('Edit Developer Key')}
           shouldCloseOnDocumentClick={false}
         >
           <Modal.Header>
-            <CloseButton placement="end" onClick={this.closeModal}>
-              {I18n.t('Cancel')}
-            </CloseButton>
+            <CloseButton
+              placement="end"
+              onClick={this.closeModal}
+              screenReaderLabel={I18n.t('Cancel')}
+            />
             <Heading>{I18n.t('Key Settings')}</Heading>
           </Modal.Header>
           <Modal.Body>
             {this.isSaving ? (
               <View as="div" textAlign="center">
-                <Spinner renderTitle={I18n.t('Creating Key')} margin="0 0 0 medium" />
+                <Spinner
+                  renderTitle={editing ? I18n.t('Saving Key') : I18n.t('Creating Key')}
+                  margin="0 0 0 medium"
+                  aria-live="polite"
+                />
               </View>
             ) : (
               <NewKeyForm
@@ -301,7 +311,7 @@ export default class DeveloperKeyModal extends React.Component {
             </Button>
             <Button
               onClick={isLtiKey ? this.saveLtiToolConfiguration : this.submitForm}
-              variant="primary"
+              color="primary"
               disabled={this.isSaving}
             >
               {I18n.t('Save')}
@@ -332,7 +342,8 @@ DeveloperKeyModal.propTypes = {
     listDeveloperKeyScopesSet: PropTypes.func.isRequired,
     saveLtiToolConfiguration: PropTypes.func.isRequired,
     resetLtiState: PropTypes.func.isRequired,
-    updateLtiKey: PropTypes.func.isRequired
+    updateLtiKey: PropTypes.func.isRequired,
+    listDeveloperKeysReplace: PropTypes.func.isRequired
   }).isRequired,
   createOrEditDeveloperKeyState: PropTypes.shape({
     isLtiKey: PropTypes.bool.isRequired,
@@ -349,5 +360,6 @@ DeveloperKeyModal.propTypes = {
       contextId: PropTypes.string.isRequired
     })
   }).isRequired,
-  selectedScopes: PropTypes.arrayOf(PropTypes.string).isRequired
+  selectedScopes: PropTypes.arrayOf(PropTypes.string).isRequired,
+  handleSuccessfulSave: PropTypes.func.isRequired,
 }

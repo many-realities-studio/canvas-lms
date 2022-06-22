@@ -25,8 +25,8 @@ import {DiscussionTopicContainer} from './containers/DiscussionTopicContainer/Di
 import errorShipUrl from '@canvas/images/ErrorShip.svg'
 import GenericErrorPage from '@canvas/generic-error-page'
 import {getOptimisticResponse} from './utils'
-import {HIGHLIGHT_TIMEOUT, PER_PAGE, SearchContext} from './utils/constants'
-import I18n from 'i18n!discussion_topics_post'
+import {HIGHLIGHT_TIMEOUT, SearchContext} from './utils/constants'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import {IsolatedViewContainer} from './containers/IsolatedViewContainer/IsolatedViewContainer'
 import LoadingIndicator from '@canvas/loading-indicator'
 import {NoResultsFound} from './components/NoResultsFound/NoResultsFound'
@@ -34,11 +34,14 @@ import PropTypes from 'prop-types'
 import React, {useContext, useEffect, useState} from 'react'
 import {useMutation, useQuery} from 'react-apollo'
 
+const I18n = useI18nScope('discussion_topics_post')
+
 const DiscussionTopicManager = props => {
   const [searchTerm, setSearchTerm] = useState('')
   const [filter, setFilter] = useState('all')
   const [sort, setSort] = useState('desc')
-  const [pageNumber, setPageNumber] = useState(0)
+  const [pageNumber, setPageNumber] = useState(ENV.current_page)
+  const [searchPageNumber, setSearchPageNumber] = useState(0)
   const searchContext = {
     searchTerm,
     setSearchTerm,
@@ -47,7 +50,9 @@ const DiscussionTopicManager = props => {
     sort,
     setSort,
     pageNumber,
-    setPageNumber
+    setPageNumber,
+    searchPageNumber,
+    setSearchPageNumber
   }
 
   const goToTopic = () => {
@@ -57,15 +62,28 @@ const DiscussionTopicManager = props => {
   }
 
   // Isolated View State
-  const [isolatedEntryId, setIsolatedEntryId] = useState(null)
+  const [isolatedEntryId, setIsolatedEntryId] = useState(ENV.discussions_deep_link?.root_entry_id)
   const [replyFromId, setReplyFromId] = useState(null)
-  const [isolatedViewOpen, setIsolatedViewOpen] = useState(false)
+  const [isolatedViewOpen, setIsolatedViewOpen] = useState(
+    !!ENV.discussions_deep_link?.root_entry_id
+  )
   const [editorExpanded, setEditorExpanded] = useState(false)
 
   // Highlight State
   const [isTopicHighlighted, setIsTopicHighlighted] = useState(false)
-  const [highlightEntryId, setHighlightEntryId] = useState(null)
+  const [highlightEntryId, setHighlightEntryId] = useState(ENV.discussions_deep_link?.entry_id)
   const [relativeEntryId, setRelativeEntryId] = useState(null)
+
+  const [isUserMissingInitialPost, setIsUserMissingInitialPost] = useState(null)
+
+  // Reset search to 0 when inactive
+  useEffect(() => {
+    if (searchTerm && pageNumber !== 0) {
+      setPageNumber(0)
+    } else if (!searchTerm && searchPageNumber !== 0) {
+      setSearchPageNumber(0)
+    }
+  }, [pageNumber, searchPageNumber, searchTerm])
 
   useEffect(() => {
     if (isTopicHighlighted) {
@@ -83,9 +101,9 @@ const DiscussionTopicManager = props => {
     }
   }, [highlightEntryId])
 
-  const openIsolatedView = (discussionEntryId, isolatedEntryId, withRCE, relativeId = null) => {
+  const openIsolatedView = (discussionEntryId, isolatedId, withRCE, relativeId = null) => {
     setReplyFromId(discussionEntryId)
-    setIsolatedEntryId(isolatedEntryId || discussionEntryId)
+    setIsolatedEntryId(isolatedId || discussionEntryId)
     setIsolatedViewOpen(true)
     setEditorExpanded(withRCE)
     setRelativeEntryId(relativeId)
@@ -98,8 +116,8 @@ const DiscussionTopicManager = props => {
   const {setOnFailure, setOnSuccess} = useContext(AlertManagerContext)
   const variables = {
     discussionID: props.discussionTopicId,
-    perPage: PER_PAGE,
-    page: btoa(pageNumber * PER_PAGE),
+    perPage: ENV.per_page,
+    page: searchTerm ? btoa(searchPageNumber * ENV.per_page) : btoa(pageNumber * ENV.per_page),
     searchTerm,
     rootEntries: !searchTerm && filter === 'all',
     filter,
@@ -107,17 +125,18 @@ const DiscussionTopicManager = props => {
     courseID: window.ENV?.course_id
   }
 
+  // in some cases, we want to refresh the results rather that use the current cache:
+  // in the case: 'isUserMissingInitialPost' the cache is empty so we need to get the entries.
   const discussionTopicQuery = useQuery(DISCUSSION_QUERY, {
     variables,
-    fetchPolicy: searchTerm ? 'no-cache' : 'cache-and-network'
+    fetchPolicy: isUserMissingInitialPost || searchTerm ? 'network-only' : 'cache-and-network'
   })
 
   const updateDraftCache = (cache, result) => {
     try {
-      const lastPage = discussionTopicQuery.data.legacyNode.entriesTotalPages - 1
       const options = {
         query: DISCUSSION_QUERY,
-        variables: {...variables, page: btoa(lastPage * PER_PAGE)}
+        variables: {...variables}
       }
       const newDiscussionEntryDraft = result.data.createDiscussionEntryDraft.discussionEntryDraft
       const currentDiscussion = JSON.parse(JSON.stringify(cache.readQuery(options)))
@@ -125,7 +144,7 @@ const DiscussionTopicManager = props => {
       if (currentDiscussion && newDiscussionEntryDraft) {
         currentDiscussion.legacyNode.discussionEntryDraftsConnection.nodes =
           currentDiscussion.legacyNode.discussionEntryDraftsConnection.nodes.filter(
-            draft => draft.id != newDiscussionEntryDraft.id
+            draft => draft.id !== newDiscussionEntryDraft.id
           )
         currentDiscussion.legacyNode.discussionEntryDraftsConnection.nodes.push(
           newDiscussionEntryDraft
@@ -134,34 +153,57 @@ const DiscussionTopicManager = props => {
         cache.writeQuery({...options, data: currentDiscussion})
       }
     } catch (e) {
-      discussionTopicQuery.refetch(variables)
+      // do nothing for errors updating the cache on a draft
+    }
+  }
+
+  const removeDraftFromDiscussionCache = (cache, result) => {
+    try {
+      const options = {
+        query: DISCUSSION_QUERY,
+        variables: {...variables}
+      }
+      const newDiscussionEntry = result.data.createDiscussionEntry.discussionEntry
+      const currentDiscussion = JSON.parse(JSON.stringify(cache.readQuery(options)))
+
+      currentDiscussion.legacyNode.discussionEntryDraftsConnection.nodes =
+        currentDiscussion.legacyNode.discussionEntryDraftsConnection.nodes.filter(
+          draft =>
+            draft.rootEntryId !== newDiscussionEntry.rootEntryId &&
+            draft.discussionTopicID !== newDiscussionEntry.discussionTopicID
+        )
+      cache.writeQuery({...options, data: currentDiscussion})
+    } catch (e) {
+      // do nothing for errors updating the cache on a draft
     }
   }
 
   const updateCache = (cache, result) => {
     try {
-      const lastPage = discussionTopicQuery.data.legacyNode.entriesTotalPages - 1
       const options = {
         query: DISCUSSION_QUERY,
-        variables: {...variables, page: btoa(lastPage * PER_PAGE)}
+        variables: {...variables}
       }
       const newDiscussionEntry = result.data.createDiscussionEntry.discussionEntry
       const currentDiscussion = JSON.parse(JSON.stringify(cache.readQuery(options)))
 
-      if (currentDiscussion && newDiscussionEntry) {
+      // if the current user hasn't made the required inital post, then this entry will be it.
+      // In that case, we are required to do a page refresh to get all the entries (implemented with isUserMissingInitialPost)
+      // thus we bascially want to not do 'else if (currentDiscussion && newDiscussionEntry)' which contains updateCache logic.
+      // Discussion.initialPostRequiredForCurrentUser is based on user and topic so if the user meets this reuqire, then
+      // this doesnt run and cacheing resumes as normal.
+      if (currentDiscussion.legacyNode.initialPostRequiredForCurrentUser) {
+        setIsUserMissingInitialPost(currentDiscussion.legacyNode.initialPostRequiredForCurrentUser)
+      } else if (currentDiscussion && newDiscussionEntry) {
+        // if we have a new entry update the counts, because we are about to add to the cache (something useMutation dont do, that useQuery does)
         currentDiscussion.legacyNode.entryCounts.repliesCount += 1
-        currentDiscussion.legacyNode.discussionEntryDraftsConnection.nodes =
-          currentDiscussion.legacyNode.discussionEntryDraftsConnection.nodes.filter(
-            draft =>
-              draft.rootEntryId != newDiscussionEntry.rootEntryId &&
-              draft.discussionTopicID != newDiscussionEntry.discussionTopicID
-          )
+        removeDraftFromDiscussionCache(cache, result)
+        // add the new entry to the current entries in the cache
         if (variables.sort === 'desc') {
           currentDiscussion.legacyNode.discussionEntriesConnection.nodes.unshift(newDiscussionEntry)
         } else {
           currentDiscussion.legacyNode.discussionEntriesConnection.nodes.push(newDiscussionEntry)
         }
-
         cache.writeQuery({...options, data: currentDiscussion})
       }
     } catch (e) {
@@ -203,13 +245,20 @@ const DiscussionTopicManager = props => {
       <DiscussionTopicContainer
         updateDraftCache={updateDraftCache}
         discussionTopic={discussionTopicQuery.data.legacyNode}
-        createDiscussionEntry={text => {
+        createDiscussionEntry={(message, isAnonymousAuthor) => {
           createDiscussionEntry({
             variables: {
               discussionTopicId: ENV.discussion_topic_id,
-              message: text
+              message,
+              courseID: ENV.course_id,
+              isAnonymousAuthor
             },
-            optimisticResponse: getOptimisticResponse(text)
+            optimisticResponse: getOptimisticResponse({
+              message,
+              isAnonymous:
+                !!discussionTopicQuery.data.legacyNode.anonymousState &&
+                discussionTopicQuery.data.legacyNode.canReplyAnonymously
+            })
           })
         }}
         isHighlighted={isTopicHighlighted}
@@ -218,26 +267,31 @@ const DiscussionTopicManager = props => {
       (searchTerm || filter === 'unread') ? (
         <NoResultsFound />
       ) : (
-        <DiscussionTopicRepliesContainer
-          discussionTopic={discussionTopicQuery.data.legacyNode}
-          updateDraftCache={updateDraftCache}
-          onOpenIsolatedView={(
-            discussionEntryId,
-            isolatedEntryId,
-            withRCE,
-            relativeId,
-            highlightId
-          ) => {
-            setHighlightEntryId(highlightId)
-            openIsolatedView(discussionEntryId, isolatedEntryId, withRCE, relativeId)
-          }}
-          goToTopic={goToTopic}
-          highlightEntryId={highlightEntryId}
-        />
+        discussionTopicQuery.data.legacyNode.availableForUser && (
+          <DiscussionTopicRepliesContainer
+            discussionTopic={discussionTopicQuery.data.legacyNode}
+            updateDraftCache={updateDraftCache}
+            removeDraftFromDiscussionCache={removeDraftFromDiscussionCache}
+            onOpenIsolatedView={(
+              discussionEntryId,
+              isolatedId,
+              withRCE,
+              relativeId,
+              highlightId
+            ) => {
+              setHighlightEntryId(highlightId)
+              openIsolatedView(discussionEntryId, isolatedId, withRCE, relativeId)
+            }}
+            goToTopic={goToTopic}
+            highlightEntryId={highlightEntryId}
+            isSearchResults={!!searchTerm}
+          />
+        )
       )}
       {ENV.isolated_view && isolatedEntryId && (
         <IsolatedViewContainer
           relativeEntryId={relativeEntryId}
+          removeDraftFromDiscussionCache={removeDraftFromDiscussionCache}
           updateDraftCache={updateDraftCache}
           discussionTopic={discussionTopicQuery.data.legacyNode}
           discussionEntryId={isolatedEntryId}

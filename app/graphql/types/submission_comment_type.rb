@@ -19,13 +19,14 @@
 #
 class SubmissionCommentReadLoader < GraphQL::Batch::Loader
   def initialize(current_user)
+    super()
     @current_user = current_user
   end
 
   def perform(submission_comments)
     vsc = ViewedSubmissionComment
           .where(submission_comment_id: submission_comments, user: @current_user)
-          .pluck('submission_comment_id')
+          .pluck("submission_comment_id")
           .to_set
 
     submission_comments.each do |sc|
@@ -36,11 +37,15 @@ end
 
 module Types
   class SubmissionCommentType < ApplicationObjectType
-    graphql_name 'SubmissionComment'
+    graphql_name "SubmissionComment"
+
+    global_id_field :id
 
     implements Interfaces::TimestampInterface
     implements Interfaces::LegacyIDInterface
 
+    field :submission_id, ID, null: false
+    field :created_at, Types::DateTimeType, null: false
     field :comment, String, null: true
 
     field :author, Types::UserType, null: true
@@ -71,6 +76,22 @@ module Types
             attachments.flatten.compact
           end
         end
+      end
+    end
+
+    field :assignment, Types::AssignmentType, null: true
+    def assignment
+      load_association(:submission).then do |submission|
+        Loaders::AssociationLoader.for(Submission, :assignment).load(submission).then do |assignment|
+          assignment
+        end
+      end
+    end
+
+    field :course, Types::CourseType, null: true
+    def course
+      load_association(:context).then do |course|
+        course
       end
     end
 

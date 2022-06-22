@@ -60,6 +60,7 @@ describe('LearningMastery', () => {
     {
       id: '1',
       title: 'outcome 1',
+      mastery_points: 5,
       ratings
     }
   ]
@@ -73,7 +74,8 @@ describe('LearningMastery', () => {
           rating: {
             points: 3,
             color: 'green',
-            description: 'rating description!'
+            description: 'rating description!',
+            mastery: false
           }
         }
       ]

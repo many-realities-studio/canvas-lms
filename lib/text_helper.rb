@@ -17,8 +17,8 @@
 # You should have received a copy of the GNU Affero General Public License along
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 
-require 'nokogiri'
-require 'redcarpet'
+require "nokogiri"
+require "redcarpet"
 
 module TextHelper
   def force_zone(time)
@@ -36,9 +36,9 @@ module TextHelper
     if end_date.nil? || start_date == end_date
       start_date_display
     else
-      I18n.t('time.ranges.different_days', "%{start_date_and_time} to %{end_date_and_time}",
-             :start_date_and_time => start_date_display,
-             :end_date_and_time => Utils::DatePresenter.new(end_date).as_string(style))
+      I18n.t("time.ranges.different_days", "%{start_date_and_time} to %{end_date_and_time}",
+             start_date_and_time: start_date_display,
+             end_date_and_time: Utils::DatePresenter.new(end_date).as_string(style))
     end
   end
 
@@ -53,7 +53,7 @@ module TextHelper
 
   def datetime_span(*args)
     string = datetime_string(*args)
-    if string && !string.empty? && args[0]
+    if string.present? && args[0]
       "<span class='zone_cached_datetime' title='#{args[0].iso8601 rescue ""}'>#{string}</span>"
     else
       nil
@@ -67,27 +67,38 @@ module TextHelper
   end
 
   def time_ago_in_words_with_ago(time)
-    I18n.t('#time.with_ago', '%{time} ago', :time => (time_ago_in_words time rescue ''))
+    I18n.t("#time.with_ago", "%{time} ago", time: (time_ago_in_words time rescue ""))
   end
 
   # more precise than distance_of_time_in_words, and takes a number of seconds,
   # rather than two times. also assumes durations on the scale of hours or
   # less, so doesn't bother with days, months, or years
-  def readable_duration(seconds)
-    # keys stolen from ActionView::Helpers::DateHelper#distance_of_time_in_words
-    case seconds
-    when  0...60
-      I18n.t('datetime.distance_in_words.x_seconds',
-             { :one => "1 second", :other => "%{count} seconds" },
-             :count => seconds.round)
-    when 60...3600
-      I18n.t('datetime.distance_in_words.x_minutes',
-             { :one => "1 minute", :other => "%{count} minutes" },
-             :count => (seconds / 60.0).round)
+  def readable_duration(total_seconds)
+    hours, remainder = total_seconds.divmod(3600)
+    minutes = remainder.div(60)
+
+    if hours >= 1 && minutes.zero?
+      I18n.t(
+        { one: "1 hour", other: "%{count} hours" },
+        count: hours
+      )
+    elsif hours > 1
+      I18n.t(
+        { one: "%{hours} hours and 1 minute", other: "%{hours} hours and %{count} minutes" },
+        hours: hours, count: minutes
+      )
+    elsif hours == 1
+      I18n.t(
+        { one: "1 hour and 1 minute", other: "1 hour and %{count} minutes" },
+        count: minutes
+      )
+    elsif minutes >= 1
+      I18n.t(
+        { one: "1 minute", other: "%{count} minutes" },
+        count: minutes
+      )
     else
-      I18n.t('datetime.distance_in_words.about_x_hours',
-             { :one => "about 1 hour", :other => "about %{count} hours" },
-             :count => (seconds / 3600.0).round)
+      I18n.t("less than a minute")
     end
   end
 
@@ -109,7 +120,7 @@ module TextHelper
     doc = Nokogiri::HTML(input)
     options[:max_length] ||= 250
     num_words = options[:num_words] || (options[:max_length] / 5) || 30
-    truncate_string = options[:ellipsis] || I18n.t('lib.text_helper.ellipsis', '...')
+    truncate_string = options[:ellipsis] || I18n.t("lib.text_helper.ellipsis", "...")
     truncate_string += options[:link] if options[:link]
     truncate_elem = Nokogiri::HTML("<span>" + truncate_string + "</span>").at("span")
 
@@ -126,7 +137,7 @@ module TextHelper
         previous = current
       end
 
-      if current.children.length > 0
+      if !current.children.empty?
         # this node has children, can't be a text node,
         # lets descend and look for text nodes
         current = current.children.first
@@ -137,13 +148,13 @@ module TextHelper
         # we are the last child, we need to ascend until we are
         # either done or find a sibling to continue on to
         n = current
-        while !n.is_a?(Nokogiri::HTML::Document) and n.parent.next.nil?
+        while !n.is_a?(Nokogiri::HTML::Document) && n.parent.next.nil?
           n = n.parent
         end
 
         # we've reached the top and found no more text nodes, break
         if n.is_a?(Nokogiri::HTML::Document)
-          break;
+          break
         else
           current = n.parent.next
         end
@@ -175,21 +186,20 @@ module TextHelper
         if index >= 0
           new_content = new_content[0..index]
           current.add_previous_sibling(truncate_elem)
-          new_node = Nokogiri::XML::Text.new(new_content.join(' '), doc)
+          new_node = Nokogiri::XML::Text.new(new_content.join(" "), doc)
           truncate_elem.add_previous_sibling(new_node)
-          current = truncate_elem
         else
           current = previous
           # why would we do this next line? it just ends up xml escaping stuff
           # current.content = current.content
           current.add_next_sibling(truncate_elem)
-          current = truncate_elem
         end
+        current = truncate_elem
       end
 
       # remove everything else
-      while !current.is_a?(Nokogiri::HTML::Document)
-        while !current.next.nil?
+      until current.is_a?(Nokogiri::HTML::Document)
+        until current.next.nil?
           current.next.remove
         end
         current = current.parent
@@ -199,16 +209,16 @@ module TextHelper
     # now we grab the html and not the text.
     # we do first because nokogiri adds html and body tags
     # which we don't want
-    res = doc.at_css('body').inner_html rescue nil
+    res = doc.at_css("body").inner_html rescue nil
     res ||= doc.root.children.first.inner_html rescue ""
-    res && res.html_safe
+    res&.html_safe
   end
 
   def self.make_subject_reply_to(subject)
-    blank_re = I18n.t('#subject_reply_to', "Re: %{subject}", :subject => '')
+    blank_re = I18n.t("#subject_reply_to", "Re: %{subject}", subject: "")
     return subject if subject.starts_with?(blank_re)
 
-    I18n.t('#subject_reply_to', "Re: %{subject}", :subject => subject)
+    I18n.t("#subject_reply_to", "Re: %{subject}", subject: subject)
   end
 
   class MarkdownSafeBuffer < String; end
@@ -223,7 +233,7 @@ module TextHelper
   def markdown_escape(string)
     return string if string.is_a?(MarkdownSafeBuffer)
 
-    markdown_safe(string.gsub(/([\\`\*_\{\}\[\]\(\)\#\+\-\.!])/, '\\\\\1'))
+    markdown_safe(string.gsub(/([\\`*_{}\[\]()\#+\-.!])/, "\\\\\\1"))
   end
 
   # use this rather than t() if the translation contains trusted markdown
@@ -231,12 +241,12 @@ module TextHelper
     inlinify = :auto
     if args.last.is_a?(Hash)
       options = args.last
-      inlinify = options.delete(:inlinify) if options.has_key?(:inlinify)
+      inlinify = options.delete(:inlinify) if options.key?(:inlinify)
       options.each_pair do |key, value|
         next unless value.is_a?(String) && !value.is_a?(MarkdownSafeBuffer) && !value.is_a?(ActiveSupport::SafeBuffer)
         next if key == :wrapper
 
-        options[key] = markdown_escape(value).gsub(/\s+/, ' ').strip
+        options[key] = markdown_escape(value).gsub(/\s+/, " ").strip
       end
     end
     translated = t(*args)
@@ -247,7 +257,7 @@ module TextHelper
     string = ERB::Util.h(string) unless string.html_safe?
     result = Redcarpet::Markdown.new(Redcarpet::Render::XHTML.new).render(string).strip
     # Strip wrapping <p></p> if inlinify == :auto && they completely wrap the result && there are not multiple <p>'s
-    result.gsub!(/<\/?p>/, '') if inlinify == :auto && result =~ /\A<p>.*<\/p>\z/m && !(result =~ /.*<p>.*<p>.*/m)
+    result.gsub!(%r{</?p>}, "") if inlinify == :auto && result =~ %r{\A<p>.*</p>\z}m && result !~ /.*<p>.*<p>.*/m
     result.strip.html_safe
   end
 

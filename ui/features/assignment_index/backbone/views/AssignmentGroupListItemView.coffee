@@ -15,12 +15,12 @@
 # You should have received a copy of the GNU Affero General Public License along
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 
-import I18n from 'i18n!AssignmentGroupListItemView'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import $ from 'jquery'
 import * as MoveItem from '@canvas/move-item-tray'
 import Cache from '../../cache'
 import DraggableCollectionView from './DraggableCollectionView.coffee'
-import AssignmentListItemView from './AssignmentListItemView.coffee'
+import AssignmentListItemView from './AssignmentListItemView'
 import CreateAssignmentView from './CreateAssignmentView.coffee'
 import CreateGroupView from './CreateGroupView.coffee'
 import DeleteGroupView from './DeleteGroupView.coffee'
@@ -31,7 +31,9 @@ import {shimGetterShorthand} from '@canvas/util/legacyCoffeesScriptHelpers'
 import React from 'react'
 import ReactDOM from 'react-dom'
 import ContentTypeExternalToolTray from '@canvas/trays/react/ContentTypeExternalToolTray'
-import {ltiState} from '@canvas/lti/jquery/post_message/handleLtiPostMessage'
+import {ltiState} from '@canvas/lti/jquery/messages'
+
+I18n = useI18nScope('AssignmentGroupListItemView')
 
 
 export default class AssignmentGroupListItemView extends DraggableCollectionView
@@ -153,8 +155,7 @@ export default class AssignmentGroupListItemView extends DraggableCollectionView
       @cache.set(key, true)
 
   initSort: ->
-    opts = if ENV?.FEATURES?.responsive_misc then {handle: '.draggable-handle'} else {}
-    super(opts)
+    super({handle: '.draggable-handle'})
     @$list.on('sortactivate', @startSort)
       .on('sortdeactivate', @endSort)
 

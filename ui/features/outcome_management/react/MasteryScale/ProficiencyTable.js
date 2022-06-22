@@ -21,7 +21,7 @@ import PropTypes from 'prop-types'
 import {Button} from '@instructure/ui-buttons'
 import {Flex} from '@instructure/ui-flex'
 import {IconPlusLine} from '@instructure/ui-icons'
-import I18n from 'i18n!ProficiencyTable'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import {View} from '@instructure/ui-view'
 import ProficiencyRating from './ProficiencyRating'
 import uuid from 'uuid/v1'
@@ -31,6 +31,8 @@ import NumberHelper from '@canvas/i18n/numberHelper'
 import {showFlashAlert} from '@canvas/alerts/react/FlashAlert'
 import WithBreakpoints, {breakpointsShape} from 'with-breakpoints'
 import ConfirmMasteryModal from '../ConfirmMasteryModal'
+
+const I18n = useI18nScope('ProficiencyTable')
 
 const ADD_DEFAULT_COLOR = 'EF4437'
 
@@ -77,10 +79,10 @@ class ProficiencyTable extends React.Component {
       proficiencyRatingsConnection: {
         nodes: [
           createRating(I18n.t('Exceeds Mastery'), 4, '127A1B'),
-          createRating(I18n.t('Mastery'), 3, '00AC18', true),
+          createRating(I18n.t('Mastery'), 3, '0B874B', true),
           createRating(I18n.t('Near Mastery'), 2, 'FAB901'),
           createRating(I18n.t('Below Mastery'), 1, 'FD5D10'),
-          createRating(I18n.t('Well Below Mastery'), 0, 'EE0612')
+          createRating(I18n.t('Well Below Mastery'), 0, 'E0061F')
         ]
       }
     },
@@ -427,7 +429,7 @@ class ProficiencyTable extends React.Component {
             </View>
             <div className="save">
               <Button
-                variant="primary"
+                color="primary"
                 interaction={this.hasPendingChanges() ? 'enabled' : 'disabled'}
                 onClick={this.confirmSubmit}
               >

@@ -17,7 +17,7 @@
  */
 
 import React, {useState, useCallback, useEffect} from 'react'
-import I18n from 'i18n!grade_details'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import PropTypes from 'prop-types'
 
 import {Heading} from '@instructure/ui-heading'
@@ -39,6 +39,8 @@ import {showFlashError} from '@canvas/alerts/react/FlashAlert'
 import {GradeRow} from './GradeRow'
 import GradesEmptyPage from './GradesEmptyPage'
 
+const I18n = useI18nScope('grade_details')
+
 const NUM_GRADE_SKELETONS = 10
 
 const GradeDetails = ({
@@ -48,20 +50,30 @@ const GradeDetails = ({
   showTotals,
   currentUser,
   loadingGradingPeriods,
-  userIsCourseAdmin
+  userIsCourseAdmin,
+  observedUserId
 }) => {
   const [loadingTotalGrade, setLoadingTotalGrade] = useState(true)
   const [loadingAssignmentGroups, setLoadingAssignmentGroups] = useState(true)
   const [error, setError] = useState(null)
-  const [totalGrade, setTotalGrade] = useState(null)
-  const [assignmentGroupTotals, setAssignmentGroupTotals] = useState(null)
-  const [grades, setGrades] = useState([])
   const [mqList] = useState(() => window.matchMedia('(max-width: 767px)')) // keep in sync with k5_theme.scss
   const [isStacked, setIsStacked] = useState(mqList.matches)
-
+  const [enrollments, setEnrollments] = useState([])
+  const [assignmentGroups, setAssignmentGroups] = useState([])
   const gradingPeriodParam = {}
+  const assignmentGroupTotals = getAssignmentGroupTotals(
+    assignmentGroups,
+    selectedGradingPeriodId,
+    observedUserId
+  )
+  const grades = getAssignmentGrades(assignmentGroups, observedUserId)
+  const totalGrade = getTotalGradeStringFromEnrollments(enrollments, currentUser.id, observedUserId)
+  const include = ['assignments', 'submission', 'read_state', 'submission_comments']
   if (selectedGradingPeriodId) {
     gradingPeriodParam.grading_period_id = selectedGradingPeriodId
+  }
+  if (observedUserId) {
+    include.push('observed_users')
   }
 
   useEffect(() => {
@@ -71,19 +83,16 @@ const GradeDetails = ({
   useFetchApi({
     path: `/api/v1/courses/${courseId}/assignment_groups`,
     loading: setLoadingAssignmentGroups,
-    success: useCallback(
-      data => {
-        setAssignmentGroupTotals(getAssignmentGroupTotals(data, selectedGradingPeriodId))
-        setGrades(getAssignmentGrades(data))
-      },
-      [selectedGradingPeriodId]
-    ),
+    success: useCallback(data => {
+      // filtering possible null values
+      setAssignmentGroups(data.filter(g => g))
+    }, []),
     error: setError,
     // wait until grading periods are loaded before firing this request, to prevent it from being immediately cancelled
     forceResult: loadingGradingPeriods ? [] : undefined,
     fetchAllPages: true,
     params: {
-      include: ['assignments', 'submission', 'read_state', 'submission_comments'],
+      include,
       ...gradingPeriodParam
     }
   })
@@ -91,17 +100,15 @@ const GradeDetails = ({
   useFetchApi({
     path: `/api/v1/courses/${courseId}/enrollments`,
     loading: setLoadingTotalGrade,
-    success: useCallback(
-      data => {
-        setTotalGrade(getTotalGradeStringFromEnrollments(data, currentUser.id))
-      },
-      [currentUser]
-    ),
+    success: useCallback(data => {
+      setEnrollments(data.filter(e => e))
+    }, []),
     error: setError,
     // wait until grading periods are loaded before firing this request, to prevent it from being immediately cancelled
     forceResult: loadingGradingPeriods ? [] : undefined,
     params: {
       user_id: currentUser.id,
+      ...(observedUserId && {include: 'observed_users'}),
       ...gradingPeriodParam
     }
   })
@@ -224,7 +231,7 @@ const GradeDetails = ({
         {grades.map(assignment =>
           GradeRow({
             isStacked,
-            currentUserId: currentUser.id,
+            currentUserId: observedUserId || currentUser.id,
             ...assignment
           })
         )}
@@ -240,7 +247,8 @@ GradeDetails.propTypes = {
   showTotals: PropTypes.bool.isRequired,
   currentUser: PropTypes.object.isRequired,
   loadingGradingPeriods: PropTypes.bool.isRequired,
-  userIsCourseAdmin: PropTypes.bool.isRequired
+  userIsCourseAdmin: PropTypes.bool.isRequired,
+  observedUserId: PropTypes.string
 }
 
 export default GradeDetails

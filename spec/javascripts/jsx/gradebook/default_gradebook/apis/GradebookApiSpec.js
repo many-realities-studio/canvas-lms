@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 - present Instructure, Inc.
+ * Copyright (C) 2022 - present Instructure, Inc.
  *
  * This file is part of Canvas.
  *
@@ -17,7 +17,7 @@
  */
 
 import _ from 'underscore'
-import GradebookApi from 'ui/features/gradebook/react/default_gradebook/apis/GradebookApi.js'
+import GradebookApi from 'ui/features/gradebook/react/default_gradebook/apis/GradebookApi'
 
 QUnit.module('GradebookApi.createTeacherNotesColumn', {
   setup() {
@@ -50,7 +50,7 @@ QUnit.module('GradebookApi.createTeacherNotesColumn', {
   }
 })
 
-test('sends a post request to the "create teacher notes column" url', function() {
+test('sends a post request to the "create teacher notes column" url', function () {
   return GradebookApi.createTeacherNotesColumn('1201').then(() => {
     const request = this.getRequest()
     equal(request.method, 'POST')
@@ -58,7 +58,7 @@ test('sends a post request to the "create teacher notes column" url', function()
   })
 })
 
-test('includes data to create a teacher notes column', function() {
+test('includes data to create a teacher notes column', function () {
   return GradebookApi.createTeacherNotesColumn('1201').then(() => {
     const bodyData = JSON.parse(this.getRequest().requestBody)
     equal(bodyData.column.title, 'Notes')
@@ -67,7 +67,7 @@ test('includes data to create a teacher notes column', function() {
   })
 })
 
-test('includes required request headers', function() {
+test('includes required request headers', function () {
   return GradebookApi.createTeacherNotesColumn('1201').then(() => {
     const {requestHeaders} = this.getRequest()
     ok(
@@ -82,7 +82,7 @@ test('includes required request headers', function() {
   })
 })
 
-test('sends the column data to the success handler', function() {
+test('sends the column data to the success handler', function () {
   return GradebookApi.createTeacherNotesColumn('1201').then(({data}) => {
     deepEqual(data, this.customColumn)
   })
@@ -113,7 +113,7 @@ QUnit.module('GradebookApi.updateTeacherNotesColumn', {
   }
 })
 
-test('sends a post request to the "create teacher notes column" url', function() {
+test('sends a post request to the "create teacher notes column" url', function () {
   return GradebookApi.updateTeacherNotesColumn('1201', '2401', {hidden: true}).then(() => {
     const request = this.getRequest()
     equal(request.method, 'PUT')
@@ -121,14 +121,14 @@ test('sends a post request to the "create teacher notes column" url', function()
   })
 })
 
-test('includes params for updating a teacher notes column', function() {
+test('includes params for updating a teacher notes column', function () {
   return GradebookApi.updateTeacherNotesColumn('1201', '2401', {hidden: true}).then(() => {
     const bodyData = JSON.parse(this.getRequest().requestBody)
     equal(bodyData.column.hidden, true)
   })
 })
 
-test('includes required request headers', function() {
+test('includes required request headers', function () {
   return GradebookApi.updateTeacherNotesColumn('1201', '2401', {hidden: true}).then(() => {
     const {requestHeaders} = this.getRequest()
     ok(
@@ -143,7 +143,7 @@ test('includes required request headers', function() {
   })
 })
 
-test('sends the column data to the success handler', function() {
+test('sends the column data to the success handler', function () {
   return GradebookApi.updateTeacherNotesColumn('1201', '2401', {hidden: true}).then(({data}) => {
     deepEqual(data, this.customColumn)
   })
@@ -206,5 +206,115 @@ QUnit.module('GradebookApi.updateSubmission', hooks => {
       latePolicyStatus: 'none'
     }).then(({data}) => {
       deepEqual(data, submissionData)
+    }))
+
+  test('sends true for prefer_points_over_scheme param when passed "points"', () =>
+    GradebookApi.updateSubmission(
+      courseId,
+      assignmentId,
+      userId,
+      {
+        latePolicyStatus: 'none'
+      },
+      'points'
+    ).then(() => {
+      const bodyData = JSON.parse(getRequest().requestBody)
+      strictEqual(bodyData.prefer_points_over_scheme, true)
+    }))
+
+  test('sends false for prefer_points_over_scheme param when not passed "points"', () =>
+    GradebookApi.updateSubmission(
+      courseId,
+      assignmentId,
+      userId,
+      {
+        latePolicyStatus: 'none'
+      },
+      'percent'
+    ).then(() => {
+      const bodyData = JSON.parse(getRequest().requestBody)
+      strictEqual(bodyData.prefer_points_over_scheme, false)
+    }))
+})
+
+QUnit.module('GradebookApi.sendMessageStudentsWho', hooks => {
+  const recipientsIds = [1, 2, 3, 4]
+  const subject = 'foo'
+  const body = 'bar'
+  const contextCode = '1'
+  const sendMessageStudentsWhoUrl = `/api/v1/conversations`
+  const data = {}
+  let server
+
+  hooks.beforeEach(() => {
+    server = sinon.fakeServer.create({respondImmediately: true})
+    const responseBody = JSON.stringify(data)
+    server.respondWith('POST', sendMessageStudentsWhoUrl, [
+      200,
+      {'Content-Type': 'application/json'},
+      responseBody
+    ])
+  })
+
+  hooks.afterEach(() => {
+    server.restore()
+  })
+
+  function getRequest() {
+    // filter requests to eliminate spec pollution from unrelated specs
+    return _.find(server.requests, request => request.url.includes(sendMessageStudentsWhoUrl))
+  }
+
+  test('sends a post request to the "conversations" url', () =>
+    GradebookApi.sendMessageStudentsWho(recipientsIds, subject, body, contextCode).then(() => {
+      const request = getRequest()
+      strictEqual(request.method, 'POST')
+      strictEqual(request.url, sendMessageStudentsWhoUrl)
+    }))
+
+  test('sends async for mode parameter', () =>
+    GradebookApi.sendMessageStudentsWho(recipientsIds, subject, body, contextCode)
+      .then(() => {})
+      .then(() => {
+        const bodyData = JSON.parse(getRequest().requestBody)
+        deepEqual(bodyData.mode, 'async')
+      }))
+
+  test('sends true for group_conversation parameter', () =>
+    GradebookApi.sendMessageStudentsWho(recipientsIds, subject, body, contextCode).then(() => {
+      const bodyData = JSON.parse(getRequest().requestBody)
+      deepEqual(bodyData.group_conversation, true)
+    }))
+
+  test('sends true for bulk_message parameter', () =>
+    GradebookApi.sendMessageStudentsWho(recipientsIds, subject, body, contextCode).then(() => {
+      const bodyData = JSON.parse(getRequest().requestBody)
+      deepEqual(bodyData.bulk_message, true)
+    }))
+
+  test('includes media comment params if passed a media file', () =>
+    GradebookApi.sendMessageStudentsWho(recipientsIds, subject, body, contextCode, {
+      id: '123',
+      type: 'video'
+    }).then(() => {
+      const bodyData = JSON.parse(getRequest().requestBody)
+      strictEqual(bodyData.media_comment_id, '123')
+      strictEqual(bodyData.media_comment_type, 'video')
+    }))
+
+  test('includes attachment_ids param if passed attachment ids', () =>
+    GradebookApi.sendMessageStudentsWho(recipientsIds, subject, body, contextCode, null, [
+      '4',
+      '8'
+    ]).then(() => {
+      const bodyData = JSON.parse(getRequest().requestBody)
+      deepEqual(bodyData.attachment_ids, ['4', '8'])
+    }))
+
+  test('does not include media comment params if not passed a media file', () =>
+    GradebookApi.sendMessageStudentsWho(recipientsIds, subject, body, contextCode).then(() => {
+      const bodyData = JSON.parse(getRequest().requestBody)
+      notOk(Object.keys(bodyData).includes('media_comment_id'))
+      notOk(Object.keys(bodyData).includes('media_comment_type'))
     }))
 })

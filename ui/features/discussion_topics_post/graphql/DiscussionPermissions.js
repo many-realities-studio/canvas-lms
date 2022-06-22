@@ -30,10 +30,14 @@ export const DiscussionPermissions = {
       read
       readAsAdmin
       manageContent
+      manageCourseContentAdd
+      manageCourseContentEdit
+      manageCourseContentDelete
       readReplies
       reply
       update
       speedGrader
+      studentReporting
       peerReview
       showRubric
       addRubric
@@ -53,10 +57,14 @@ export const DiscussionPermissions = {
     read: bool,
     readAsAdmin: bool,
     manageContent: bool,
+    manageCourseContentAdd: bool,
+    manageCourseContentEdit: bool,
+    manageCourseContentDelete: bool,
     readReplies: bool,
     reply: bool,
     update: bool,
     speedGrader: bool,
+    studentReporting: bool,
     peerReview: bool,
     showRubric: bool,
     addRubric: bool,
@@ -75,10 +83,14 @@ export const DiscussionPermissions = {
     read = true,
     readAsAdmin = true,
     manageContent = true,
+    manageCourseContentAdd = true,
+    manageCourseContentEdit = true,
+    manageCourseContentDelete = true,
     readReplies = true,
     reply = true,
     update = true,
     speedGrader = true,
+    studentReporting = true,
     peerReview = true,
     showRubric = true,
     addRubric = true,
@@ -95,10 +107,14 @@ export const DiscussionPermissions = {
     read,
     readAsAdmin,
     manageContent,
+    manageCourseContentAdd,
+    manageCourseContentEdit,
+    manageCourseContentDelete,
     readReplies,
     reply,
     update,
     speedGrader,
+    studentReporting,
     peerReview,
     showRubric,
     addRubric,

@@ -19,7 +19,7 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import {Button, IconButton} from '@instructure/ui-buttons'
-import I18n from 'i18n!ProficiencyRating'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import {IconTrashLine} from '@instructure/ui-icons'
 import {Popover} from '@instructure/ui-popover'
 import {RadioInput} from '@instructure/ui-radio-input'
@@ -30,6 +30,9 @@ import {View} from '@instructure/ui-view'
 import {Flex} from '@instructure/ui-flex'
 import ColorPicker, {PREDEFINED_COLORS} from '@canvas/color-picker'
 import ConfirmMasteryModal from '../ConfirmMasteryModal'
+import requiredIf from '../shared/requiredIf'
+
+const I18n = useI18nScope('ProficiencyRating')
 
 function formatColor(color) {
   if (color[0] !== '#') {
@@ -37,16 +40,16 @@ function formatColor(color) {
   }
   return color
 }
-
 class ProficiencyRating extends React.Component {
   static propTypes = {
-    color: PropTypes.string.isRequired,
+    color: requiredIf(({individualOutcome}) => !individualOutcome, PropTypes.string),
     description: PropTypes.string.isRequired,
     descriptionError: PropTypes.string,
     disableDelete: PropTypes.bool.isRequired,
     focusField: PropTypes.oneOf(['description', 'points', 'mastery', 'trash']),
-    mastery: PropTypes.bool.isRequired,
-    onColorChange: PropTypes.func.isRequired,
+    mastery: requiredIf(({individualOutcome}) => !individualOutcome, PropTypes.bool),
+    onColorChange: requiredIf(({individualOutcome}) => !individualOutcome, PropTypes.func),
+    onFocusChange: PropTypes.func,
     onDelete: PropTypes.func.isRequired,
     onDescriptionChange: PropTypes.func.isRequired,
     onMasteryChange: PropTypes.func.isRequired,
@@ -55,15 +58,18 @@ class ProficiencyRating extends React.Component {
     pointsError: PropTypes.string,
     isMobileView: PropTypes.bool,
     position: PropTypes.number.isRequired,
-    canManage: PropTypes.bool
+    canManage: PropTypes.bool,
+    individualOutcome: PropTypes.bool
   }
 
   static defaultProps = {
     descriptionError: null,
     focusField: null,
+    onFocusChange: () => {},
     pointsError: null,
     canManage: window.ENV?.PERMISSIONS ? ENV.PERMISSIONS.manage_proficiency_scales : true,
-    isMobileView: false
+    isMobileView: false,
+    individualOutcome: false
   }
 
   constructor(props) {
@@ -78,7 +84,19 @@ class ProficiencyRating extends React.Component {
     this.colorButton = null
   }
 
+  componentDidMount() {
+    this.handleFocus()
+  }
+
   componentDidUpdate() {
+    this.handleFocus()
+  }
+
+  handleBlur = () => {
+    this.props.onFocusChange()
+  }
+
+  handleFocus = () => {
     if (this.props.canManage) {
       if (this.props.focusField === 'trash') {
         setTimeout(
@@ -161,9 +179,11 @@ class ProficiencyRating extends React.Component {
                 {I18n.t(`Change description for mastery level %{position}`, {position})}
               </ScreenReaderContent>
             }
+            onBlur={this.handleBlur}
             onChange={this.handleDescriptionChange}
             inputRef={element => this.setDescriptionRef(element)}
             defaultValue={description}
+            data-testid="rating-description-input"
           />
         ) : (
           <Text>
@@ -206,9 +226,9 @@ class ProficiencyRating extends React.Component {
   }
 
   renderPointsInput = () => {
-    const {points, pointsError, position, isMobileView, canManage} = this.props
+    const {points, pointsError, position, isMobileView, canManage, individualOutcome} = this.props
     return (
-      <div className="points">
+      <div className={individualOutcome ? 'points individualOutcome' : 'points'}>
         {canManage ? (
           <>
             <TextInput
@@ -220,9 +240,11 @@ class ProficiencyRating extends React.Component {
                   {I18n.t(`Change points for mastery level %{position}`, {position})}
                 </ScreenReaderContent>
               }
+              onBlur={this.handleBlur}
               onChange={this.handlePointChange}
               defaultValue={I18n.n(points)}
-              width={isMobileView ? '7rem' : '4rem'}
+              width={isMobileView ? (individualOutcome ? '3rem' : '7rem') : '4rem'}
+              data-testid="rating-points-input"
             />
 
             <div className="pointsDescription" aria-hidden="true">
@@ -264,9 +286,9 @@ class ProficiencyRating extends React.Component {
         {canManage ? (
           <Popover
             on="click"
-            show={this.state.showColorPopover}
+            isShowingContent={this.state.showColorPopover}
             onToggle={this.handleMenuToggle}
-            onShow={this.focusColorPicker}
+            onPositioned={this.focusColorPicker}
             shouldContainFocus
             // Note: without this prop, there's a focus issue where the window will scroll up
             // on Chrome which seems to be caused by an issue within Popover (possibly INSTUI-1799)
@@ -274,8 +296,7 @@ class ProficiencyRating extends React.Component {
             // when it mounts (and resolves the scroll behavior), so we manually focus on
             // mount with focusColorPicker
             shouldFocusContentOnTriggerBlur
-          >
-            <Popover.Trigger>
+            renderTrigger={
               <Button ref={this.setColorRef} variant="link">
                 <div>
                   <span className="colorPickerIcon" style={{background: formatColor(color)}} />
@@ -285,25 +306,24 @@ class ProficiencyRating extends React.Component {
                   <span aria-hidden="true">{I18n.t('Change')}</span>
                 </div>
               </Button>
-            </Popover.Trigger>
-            <Popover.Content>
-              <ColorPicker
-                ref={this.setColorPickerRef}
-                parentComponent="ProficiencyRating"
-                colors={PREDEFINED_COLORS}
-                currentColor={formatColor(color)}
-                hidePrompt
-                nonModal
-                hideOnScroll={false}
-                withAnimation={false}
-                withBorder={false}
-                withBoxShadow={false}
-                withArrow={false}
-                focusOnMount={false}
-                afterClose={this.handleMenuClose}
-                setStatusColor={this.setColor}
-              />
-            </Popover.Content>
+            }
+          >
+            <ColorPicker
+              ref={this.setColorPickerRef}
+              parentComponent="ProficiencyRating"
+              colors={PREDEFINED_COLORS}
+              currentColor={formatColor(color)}
+              hidePrompt
+              nonModal
+              hideOnScroll={false}
+              withAnimation={false}
+              withBorder={false}
+              withBoxShadow={false}
+              withArrow={false}
+              focusOnMount={false}
+              afterClose={this.handleMenuClose}
+              setStatusColor={this.setColor}
+            />
           </Popover>
         ) : (
           <>
@@ -341,8 +361,8 @@ class ProficiencyRating extends React.Component {
           onClick={this.handleDelete}
           renderIcon={<IconTrashLine />}
           screenReaderLabel={I18n.t(`Delete mastery level %{position}`, {position})}
+          data-testid="rating-delete-btn"
         />
-
         <ConfirmMasteryModal
           onConfirm={this.handleRealDelete}
           modalText={I18n.t('This will remove the mastery level from your mastery scale.')}
@@ -358,40 +378,58 @@ class ProficiencyRating extends React.Component {
   errorMessage = error => (error ? [{text: error, type: 'error'}] : null)
 
   render() {
-    const {isMobileView, canManage} = this.props
+    const {isMobileView, canManage, individualOutcome} = this.props
     return (
       <Flex
-        padding={`${isMobileView ? '0 0 small 0' : '0 small small small'}`}
+        padding={`${
+          isMobileView
+            ? '0 0 small 0'
+            : individualOutcome
+            ? '0 small small 0'
+            : '0 small small small'
+        }`}
         width="100%"
         alignItems={isMobileView ? 'center' : 'start'}
+        justifyItems={isMobileView ? 'space-between' : 'start'}
       >
-        <Flex.Item textAlign="center" padding="0 medium 0 0" size={isMobileView ? '25%' : '15%'}>
-          {this.renderMastery()}
-        </Flex.Item>
-        <Flex.Item padding="0 small 0 0" size={isMobileView ? '75%' : '40%'} align="start">
+        {!individualOutcome && (
+          <Flex.Item textAlign="center" padding="0 medium 0 0" size={isMobileView ? '25%' : '15%'}>
+            {this.renderMastery()}
+          </Flex.Item>
+        )}
+        <Flex.Item
+          padding="0 small 0 0"
+          size={isMobileView ? '75%' : individualOutcome ? (canManage ? '80%' : '60%') : '40%'}
+          align="start"
+        >
           {this.renderDescription()}
           {isMobileView && (
             <>
               {this.renderPointsInput()}
               <div className={`mobileRow ${canManage ? null : 'view-only'}`}>
-                {this.renderColorPicker()}
-                {canManage && this.renderDeleteButton()}
+                {!individualOutcome && this.renderColorPicker()}
+                {canManage && !individualOutcome && this.renderDeleteButton()}
               </div>
             </>
           )}
         </Flex.Item>
         {!isMobileView && (
           <>
-            <Flex.Item size="15%" padding="0 small 0 0" align="start">
+            <Flex.Item size={individualOutcome ? '10%' : '15%'} padding="0 small 0 0" align="start">
               {this.renderPointsInput()}
             </Flex.Item>
-            <Flex.Item>{this.renderColorPicker()}</Flex.Item>
+            {!individualOutcome && <Flex.Item>{this.renderColorPicker()}</Flex.Item>}
             {canManage && (
               <Flex.Item size="10%" padding="0 small 0 small">
                 {this.renderDeleteButton()}
               </Flex.Item>
             )}
           </>
+        )}
+        {isMobileView && individualOutcome && canManage && (
+          <Flex.Item align="start" size="20%" textAlign="end">
+            {this.renderDeleteButton()}
+          </Flex.Item>
         )}
       </Flex>
     )

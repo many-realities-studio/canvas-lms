@@ -16,15 +16,15 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import {bool, element, func, shape, string} from 'prop-types'
+import {arrayOf, bool, element, func, shape, string} from 'prop-types'
 import CanvasFiles from './CanvasFiles/index'
 import errorShipUrl from '@canvas/images/ErrorShip.svg'
-import {EXTERNAL_TOOLS_QUERY, USER_GROUPS_QUERY} from '@canvas/assignments/graphql/student/Queries'
+import {USER_GROUPS_QUERY} from '@canvas/assignments/graphql/student/Queries'
 import {Flex} from '@instructure/ui-flex'
 import GenericErrorPage from '@canvas/generic-error-page'
 import {IconFolderLine, IconLtiLine} from '@instructure/ui-icons'
 import iframeAllowances from '@canvas/external-apps/iframeAllowances'
-import I18n from 'i18n!assignments_2_MoreOptions'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import {Img} from '@instructure/ui-img'
 import LoadingIndicator from '@canvas/loading-indicator'
 import {useQuery} from 'react-apollo'
@@ -40,6 +40,8 @@ import {View} from '@instructure/ui-view'
 import {Button, CloseButton} from '@instructure/ui-buttons'
 import {Heading} from '@instructure/ui-heading'
 import {Modal} from '@instructure/ui-modal'
+
+const I18n = useI18nScope('assignments_2_MoreOptions')
 
 // An "abstract" component that renders a button allowing the user to upload a
 // file via an interface supplied by the caller.
@@ -75,8 +77,8 @@ function BaseUploadTool({children, hideFooter, icon, label, renderFooter, title}
 
     const handleMessage = e => {
       if (
-        e.data.messageType === 'LtiDeepLinkingResponse' ||
-        e.data.messageType === 'A2ExternalContentReady'
+        e.data.subject === 'LtiDeepLinkingResponse' ||
+        e.data.subject === 'A2ExternalContentReady'
       ) {
         setShowModal(false)
       }
@@ -98,13 +100,15 @@ function BaseUploadTool({children, hideFooter, icon, label, renderFooter, title}
       theme={{borderWidth: '0'}}
       withBackground={false}
     >
-      {icon}
-      <View as="div" margin="small 0 0">
-        <ScreenReaderContent>{I18n.t('Submit file using %{label}', {label})}</ScreenReaderContent>
-        <Text color="brand" weight="bold" size="medium">
-          {label}
-        </Text>
-      </View>
+      <Flex direction="row" justifyItems="center" padding="xxx-small 0">
+        <Flex.Item>{icon}</Flex.Item>
+        <Flex.Item margin="0 small">
+          <ScreenReaderContent>{I18n.t('Submit file using %{label}', {label})}</ScreenReaderContent>
+          <Text color="primary" size="large">
+            {label}
+          </Text>
+        </Flex.Item>
+      </Flex>
     </Button>
   )
 
@@ -129,9 +133,12 @@ function BaseUploadTool({children, hideFooter, icon, label, renderFooter, title}
       shouldCloseOnDocumentClick
     >
       <Modal.Header>
-        <CloseButton placement="end" offset="medium" variant="icon" onClick={closeModal}>
-          {I18n.t('Close')}
-        </CloseButton>
+        <CloseButton
+          placement="end"
+          offset="medium"
+          onClick={closeModal}
+          screenReaderLabel={I18n.t('Close')}
+        />
         <Heading>{modalTitle}</Heading>
       </Modal.Header>
       <Modal.Body padding="0 x-small">
@@ -149,10 +156,9 @@ function BaseUploadTool({children, hideFooter, icon, label, renderFooter, title}
     <View
       as="div"
       background="primary"
-      borderColor="brand"
+      borderColor="primary"
       borderWidth="small"
       borderRadius="medium"
-      height="100px"
       minWidth="100px"
     >
       {button}
@@ -171,9 +177,9 @@ BaseUploadTool.propTypes = {
   title: string
 }
 
-const iconDimensions = {height: '48px', width: '48px'}
+const iconDimensions = {height: '24px', width: '24px'}
 
-function CanvasFileChooser({courseID, onFileSelect, userID}) {
+function CanvasFileChooser({allowedExtensions, courseID, onFileSelect, userID}) {
   const [selectedCanvasFileID, setSelectedCanvasFileId] = useState(null)
 
   const {loading, error, data} = useQuery(USER_GROUPS_QUERY, {
@@ -195,6 +201,7 @@ function CanvasFileChooser({courseID, onFileSelect, userID}) {
     const userGroups = data.legacyNode
     contents = (
       <CanvasFiles
+        allowedExtensions={allowedExtensions}
         courseID={courseID}
         handleCanvasFileSelect={fileID => {
           setSelectedCanvasFileId(fileID)
@@ -210,7 +217,7 @@ function CanvasFileChooser({courseID, onFileSelect, userID}) {
       <>
         {cancelButton}
         <Button
-          variant="primary"
+          color="primary"
           onClick={() => {
             onFileSelect(selectedCanvasFileID)
             closeModal()
@@ -225,8 +232,8 @@ function CanvasFileChooser({courseID, onFileSelect, userID}) {
   return (
     <BaseUploadTool
       renderFooter={footerContents}
-      icon={<IconFolderLine size="medium" color="brand" />}
-      label={I18n.t('Files')}
+      icon={<IconFolderLine size="medium" color="primary" width="24px" height="24px" />}
+      label={I18n.t('Canvas Files')}
     >
       {() => contents}
     </BaseUploadTool>
@@ -272,7 +279,7 @@ function WebcamPhotoUpload({onPhotoTaken}) {
     <BaseUploadTool
       hideFooter
       icon={<Img alt={I18n.t('Take a Photo via Webcam')} src={TakePhotoUrl} {...iconDimensions} />}
-      label={I18n.t('Webcam')}
+      label={I18n.t('Webcam Photo')}
       title={I18n.t('Take a Photo via Webcam')}
     >
       {({close}) => (
@@ -288,67 +295,42 @@ function WebcamPhotoUpload({onPhotoTaken}) {
 }
 
 function MoreOptions({
-  assignmentID,
+  allowedExtensions,
   breakpoints,
   courseID,
   handleCanvasFiles,
   handleWebcamPhotoUpload,
   userID
 }) {
-  const {loading, error, data} = useQuery(EXTERNAL_TOOLS_QUERY, {
-    variables: {courseID}
-  })
-
-  if (loading) return <LoadingIndicator />
-  if (error) {
-    return (
-      <GenericErrorPage
-        imageUrl={errorShipUrl}
-        errorSubject={I18n.t('Course external tools query error')}
-        errorCategory={I18n.t('Assignments 2 Student Error Page')}
-      />
-    )
-  }
-
-  const externalTools = data.course?.externalToolsConnection?.nodes || []
-  if (handleCanvasFiles == null && externalTools.length === 0) {
+  if (handleCanvasFiles == null && handleWebcamPhotoUpload == null) {
     return null
   }
 
-  const buildLaunchUrl = tool =>
-    `${window.location.origin}/courses/${encodeURIComponent(
-      courseID
-    )}/external_tools/${encodeURIComponent(
-      tool._id
-    )}/resource_selection?launch_type=homework_submission&assignment_id=${encodeURIComponent(
-      assignmentID
-    )}`
-
-  const itemMargin = breakpoints.desktopOnly ? '0 x-small' : 'xx-small xxx-small'
+  const itemMargin = breakpoints.desktopOnly ? 'x-small' : 'xx-small xxx-small'
 
   return (
-    <Flex direction="row" justifyItems="center" wrap="wrap">
+    <Flex direction="column" justifyItems="center">
       {handleWebcamPhotoUpload && (
-        <Flex.Item margin={itemMargin}>
+        <Flex.Item margin={itemMargin} overflowY="visible">
           <WebcamPhotoUpload onPhotoTaken={handleWebcamPhotoUpload} />
         </Flex.Item>
       )}
       {handleCanvasFiles && (
-        <Flex.Item margin={itemMargin}>
-          <CanvasFileChooser courseID={courseID} userID={userID} onFileSelect={handleCanvasFiles} />
+        <Flex.Item margin={itemMargin} overflowY="visible">
+          <CanvasFileChooser
+            allowedExtensions={allowedExtensions}
+            courseID={courseID}
+            userID={userID}
+            onFileSelect={handleCanvasFiles}
+          />
         </Flex.Item>
       )}
-      {externalTools.map(tool => (
-        <Flex.Item key={tool._id} margin={itemMargin}>
-          <ExternalTool launchUrl={buildLaunchUrl(tool)} tool={tool} />
-        </Flex.Item>
-      ))}
     </Flex>
   )
 }
 
 MoreOptions.propTypes = {
-  assignmentID: string.isRequired,
+  allowedExtensions: arrayOf(string),
   breakpoints: breakpointsShape,
   courseID: string.isRequired,
   handleCanvasFiles: func,

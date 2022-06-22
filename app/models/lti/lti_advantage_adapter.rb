@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU Affero General Public License along
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 
-require 'lti_advantage'
+require "lti_advantage"
 
 module Lti
   # Responsible for generating parameters for both Login requests
@@ -132,7 +132,10 @@ module Lti
     # For information on how the cached ID token is eventually retrieved
     # and sent to a tool, please refer to the inline documentation of
     # app/controllers/lti/ims/authentication_controller.rb
-    def generate_post_payload
+    def generate_post_payload(student_id: nil)
+      # Takes a student ID parameter for compatibility with the LTI 1.1 method
+      # (in LtiOutboundAdapter), but we don't use it here yet. See INTEROP-7227
+      # and student_context_card spec in external_tools_controller_spec.rb
       login_request(generate_lti_params)
     end
 
@@ -150,7 +153,12 @@ module Lti
 
     def generate_lti_params
       if resource_type&.to_sym == :course_assignments_menu &&
-         !Account.site_admin.feature_enabled?(:lti_multiple_assignment_deep_linking)
+         !@context.root_account.feature_enabled?(:lti_multiple_assignment_deep_linking)
+        return resource_link_request.generate_post_payload
+      end
+
+      if resource_type&.to_sym == :module_index_menu_modal &&
+         !@context.root_account.feature_enabled?(:lti_deep_linking_module_index_menu_modal)
         return resource_link_request.generate_post_payload
       end
 
@@ -166,14 +174,16 @@ module Lti
       message_hint = cache_payload(lti_params)
       login_hint = Lti::Asset.opaque_identifier_for(@user, context: @context) || User.public_lti_id
 
-      LtiAdvantage::Messages::LoginRequest.new(
-        iss: Canvas::Security.config['lti_iss'],
+      req = LtiAdvantage::Messages::LoginRequest.new(
+        iss: Canvas::Security.config["lti_iss"],
         login_hint: login_hint,
         client_id: @tool.global_developer_key_id,
         target_link_uri: target_link_uri,
         lti_message_hint: message_hint,
-        canvas_region: @context.shard.database_server.config[:region] || 'not_configured'
-      ).as_json
+        canvas_region: @context.shard.database_server.config[:region] || "not_configured"
+      )
+      req.lti_storage_target = "_parent" if Account.site_admin.feature_enabled?(:lti_platform_storage)
+      req.as_json
     end
 
     def cache_payload(lti_params)
@@ -202,16 +212,14 @@ module Lti
     end
 
     def resource_link_request
-      @_resource_link_request ||= begin
-        Lti::Messages::ResourceLinkRequest.new(
-          tool: @tool,
-          context: @context,
-          user: @user,
-          expander: @expander,
-          return_url: @return_url,
-          opts: @opts.merge(option_overrides)
-        )
-      end
+      @_resource_link_request ||= Lti::Messages::ResourceLinkRequest.new(
+        tool: @tool,
+        context: @context,
+        user: @user,
+        expander: @expander,
+        return_url: @return_url,
+        opts: @opts.merge(option_overrides)
+      )
     end
 
     def option_overrides

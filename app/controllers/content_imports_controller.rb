@@ -26,10 +26,10 @@ class ContentImportsController < ApplicationController
   include Api::V1::Course
   include ContentImportsHelper
 
-  COPY_TYPES = %w{assignment_groups assignments context_modules
+  COPY_TYPES = %w[assignment_groups assignments context_modules
                   learning_outcomes quizzes assessment_question_banks folders
                   attachments wiki_pages discussion_topics calendar_events
-                  context_external_tools learning_outcome_groups rubrics}.freeze
+                  context_external_tools learning_outcome_groups rubrics].freeze
 
   # these are deprecated, but leaving them for a while so existing links get redirected
   def index
@@ -45,7 +45,11 @@ class ContentImportsController < ApplicationController
     authorized_action(
       @context,
       @current_user,
-      [:manage_content, *RoleOverride::GRANULAR_FILE_PERMISSIONS]
+      [
+        *RoleOverride::GRANULAR_FILE_PERMISSIONS,
+        :manage_content,
+        *RoleOverride::GRANULAR_MANAGE_COURSE_CONTENT_PERMISSIONS
+      ]
     )
     js_env(return_or_context_url: return_or_context_url, return_to: params[:return_to])
   end
@@ -72,12 +76,12 @@ class ContentImportsController < ApplicationController
     if api_request?
       @context = api_find(Course, params[:course_id])
     end
-    if authorized_action(@context, @current_user, :manage_content)
+    if authorized_action(@context, @current_user, [:manage_content, :manage_course_content_add])
       cm = ContentMigration.where(context_id: @context, id: params[:id]).first
       raise ActiveRecord::RecordNotFound unless cm
 
       respond_to do |format|
-        format.json { render :json => copy_status_json(cm, @context, @current_user, session) }
+        format.json { render json: copy_status_json(cm, @context, @current_user, session) }
       end
     end
   end
@@ -108,12 +112,12 @@ class ContentImportsController < ApplicationController
       @context = api_find(Course, params[:course_id])
     end
 
-    if authorized_action(@context, @current_user, :manage_content)
+    if authorized_action(@context, @current_user, [:manage_content, :manage_course_content_add])
       if api_request?
         @source_course = api_find(Course, params[:source_course])
-        copy_params = { :everything => false }
+        copy_params = { everything: false }
         if params[:only] && params[:except]
-          render :json => { "errors" => t('errors.no_only_and_except', 'You can not use "only" and "except" options at the same time.') }, :status => :bad_request
+          render json: { "errors" => t("errors.no_only_and_except", 'You can not use "only" and "except" options at the same time.') }, status: :bad_request
           return
         elsif params[:only]
           convert_to_table_name(params[:only]).each { |o| copy_params["all_#{o}".to_sym] = true }
@@ -132,15 +136,19 @@ class ContentImportsController < ApplicationController
       # make sure the user can copy from the source course
       return render_unauthorized_action unless @source_course.grants_all_rights?(@current_user, :read, :read_as_admin)
 
-      cm = ContentMigration.create!(:context => @context,
-                                    :user => @current_user,
-                                    :source_course => @source_course,
-                                    :copy_options => copy_params,
-                                    :migration_type => 'course_copy_importer',
-                                    :initiated_source => api_request? ? (in_app? ? :api_in_app : :api) : :manual)
+      cm = ContentMigration.create!(context: @context,
+                                    user: @current_user,
+                                    source_course: @source_course,
+                                    copy_options: copy_params,
+                                    migration_type: "course_copy_importer",
+                                    initiated_source: if api_request?
+                                                        in_app? ? :api_in_app : :api
+                                                      else
+                                                        :manual
+                                                      end)
       cm.queue_migration
-      cm.workflow_state = 'created'
-      render :json => copy_status_json(cm, @context, @current_user, session)
+      cm.workflow_state = "created"
+      render json: copy_status_json(cm, @context, @current_user, session)
     end
   end
 
@@ -151,10 +159,10 @@ class ContentImportsController < ApplicationController
       params[:copy] ||= {}
       params[:items_to_copy].each_pair do |key, vals|
         params[:copy][key] ||= {}
-        if vals && !vals.empty?
-          vals.each do |val|
-            params[:copy][key][val] = true
-          end
+        next unless vals.present?
+
+        vals.each do |val|
+          params[:copy][key][val] = true
         end
       end
     end

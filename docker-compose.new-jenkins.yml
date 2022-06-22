@@ -9,6 +9,7 @@ services:
       - redis
       - dynamodb
     environment:
+      DB_VALIDITY_ENSURED: 1
       ENCRYPTION_KEY: facdd3a131ddd8988b14f6e4e01039c93cfa0160
       RAILS_ENV: test
       POSTGRES_PASSWORD: $POSTGRES_PASSWORD
@@ -17,7 +18,7 @@ services:
       RERUNS_RETRY:
       COVERAGE:
       FORCE_FAILURE:
-      CANVAS_RAILS6_0:
+      TEST_CACHE_CLASSES:
 
       # parallel_tests
       CI_NODE_TOTAL:

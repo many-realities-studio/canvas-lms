@@ -18,21 +18,19 @@
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-require File.expand_path(File.dirname(__FILE__) + '/../spec_helper')
-
-require 'nokogiri'
+require "nokogiri"
 
 describe "student interactions links" do
-  before(:each) do
+  before do
     username = "nobody@example.com"
     password = "asdfasdf"
-    u = user_with_pseudonym :active_user => true,
-                            :username => username,
-                            :password => password
+    u = user_with_pseudonym active_user: true,
+                            username: username,
+                            password: password
     u.save!
-    @e = course_with_teacher :active_course => true,
-                             :user => u,
-                             :active_enrollment => true
+    @e = course_with_teacher active_course: true,
+                             user: u,
+                             active_enrollment: true
     @e.save!
     @teacher = u
 
@@ -50,8 +48,8 @@ describe "student interactions links" do
   end
 
   context "as a user without permissions to view grades" do
-    before(:each) do
-      ['view_all_grades', 'manage_grades'].each do |permission|
+    before do
+      ["view_all_grades", "manage_grades"].each do |permission|
         RoleOverride.create!(permission: permission, enabled: false, context: @course.account, role: ta_role)
       end
 
@@ -73,11 +71,11 @@ describe "student interactions links" do
   end
 
   context "as a user with permissions to view grades" do
-    before(:each) do
+    before do
       user_session(@teacher)
     end
 
-    it "onlies show the student link on the student's page" do
+    it "only shows the student link on the student's page" do
       get "/courses/#{@course.id}/users/#{@student.id}"
       expect(response).to be_successful
       expect(response.body).to match(/Interactions Report/)
@@ -94,7 +92,7 @@ describe "student interactions links" do
       get "/users/#{@teacher.id}/teacher_activity/course/#{@course.id}"
       expect(response).to be_successful
       html = Nokogiri::HTML5(response.body)
-      expect(html.css('.message_student_link')).not_to be_nil
+      expect(html.css(".message_student_link")).not_to be_nil
     end
 
     it "does not show mail link for admins" do
@@ -104,7 +102,7 @@ describe "student interactions links" do
       get "/users/#{@teacher.id}/teacher_activity/course/#{@course.id}"
       expect(response).to be_successful
       html = Nokogiri::HTML5(response.body)
-      expect(html.css('.message_student_link')).to be_empty
+      expect(html.css(".message_student_link")).to be_empty
     end
   end
 end

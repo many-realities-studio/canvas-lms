@@ -32,16 +32,16 @@ module Api
 
   def api_find_all(collection, ids, account: nil)
     if collection.table_name == User.table_name && @current_user
-      ids = ids.map { |id| id == 'self' ? @current_user.id : id }
+      ids = ids.map { |id| id == "self" ? @current_user.id : id }
     end
     if collection.table_name == Account.table_name
       ids = ids.map do |id|
         case id
-        when 'self'
+        when "self"
           @domain_root_account.id
-        when 'default'
+        when "default"
           Account.default.id
-        when 'site_admin'
+        when "site_admin"
           Account.site_admin.id
         else
           id
@@ -52,10 +52,10 @@ module Api
       current_term = nil
       ids = ids.map do |id|
         case id
-        when 'default'
+        when "default"
           @domain_root_account.default_enrollment_term
-        when 'current'
-          if !current_term
+        when "current"
+          unless current_term
             current_terms = @domain_root_account
                             .enrollment_terms
                             .active
@@ -81,138 +81,172 @@ module Api
     sis_mapping = sis_find_sis_mapping_for_collection(collection)
     columns = sis_parse_ids(ids, sis_mapping[:lookups], current_user,
                             root_account: root_account)
-    result = columns.delete(sis_mapping[:lookups]["id"]) || []
+    result = columns.delete(sis_mapping[:lookups]["id"]) || { ids: [] }
     unless columns.empty?
       relation = relation_for_sis_mapping_and_columns(collection, columns, sis_mapping, root_account)
       # pluck ignores eager_load
       relation = relation.joins(*relation.eager_load_values) if relation.eager_load_values.present?
-      result.concat relation.pluck(:id)
-      result.uniq!
+      result[:ids].concat relation.pluck(:id)
+      result[:ids].uniq!
+      result[:ids]
     end
-    result
+    result[:ids]
   end
 
   SIS_MAPPINGS = {
-    'courses' =>
-      { :lookups => { 'sis_course_id' => 'sis_source_id',
-                      'id' => 'id',
-                      'sis_integration_id' => 'integration_id',
-                      'lti_context_id' => 'lti_context_id',
-                      'uuid' => 'uuid' }.freeze,
-        :is_not_scoped_to_account => ['id'].freeze,
-        :scope => 'root_account_id' }.freeze,
-    'enrollment_terms' =>
-      { :lookups => { 'sis_term_id' => 'sis_source_id',
-                      'id' => 'id',
-                      'sis_integration_id' => 'integration_id' }.freeze,
-        :is_not_scoped_to_account => ['id'].freeze,
-        :scope => 'root_account_id' }.freeze,
-    'users' =>
-      { :lookups => { 'sis_user_id' => 'pseudonyms.sis_user_id',
-                      'sis_login_id' => {
-                        column: 'LOWER(pseudonyms.unique_id)',
-                        transform: ->(id) { QuotedValue.new("LOWER(#{Pseudonym.connection.quote(id)})") }
-                      },
-                      'id' => 'users.id',
-                      'sis_integration_id' => 'pseudonyms.integration_id',
-                      'lti_context_id' => 'users.lti_context_id', # leaving for legacy reasons
-                      'lti_user_id' => 'users.lti_context_id', # leaving for legacy reasons
-                      'lti_1_1_id' => 'users.lti_context_id',
-                      'lti_1_3_id' => 'users.lti_id',
-                      'uuid' => 'users.uuid' }.freeze,
-        :is_not_scoped_to_account => ['users.id', 'users.lti_context_id', 'users.lti_id', 'users.uuid'].freeze,
-        :scope => 'pseudonyms.account_id',
-        :joins => :pseudonym }.freeze,
-    'accounts' =>
-      { :lookups => { 'sis_account_id' => 'sis_source_id',
-                      'id' => 'id',
-                      'sis_integration_id' => 'integration_id',
-                      'lti_context_id' => 'lti_context_id',
-                      'uuid' => 'uuid' }.freeze,
-        :is_not_scoped_to_account => ['id', 'lti_context_id', 'uuid'].freeze,
-        :scope => 'root_account_id' }.freeze,
-    'course_sections' =>
-      { :lookups => { 'sis_section_id' => 'sis_source_id',
-                      'id' => 'id',
-                      'sis_integration_id' => 'integration_id' }.freeze,
-        :is_not_scoped_to_account => ['id'].freeze,
-        :scope => 'root_account_id' }.freeze,
-    'groups' =>
-        { :lookups => { 'sis_group_id' => 'sis_source_id',
-                        'id' => 'id' }.freeze,
-          :is_not_scoped_to_account => ['id'].freeze,
-          :scope => 'root_account_id' }.freeze,
-    'group_categories' =>
-        { :lookups => { 'sis_group_category_id' => 'sis_source_id',
-                        'id' => 'id' }.freeze,
-          :is_not_scoped_to_account => ['id'].freeze,
-          :scope => 'root_account_id' }.freeze,
-    'assignments' =>
-        { :lookups => { 'sis_assignment_id' => 'sis_source_id',
-                        'id' => 'id',
-                        'lti_context_id' => 'lti_context_id' }.freeze,
-          :is_not_scoped_to_account => ['id'].freeze,
-          :scope => 'root_account_id' }.freeze,
+    "courses" =>
+      { lookups: { "sis_course_id" => "sis_source_id",
+                   "id" => "id",
+                   "sis_integration_id" => "integration_id",
+                   "lti_context_id" => "lti_context_id",
+                   "uuid" => "uuid" }.freeze,
+        is_not_scoped_to_account: ["id"].freeze,
+        scope: "root_account_id" }.freeze,
+    "enrollment_terms" =>
+      { lookups: { "sis_term_id" => "sis_source_id",
+                   "id" => "id",
+                   "sis_integration_id" => "integration_id" }.freeze,
+        is_not_scoped_to_account: ["id"].freeze,
+        scope: "root_account_id" }.freeze,
+    "users" =>
+      { lookups: { "sis_user_id" => "pseudonyms.sis_user_id",
+                   "sis_login_id" => {
+                     column: "LOWER(pseudonyms.unique_id)",
+                     transform: ->(id) { QuotedValue.new("LOWER(#{Pseudonym.connection.quote(id)})") }
+                   },
+                   "id" => "users.id",
+                   "sis_integration_id" => "pseudonyms.integration_id",
+                   "lti_context_id" => "users.lti_context_id", # leaving for legacy reasons
+                   "lti_user_id" => {
+                     column: [
+                       "users.lti_context_id",
+                       "user_past_lti_ids.user_lti_context_id",
+                     ],
+                     joins_needed_for_query: [:past_lti_ids],
+                   },
+                   "lti_1_1_id" => "users.lti_context_id",
+                   "lti_1_3_id" => "users.lti_id",
+                   "uuid" => "users.uuid" }.freeze,
+        is_not_scoped_to_account: ["users.id", "users.lti_context_id", "user_past_lti_ids.user_lti_context_id", "users.lti_id", "users.uuid"].freeze,
+        scope: "pseudonyms.account_id",
+        joins: :pseudonym }.freeze,
+    "accounts" =>
+      { lookups: { "sis_account_id" => "sis_source_id",
+                   "id" => "id",
+                   "sis_integration_id" => "integration_id",
+                   "lti_context_id" => "lti_context_id",
+                   "uuid" => "uuid" }.freeze,
+        is_not_scoped_to_account: %w[id lti_context_id uuid].freeze,
+        scope: "root_account_id" }.freeze,
+    "course_sections" =>
+      { lookups: { "sis_section_id" => "sis_source_id",
+                   "id" => "id",
+                   "sis_integration_id" => "integration_id" }.freeze,
+        is_not_scoped_to_account: ["id"].freeze,
+        scope: "root_account_id" }.freeze,
+    "groups" =>
+        { lookups: { "sis_group_id" => "sis_source_id",
+                     "id" => "id" }.freeze,
+          is_not_scoped_to_account: ["id"].freeze,
+          scope: "root_account_id" }.freeze,
+    "group_categories" =>
+        { lookups: { "sis_group_category_id" => "sis_source_id",
+                     "id" => "id" }.freeze,
+          is_not_scoped_to_account: ["id"].freeze,
+          scope: "root_account_id" }.freeze,
+    "assignments" =>
+        { lookups: { "sis_assignment_id" => "sis_source_id",
+                     "id" => "id",
+                     "lti_context_id" => "lti_context_id" }.freeze,
+          is_not_scoped_to_account: ["id"].freeze,
+          scope: "root_account_id" }.freeze,
   }.freeze
 
-  MAX_ID = (2**63 - 1)
+  MAX_ID = ((2**63) - 1)
   MAX_ID_LENGTH = MAX_ID.to_s.length
-  MAX_ID_RANGE = (-MAX_ID...MAX_ID)
-  ID_REGEX = %r{\A\d{1,#{MAX_ID_LENGTH}}\z}
-  UUID_REGEX = %r{\Auuid:(\w{40,})\z}
+  MAX_ID_RANGE = (-MAX_ID...MAX_ID).freeze
+  ID_REGEX = /\A\d{1,#{MAX_ID_LENGTH}}\z/.freeze
+  UUID_REGEX = /\Auuid:(\w{40,})\z/.freeze
 
-  def self.sis_parse_id(id, lookups, _current_user = nil,
+  def self.not_scoped_to_account?(columns, sis_mapping)
+    flattened_array_of_columns = [columns].flatten
+    not_scoped_to_account_columns = sis_mapping[:is_not_scoped_to_account] || []
+    (flattened_array_of_columns - not_scoped_to_account_columns).empty?
+  end
+
+  def self.sis_parse_id(id, _current_user = nil,
                         root_account: nil)
-    # returns column_name, column_value
-    return lookups['id'], id if id.is_a?(Numeric) || id.is_a?(ActiveRecord::Base)
+    # returns sis_column_name, column_value
+    return "id", id if id.is_a?(Numeric) || id.is_a?(ActiveRecord::Base)
 
     id = id.to_s.strip
-    if id =~ %r{\Ahex:(lti_[\w_]+|sis_[\w_]+):(([0-9A-Fa-f]{2})+)\z}
+    case id
+    when /\Ahex:(lti_[\w_]+|sis_[\w_]+):(([0-9A-Fa-f]{2})+)\z/
       sis_column = $1
-      sis_id = [$2].pack('H*')
-    elsif id =~ %r{\A(lti_[\w_]+|sis_[\w_]+):(.+)\z}
+      sis_id = [$2].pack("H*")
+    when /\A(lti_[\w_]+|sis_[\w_]+):(.+)\z/
       sis_column = $1
       sis_id = $2
-    elsif id =~ ID_REGEX
-      return lookups['id'], (id =~ /\A\d+\z/ ? id.to_i : id)
-    elsif id =~ UUID_REGEX
-      return lookups['uuid'], $1
+    when ID_REGEX
+      return "id", (/\A\d+\z/.match?(id) ? id.to_i : id)
+    when UUID_REGEX
+      return "uuid", $1
     else
       return nil, nil
     end
 
-    column = lookups[sis_column]
-    return nil, nil unless column
-
-    if column.is_a?(Hash)
-      sis_id = column[:transform].call(sis_id)
-      column = column[:column]
-    end
-    return column, sis_id
+    [sis_column, sis_id]
   end
 
   def self.sis_parse_ids(ids, lookups, current_user = nil, root_account: nil)
-    # returns {column_name => [column_value,...].uniq, ...}
+    # returns an object like {
+    #   "column_name" => {
+    #     ids: [column_value, ...].uniq,
+    #     joins_needed_for_query: [relation_name, ...] <-- optional
+    #   }
+    # }
     columns = {}
     ids.compact.each do |id|
-      column, sis_id = sis_parse_id(id, lookups,
-                                    current_user,
-                                    root_account: root_account)
-      next unless column && sis_id
+      sis_column, sis_id = sis_parse_id(id, current_user, root_account: root_account)
 
-      columns[column] ||= []
-      columns[column] << sis_id
+      next unless sis_column && sis_id
+
+      column = lookups[sis_column]
+      if column.is_a?(Hash)
+        column_name = column[:column]
+
+        if column[:transform]
+          if sis_id.is_a? Array
+            # this means that the MRA override sis_parse_id function turned sis_id into [sis_id, @account]
+            sis_id[0] = column[:transform].call(sis_id[0])
+          else
+            sis_id = column[:transform].call(sis_id)
+          end
+        end
+        if (joins_needed_for_query = column[:joins_needed_for_query])
+          columns[column_name] ||= {}
+          columns[column_name][:joins_needed_for_query] ||= []
+          columns[column_name][:joins_needed_for_query] << joins_needed_for_query
+        end
+        column = column_name
+      end
+
+      next unless column
+
+      columns[column] ||= {}
+      columns[column][:ids] ||= []
+      columns[column][:ids] << sis_id
     end
-    columns.keys.each { |key| columns[key].uniq! }
-    return columns
+    columns.each_key { |key| columns[key][:ids].uniq! }
+    columns
   end
 
   # remove things that don't look like valid database IDs
   # return in integer format if possible
   # (note that ID_REGEX may be redefined by a plugin!)
   def self.map_non_sis_ids(ids)
-    ids.map { |id| id.to_s.strip }.select { |id| id =~ ID_REGEX }.map do |id|
-      id =~ /\A\d+\z/ ? id.to_i : id
+    ids.map { |id| id.to_s.strip }.grep(ID_REGEX).map do |id|
+      /\A\d+\z/.match?(id) ? id.to_i : id
     end
   end
 
@@ -245,21 +279,32 @@ module Api
 
     relation = relation.all unless relation.is_a?(ActiveRecord::Relation)
 
-    not_scoped_to_account = sis_mapping[:is_not_scoped_to_account] || []
-    if columns.length == 1 && not_scoped_to_account.include?(columns.keys.first)
-      relation = relation.where(columns)
+    if columns.keys.flatten.length == 1 && not_scoped_to_account?(columns.keys.first, sis_mapping)
+      queryable_columns = {}
+      columns.each_pair { |column_name, value| queryable_columns[column_name] = value[:ids] }
+      relation = relation.where(queryable_columns)
     else
       args = []
       query = []
-      columns.keys.sort.each do |column|
-        if not_scoped_to_account.include?(column)
-          query << "#{column} IN (?)"
-          args << columns[column]
+      columns.each_key do |column|
+        relation = relation.left_outer_joins(columns[column][:joins_needed_for_query]) if columns[column][:joins_needed_for_query]
+        if not_scoped_to_account?(column, sis_mapping)
+          conditions = []
+          if column.is_a?(Array)
+            column.each do |column_name|
+              conditions << "#{column_name} IN (?)"
+              args << columns[column][:ids]
+            end
+          else
+            conditions << "#{column} IN (?)"
+            args << columns[column][:ids]
+          end
+          query << conditions.join(" OR ").to_s
         else
           raise ArgumentError, "missing scope for collection" unless sis_mapping[:scope]
 
-          ids = columns[column]
-          if ids.any? { |id| id.is_a?(Array) }
+          ids = columns[column][:ids]
+          if ids.any?(Array)
             ids_hash = {}
             ids.each do |id|
               id = Array(id)
@@ -275,8 +320,17 @@ module Api
             sub_args = []
             root_accounts_on_shard.each do |root_account|
               ids = ids_hash[root_account]
-              sub_query << "(#{sis_mapping[:scope]} = #{root_account.id} AND #{column} IN (?))"
-              sub_args << ids
+              conditions = []
+              if column.is_a?(Array)
+                column.each do |column_name|
+                  conditions << "#{column_name} IN (?)"
+                  sub_args << ids
+                end
+              else
+                conditions << "#{column} IN (?)"
+                sub_args << ids
+              end
+              sub_query << "(#{sis_mapping[:scope]} = #{root_account.id} AND (#{conditions.join(" OR ")}))"
             end
             if Shard.current == relation.primary_shard
               query.concat(sub_query)
@@ -297,6 +351,7 @@ module Api
 
       args.unshift(query.join(" OR "))
       relation = relation.where(*args)
+      relation
     end
 
     relation = relation.eager_load(sis_mapping[:joins]) if sis_mapping[:joins]
@@ -305,12 +360,12 @@ module Api
 
   def self.max_per_page(action = nil)
     result = Setting.get("api_max_per_page_#{action}", nil)&.to_i if action
-    result || Setting.get('api_max_per_page', '50').to_i
+    result || Setting.get("api_max_per_page", "50").to_i
   end
 
   def self.per_page(action = nil)
     result = Setting.get("api_per_page_#{action}", nil)&.to_i if action
-    result || Setting.get('api_per_page', '10').to_i
+    result || Setting.get("api_per_page", "10").to_i
   end
 
   def self.per_page_for(controller, options = {})
@@ -328,7 +383,7 @@ module Api
     collection = paginate_collection!(collection, controller, pagination_args)
     hash = build_links_hash(base_url, meta_for_pagination(controller, collection))
     links = build_links_from_hash(hash)
-    controller.response.headers["Link"] = links.join(',') if links.length > 0
+    controller.response.headers["Link"] = links.join(",") unless links.empty?
     if response_args[:enhanced_return]
       { hash: hash, collection: collection }
     else
@@ -350,8 +405,8 @@ module Api
     meta = jsonapi_meta(collection, controller, base_url)
     hash = build_links_hash(base_url, meta_for_pagination(controller, collection))
     links = build_links_from_hash(hash)
-    controller.response.headers["Link"] = links.join(',') if links.length > 0
-    return collection, meta
+    controller.response.headers["Link"] = links.join(",") unless links.empty?
+    [collection, meta]
   end
 
   def self.jsonapi_meta(collection, controller, base_url)
@@ -378,6 +433,19 @@ module Api
     wrap_pagination_args!(pagination_args, controller)
     begin
       paginated = collection.paginate(pagination_args)
+      # If we aren't told the last page (because the AR .count was suppressed), then see if we
+      # can figure it out based on the contents of the next page. if it is short, then that's
+      # definitely the last page. Notice that we can only do this trick if we can perform
+      # arithmetic on the page numbers vs the page size, so if the pages are bookmark: urls
+      # then we just can't do this. TODO: the real fix for this is in the Folio gem
+      if paginated.ordinal_pages? && paginated.last_page.nil?
+        page_size = paginated.per_page
+        look_ahead = collection.paginate(pagination_args.merge({ page: paginated.next_page }))
+        next_page_len = look_ahead.length
+        if next_page_len < page_size # the next page (or possibly even this one) is the very last one
+          paginated.total_entries = (look_ahead.current_page.pred * page_size) + next_page_len
+        end # if the next page is full-sized, then we still don't know what the last page is
+      end
     rescue Folio::InvalidPage
       # Have to .try(:build_page) because we use some collections (like
       # PaginatedCollection) that do not conform to the full will_paginate API.
@@ -417,9 +485,9 @@ module Api
     }
   end
 
-  PAGINATION_PARAMS = [:current, :next, :prev, :first, :last].freeze
-  LINK_PRIORITY = [:next, :last, :prev, :current, :first].freeze
-  EXCLUDE_IN_PAGINATION_LINKS = %w(page per_page access_token api_key)
+  PAGINATION_PARAMS = %i[current next prev first last].freeze
+  LINK_PRIORITY = %i[next last prev current first].freeze
+  EXCLUDE_IN_PAGINATION_LINKS = %w[page per_page access_token api_key].freeze
   def self.build_links(base_url, opts = {})
     links = build_links_hash(base_url, opts)
     build_links_from_hash(links)
@@ -434,28 +502,28 @@ module Api
   end
 
   def self.build_links_hash(base_url, opts = {})
-    base_url += (base_url =~ /\?/ ? '&' : '?')
+    base_url += (base_url.include?("?") ? "&" : "?")
     qp = opts[:query_parameters] || {}
     qp = qp.with_indifferent_access.except(*EXCLUDE_IN_PAGINATION_LINKS)
     base_url += "#{qp.to_query}&" if qp.present?
 
     # Apache limits the HTTP response headers to 8KB total; with lots of query parameters, link headers can exceed this
     # so prioritize the links we include and don't exceed (by default) 6KB in total
-    max_link_headers_size = Setting.get('pagination_max_link_headers_size', '6144').to_i
+    max_link_headers_size = Setting.get("pagination_max_link_headers_size", "6144").to_i
     link_headers_size = 0
     LINK_PRIORITY.each_with_object({}) do |param, obj|
-      if opts[param].present?
-        link = "#{base_url}page=#{opts[param]}&per_page=#{opts[:per_page]}"
-        return obj if link_headers_size + link.size > max_link_headers_size
+      next unless opts[param].present?
 
-        link_headers_size += link.size
-        obj[param] = link
-      end
+      link = "#{base_url}page=#{opts[param]}&per_page=#{opts[:per_page]}"
+      return obj if link_headers_size + link.size > max_link_headers_size
+
+      link_headers_size += link.size
+      obj[param] = link
     end
   end
 
   def self.pagination_params(base_url)
-    if base_url.length > Setting.get('pagination_max_base_url_for_links', '1000').to_i
+    if base_url.length > Setting.get("pagination_max_base_url_for_links", "1000").to_i
       # to prevent Link headers from consuming too much of the 8KB Apache allows in response headers
       ESSENTIAL_PAGINATION_PARAMS
     else
@@ -465,25 +533,25 @@ module Api
 
   def self.parse_pagination_links(link_header)
     link_header.split(",").map do |link|
-      url, rel = link.match(%r{^<([^>]+)>; rel="([^"]+)"}).captures
+      url, rel = link.match(/^<([^>]+)>; rel="([^"]+)"/).captures
       uri = URI.parse(url)
       raise(ArgumentError, "pagination url is not an absolute uri: #{url}") unless uri.is_a?(URI::HTTP)
 
-      Rack::Utils.parse_nested_query(uri.query).merge(:uri => uri, :rel => rel)
+      Rack::Utils.parse_nested_query(uri.query).merge(uri: uri, rel: rel)
     end
   end
 
   def media_comment_json(media_object_or_hash)
     media_object_or_hash = OpenStruct.new(media_object_or_hash) if media_object_or_hash.is_a?(Hash)
     {
-      'content-type' => "#{media_object_or_hash.media_type}/mp4",
-      'display_name' => media_object_or_hash.title.presence || media_object_or_hash.user_entered_title,
-      'media_id' => media_object_or_hash.media_id,
-      'media_type' => media_object_or_hash.media_type,
-      'url' => user_media_download_url(:user_id => @current_user.id,
-                                       :entryId => media_object_or_hash.media_id,
-                                       :type => "mp4",
-                                       :redirect => "1")
+      "content-type" => "#{media_object_or_hash.media_type}/mp4",
+      "display_name" => media_object_or_hash.title.presence || media_object_or_hash.user_entered_title,
+      "media_id" => media_object_or_hash.media_id,
+      "media_type" => media_object_or_hash.media_type,
+      "url" => user_media_download_url(user_id: @current_user.id,
+                                       entryId: media_object_or_hash.media_id,
+                                       type: "mp4",
+                                       redirect: "1")
     }
   end
 
@@ -514,11 +582,11 @@ module Api
     Api.api_bulk_load_user_content_attachments(htmls, context)
   end
 
-  PLACEHOLDER_PROTOCOL = 'https'
-  PLACEHOLDER_HOST = 'placeholder.invalid'
+  PLACEHOLDER_PROTOCOL = "https"
+  PLACEHOLDER_HOST = "placeholder.invalid"
 
   def get_host_and_protocol_from_request
-    [request.host_with_port, request.ssl? ? 'https' : 'http']
+    [request.host_with_port, request.ssl? ? "https" : "http"]
   end
 
   def resolve_placeholders(content)
@@ -544,10 +612,10 @@ module Api
     # use the host of the request if available;
     # use a placeholder host for pre-generated content, which we will replace with the request host when available;
     # otherwise let HostUrl figure out what host is appropriate
-    if self.respond_to?(:request)
+    if respond_to?(:request)
       host, protocol = get_host_and_protocol_from_request
       target_shard = Shard.current
-    elsif self.respond_to?(:use_placeholder_host?) && use_placeholder_host?
+    elsif respond_to?(:use_placeholder_host?) && use_placeholder_host?
       host = PLACEHOLDER_HOST
       protocol = PLACEHOLDER_PROTOCOL
     else
@@ -557,7 +625,7 @@ module Api
 
     html = context.shard.activate do
       rewriter = UserContent::HtmlRewriter.new(context, user)
-      rewriter.set_handler('files') do |match|
+      rewriter.set_handler("files") do |match|
         UserContent::FilesHandler.new(
           match: match,
           context: context,
@@ -588,7 +656,7 @@ module Api
   # and adds context (e.g. /courses/:id/) if it is missing
   # exception: it leaves user-context file links alone
   def process_incoming_html_content(html)
-    host, port = [request.host, request.port] if self.respond_to?(:request)
+    host, port = [request.host, request.port] if respond_to?(:request)
     Html::Content.process_incoming(html, host: host, port: port)
   end
 
@@ -598,7 +666,7 @@ module Api
 
   # takes a comma separated string, an array, or nil and returns an array
   def self.value_to_array(value)
-    value.is_a?(String) ? value.split(',') : (value || [])
+    value.is_a?(String) ? value.split(",") : (value || [])
   end
 
   def self.invalid_time_stamp_error(attribute, message)
@@ -606,7 +674,7 @@ module Api
       message: "invalid #{attribute}",
       exception_message: message
     }
-    Canvas::Errors.capture('invalid_date_time', data, :info)
+    Canvas::Errors.capture("invalid_date_time", data, :info)
   end
 
   # regex for valid iso8601 dates
@@ -617,10 +685,10 @@ module Api
                     (?<minute>[0-5][0-9]):
                     (?<second>60|[0-5][0-9])
                     (?<fraction>\.[0-9]+)?
-                    (?<timezone>Z|[+-](?:2[0-3]|[0-1][0-9]):[0-5][0-9])?$/x
+                    (?<timezone>Z|[+-](?:2[0-3]|[0-1][0-9]):[0-5][0-9])?$/x.freeze
 
   # regex for valid dates
-  DATE_REGEX = /^\d{4}[- \/.](0[1-9]|1[012])[- \/.](0[1-9]|[12][0-9]|3[01])$/
+  DATE_REGEX = %r{^\d{4}[- /.](0[1-9]|1[012])[- /.](0[1-9]|[12][0-9]|3[01])$}.freeze
 
   # regex for shard-aware ID
   ID = '(?:\d+~)?\d+'
@@ -652,7 +720,7 @@ module Api
   end
 
   def accepts_jsonapi?
-    !!(/application\/vnd\.api\+json/ =~ request.headers['Accept'].to_s)
+    !!request.headers["Accept"].to_s.include?("application/vnd.api+json")
   end
 
   # Return a template url that follows the root links key for the jsonapi.org
@@ -662,13 +730,13 @@ module Api
     placeholder = "PLACEHOLDER"
 
     placeholders = args.each_with_index.map do |arg, index|
-      arg =~ format ? "#{placeholder}#{index}" : arg
+      arg&.match?(format) ? "#{placeholder}#{index}" : arg
     end
 
     url = send(method, *placeholders)
 
     args.each_with_index do |arg, index|
-      url.sub!("#{placeholder}#{index}", arg) if arg =~ format
+      url.sub!("#{placeholder}#{index}", arg) if arg&.match?(format)
     end
 
     url

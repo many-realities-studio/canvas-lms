@@ -20,7 +20,7 @@
 
 module Types
   class DiscussionEntryType < ApplicationObjectType
-    graphql_name 'DiscussionEntry'
+    graphql_name "DiscussionEntry"
 
     implements GraphQL::Types::Relay::Node
     implements Interfaces::TimestampInterface
@@ -42,6 +42,20 @@ module Types
     def message
       if object.deleted?
         nil
+      elsif object.message.include?("instructure_inline_media_comment")
+        load_association(:discussion_topic).then do |topic|
+          Loaders::ApiContentAttachmentLoader.for(topic.context).load(object.message).then do |preloaded_attachments|
+            GraphQLHelpers::UserContent.process(
+              object.message,
+              context: topic.context,
+              in_app: true,
+              request: request,
+              preloaded_attachments: preloaded_attachments,
+              user: current_user,
+              options: { rewrite_api_urls: true }
+            )
+          end
+        end
       else
         object.message
       end
@@ -49,7 +63,7 @@ module Types
 
     field :preview_message, String, null: true
     def preview_message
-      object.deleted? ? nil : object.summary
+      object.deleted? ? nil : object.summary(ActiveRecord::Base.maximum_text_length)
     end
 
     field :quoted_entry, Types::DiscussionEntryType, null: true
@@ -58,14 +72,48 @@ module Types
         nil
       elsif object.include_reply_preview && Account.site_admin.feature_enabled?(:isolated_view)
         load_association(:parent_entry)
-      else
-        nil
       end
     end
 
-    field :author, Types::UserType, null: false
-    def author
-      load_association(:user)
+    field :author, Types::UserType, null: true do
+      argument :course_id, String, required: false
+      argument :role_types, [String], "Return only requested base role types", required: false
+      argument :built_in_only, Boolean, "Only return default/built_in roles", required: false
+    end
+    def author(course_id: nil, role_types: nil, built_in_only: false)
+      load_association(:discussion_topic).then do |topic|
+        if topic.anonymous? && object.is_anonymous_author
+          nil
+        else
+          load_association(:user).then do |user|
+            if !topic.anonymous? || !user
+              user
+            else
+              course_id = topic.course.id if course_id.nil?
+              Loaders::CourseRoleLoader.for(course_id: course_id, role_types: role_types, built_in_only: built_in_only).load(user).then do |roles|
+                if roles&.include?("TeacherEnrollment") || roles&.include?("TaEnrollment") || roles&.include?("DesignerEnrollment") || (topic.anonymous_state == "partial_anonymity" && !object.is_anonymous_author)
+                  user
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+
+    field :anonymous_author, Types::AnonymousUserType, null: true
+    def anonymous_author
+      load_association(:discussion_topic).then do |topic|
+        if topic.anonymous_state == "full_anonymity" || (topic.anonymous_state == "partial_anonymity" && object.is_anonymous_author)
+          Loaders::DiscussionTopicParticipantLoader.for(topic.id).load(object.user_id).then do |participant|
+            {
+              id: participant.id.to_s(36),
+              short_name: object.user_id == current_user.id ? "current_user" : participant.id.to_s(36),
+              avatar_url: nil
+            }
+          end
+        end
+      end
     end
 
     field :deleted, Boolean, null: true
@@ -73,9 +121,29 @@ module Types
       object.deleted?
     end
 
-    field :editor, Types::UserType, null: true
-    def editor
-      load_association(:editor)
+    field :editor, Types::UserType, null: true do
+      argument :course_id, String, required: false
+      argument :role_types, [String], "Return only requested base role types", required: false
+      argument :built_in_only, Boolean, "Only return default/built_in roles", required: false
+    end
+    def editor(course_id: nil, role_types: nil, built_in_only: false)
+      load_association(:discussion_topic).then do |topic|
+        if topic.anonymous? && !course_id
+          nil
+        else
+          load_association(:editor).then do |user|
+            if !topic.anonymous? || !user
+              user
+            else
+              Loaders::CourseRoleLoader.for(course_id: course_id, role_types: role_types, built_in_only: built_in_only).load(user).then do |roles|
+                if roles&.include?("TeacherEnrollment") || roles&.include?("TaEnrollment") || roles&.include?("DesignerEnrollment") || (topic.anonymous_state == "partial_anonymity" && !object.is_anonymous_author)
+                  user
+                end
+              end
+            end
+          end
+        end
+      end
     end
 
     field :root_entry_participant_counts, Types::DiscussionEntryCountsType, null: true

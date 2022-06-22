@@ -16,13 +16,13 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import {isValidDeepLinkingEvent} from '../DeepLinking'
+import {isValidDeepLinkingEvent, handleDeepLinking} from '../DeepLinking'
 
 describe('isValidDeepLinkingEvent', () => {
   let data, event, env, parameters
 
   beforeEach(() => {
-    event = {data: {messageType: 'LtiDeepLinkingResponse'}, origin: 'canvas.instructure.com'}
+    event = {data: {subject: 'LtiDeepLinkingResponse'}, origin: 'canvas.instructure.com'}
     env = {DEEP_LINKING_POST_MESSAGE_ORIGIN: 'canvas.instructure.com'}
     parameters = [event, env]
   })
@@ -55,14 +55,65 @@ describe('isValidDeepLinkingEvent', () => {
     })
   })
 
-  describe('when the messageType is incorrect', () => {
+  describe('when the subject is incorrect', () => {
     beforeEach(() => {
-      event = {data: {messageType: 'WrongMessageType'}, origin: 'canvas.instructure.com'}
+      event = {data: {subject: 'WrongMessageType'}, origin: 'canvas.instructure.com'}
       parameters = [event, env]
     })
 
     it('return false', () => {
       expect(subject()).toEqual(false)
+    })
+  })
+})
+
+describe('handleDeepLinking', () => {
+  const content_items = [
+    {
+      type: 'link',
+      title: 'title',
+      url: 'http://www.tool.com'
+    }
+  ]
+
+  const event = overrides => ({
+    origin: 'http://www.test.com',
+    data: {subject: 'LtiDeepLinkingResponse', content_items},
+    ...overrides
+  })
+
+  let env
+
+  beforeAll(() => {
+    env = window.ENV
+
+    window.ENV = {
+      DEEP_LINKING_POST_MESSAGE_ORIGIN: 'http://www.test.com'
+    }
+  })
+
+  afterAll(() => {
+    window.ENV = env
+  })
+
+  it('passes event to callback', async () => {
+    const callback = jest.fn()
+    const ev = event()
+    await handleDeepLinking(callback)(ev)
+
+    expect(callback).toHaveBeenCalledWith(ev)
+  })
+
+  describe('when the event is invalid', () => {
+    const overrides = {
+      origin: 'http://bad.origin.com'
+    }
+
+    it('does not pass event to callback', async () => {
+      const callback = jest.fn()
+      await handleDeepLinking(callback)(event(overrides))
+
+      expect(callback).not.toHaveBeenCalled()
     })
   })
 })

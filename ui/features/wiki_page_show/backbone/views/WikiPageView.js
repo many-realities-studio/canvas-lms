@@ -27,13 +27,15 @@ import StickyHeaderMixin from '@canvas/wiki/backbone/views/StickyHeaderMixin.cof
 import WikiPageDeleteDialog from '@canvas/wiki/backbone/views/WikiPageDeleteDialog'
 import WikiPageReloadView from '@canvas/wiki/backbone/views/WikiPageReloadView'
 import PublishButtonView from '@canvas/publish-button-view'
-import I18n from 'i18n!pages'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import htmlEscape from 'html-escape'
 import {publish} from 'jquery-tinypubsub'
 import '@canvas/modules/jquery/prerequisites_lookup'
 import '../../jquery/content_locks'
 import DirectShareUserModal from '@canvas/direct-sharing/react/components/DirectShareUserModal'
 import DirectShareCourseTray from '@canvas/direct-sharing/react/components/DirectShareCourseTray'
+
+const I18n = useI18nScope('pages')
 
 export default class WikiPageView extends Backbone.View {
   static initClass() {
@@ -114,9 +116,12 @@ export default class WikiPageView extends Backbone.View {
       'immersive_reader_mobile_mount_point'
     )
     if (immersive_reader_mount_point || immersive_reader_mobile_mount_point) {
-      import('../../../../shared/immersive-reader/ImmersiveReader')
+      import(
+        /* webpackChunkName: "[request]" */
+        '@canvas/immersive-reader/ImmersiveReader'
+      )
         .then(ImmersiveReader => {
-          const content = document.querySelector('.show-content').innerHTML
+          const content = () => document.querySelector('.show-content').innerHTML
           const title = document.querySelector('.page-title').textContent
 
           if (immersive_reader_mount_point) {
@@ -135,6 +140,21 @@ export default class WikiPageView extends Backbone.View {
         })
     }
 
+    // Fixes issue when using anchors IDs scroll. Sometimes the browsers can't find the element
+    // due it is not loaded yet.
+    if (window.location?.hash !== '') {
+      window.location.href = window.location.hash
+    }
+
+    // Adds class if a LTI iframe is embed in content
+    const ltisEmbedded = $('.show-content iframe.lti-embed')
+    if (ltisEmbedded.length > 0) {
+      $('.show-content').addClass('lti-content')
+      ltisEmbedded.each(function () {
+        $(this).closest('p').addClass('lti-embed-container')
+      })
+    }
+
     // attach/re-attach the sequence footer (if this is a course, but not the home page)
     if (!this.$sequenceFooter && !this.course_home && !!this.course_id) {
       if (!this.$sequenceFooter) this.$sequenceFooter = $('<div></div>').hide()
@@ -144,7 +164,7 @@ export default class WikiPageView extends Backbone.View {
         assetID: this.model.get('url'),
         onFetchSuccess: () => {
           $('.module-sequence-footer-content').append($('#mark-as-done-container'))
-          $('#mark-as-done-container').css({'float': 'right', 'margin-right': '4px'})
+          $('#mark-as-done-container').css({float: 'right', 'margin-right': '4px'})
         }
       })
     } else if (this.$sequenceFooter != null) {

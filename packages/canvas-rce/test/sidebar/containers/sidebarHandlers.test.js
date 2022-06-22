@@ -72,11 +72,11 @@ describe('sidebarHandlers', () => {
   })
 
   it('ties images fetch initial images to store', () => {
-    testHandler('fetchInitialImages', images, 'fetchInitialImages')
+    testHandler('fetchInitialImages', images, 'fetchInitialImages', {category: 'uncategorized'})
   })
 
   it('ties images fetch next images to store', () => {
-    testHandler('fetchNextImages', images, 'fetchNextImages')
+    testHandler('fetchNextImages', images, 'fetchNextImages', {category: 'uncategorized'})
   })
 
   it('ties upload preflight to store', () => {
@@ -97,8 +97,8 @@ describe('sidebarHandlers', () => {
     testHandler('toggleUploadForm', upload, 'openOrCloseUploadForm')
   })
 
-  it('ties button and icon uploads to store', () => {
-    testHandler('startButtonsAndIconsUpload', upload, 'uploadToButtonsAndIconsFolder', {})
+  it('ties icon maker uploads to store', () => {
+    testHandler('startIconMakerUpload', upload, 'uploadToIconMakerFolder', {}, undefined)
   })
 
   it('ties media upload to store', () => {

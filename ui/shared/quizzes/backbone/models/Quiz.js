@@ -22,10 +22,12 @@ import Assignment from '@canvas/assignments/backbone/models/Assignment.coffee'
 import DateGroup from '@canvas/date-group/backbone/models/DateGroup'
 import AssignmentOverrideCollection from '@canvas/assignments/backbone/collections/AssignmentOverrideCollection.coffee'
 import DateGroupCollection from '@canvas/date-group/backbone/collections/DateGroupCollection.coffee'
-import I18n from 'i18n!modelsQuiz'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import '@canvas/jquery/jquery.ajaxJSON'
 import '@canvas/jquery/jquery.instructure_misc_helpers'
 import PandaPubPoller from '@canvas/panda-pub-poller'
+
+const I18n = useI18nScope('modelsQuiz')
 
 export default class Quiz extends Backbone.Model {
   initialize() {
@@ -36,6 +38,7 @@ export default class Quiz extends Backbone.Model {
     this.lockAt = this.lockAt.bind(this)
     this.name = this.name.bind(this)
     this.htmlUrl = this.htmlUrl.bind(this)
+    this.buildUrl = this.buildUrl.bind(this)
     this.defaultDates = this.defaultDates.bind(this)
     this.multipleDueDates = this.multipleDueDates.bind(this)
     this.nonBaseDates = this.nonBaseDates.bind(this)
@@ -90,6 +93,7 @@ export default class Quiz extends Backbone.Model {
       this.set('base_url', this.get('html_url').replace(/(quizzes|assignments)\/\d+/, '$1'))
       this.set('url', this.url())
       this.set('edit_url', this.edit_url())
+      this.set('build_url', this.build_url())
       this.set('publish_url', this.publish_url())
       this.set('deletion_url', this.deletion_url())
       this.set('unpublish_url', this.unpublish_url())
@@ -150,6 +154,10 @@ export default class Quiz extends Backbone.Model {
     if (this.isQuizzesNext() && ENV.PERMISSIONS?.manage && ENV.FLAGS?.new_quizzes_modules_support) {
       return this.edit_url()
     }
+    return this.build_url()
+  }
+
+  build_url() {
     return `${this.get('base_url')}/${this.get('id')}`
   }
 
@@ -228,6 +236,10 @@ export default class Quiz extends Backbone.Model {
 
   htmlUrl() {
     return this.get('url')
+  }
+
+  buildUrl() {
+    return this.get('build_url')
   }
 
   destroy(options) {
@@ -369,6 +381,7 @@ export default class Quiz extends Backbone.Model {
   toView() {
     const fields = [
       'htmlUrl',
+      'buildUrl',
       'multipleDueDates',
       'nonBaseDates',
       'allDates',

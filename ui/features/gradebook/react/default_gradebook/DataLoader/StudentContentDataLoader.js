@@ -17,9 +17,11 @@
  */
 
 import {chunk} from 'lodash'
-import I18n from 'i18n!gradebook'
+import {useScope as useI18nScope} from '@canvas/i18n'
 
 import {showFlashAlert} from '@canvas/alerts/react/FlashAlert'
+
+const I18n = useI18nScope('gradebook')
 
 const submissionsParams = {
   exclude_response_fields: ['preview_url'],
@@ -27,6 +29,7 @@ const submissionsParams = {
   response_fields: [
     'assignment_id',
     'attachments',
+    'attempt',
     'cached_due_date',
     'entered_grade',
     'entered_score',
@@ -40,6 +43,7 @@ const submissionsParams = {
     'missing',
     'points_deducted',
     'posted_at',
+    'redo_request',
     'score',
     'seconds_late',
     'submission_type',
@@ -71,7 +75,7 @@ function getStudentsChunk(courseId, studentIds, options) {
   const params = {
     enrollment_state: ['active', 'completed', 'inactive', 'invited'],
     enrollment_type: ['student', 'student_view'],
-    include: ['avatar_url', 'enrollments', 'group_ids'],
+    include: ['avatar_url', 'enrollments', 'group_ids', 'last_name', 'first_name'],
     per_page: studentIds.length,
     user_ids: studentIds
   }

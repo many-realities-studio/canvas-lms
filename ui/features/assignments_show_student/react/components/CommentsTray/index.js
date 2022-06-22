@@ -16,7 +16,7 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 import {Assignment} from '@canvas/assignments/graphql/student/Assignment'
-import I18n from 'i18n!assignments_2'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import LoadingIndicator from '@canvas/loading-indicator'
 import {CloseButton} from '@instructure/ui-buttons'
 import {Flex} from '@instructure/ui-flex'
@@ -29,7 +29,15 @@ import {Tray} from '@instructure/ui-tray'
 import {Heading} from '@instructure/ui-heading'
 import {bool, func} from 'prop-types'
 
-const CommentsTrayBody = lazy(() => import('./CommentsTrayBody'))
+const I18n = useI18nScope('assignments_2')
+
+const CommentsTrayBody = lazy(() =>
+  import(
+    /* webpackChunkName: "CommentsTrayBody" */
+    /* webpackPrefetch: true */
+    './CommentsTrayBody'
+  )
+)
 
 function TrayContent(props) {
   // Case where this is backed by a submission draft, not a real submission, so

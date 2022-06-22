@@ -32,7 +32,9 @@ import {
   loadFutureItems,
   loadThisWeekItems,
   startLoadingAllOpportunities,
-  toggleMissingItems
+  toggleMissingItems,
+  reloadWithObservee,
+  getInitialOpportunities
 } from './actions'
 import {registerScrollEvents} from './utilities/scrollUtils'
 import {initialize as initializeAlerts} from './utilities/alertUtils'
@@ -49,7 +51,7 @@ const WeeklyPlannerHeader = React.lazy(() => import('./components/WeeklyPlannerH
 
 export * from './components'
 
-export {loadThisWeekItems, startLoadingAllOpportunities, toggleMissingItems}
+export {loadThisWeekItems, toggleMissingItems}
 
 export {responsiviser}
 
@@ -175,61 +177,65 @@ function initializeCourseAndGroupColors(options) {
 // changeDashboardView,         <optional - method to change the current dashboard>
 // forCourse,                   <optional - course id if this is a sidebar for a specific course page>
 let initializedOptions = null
-export function initializePlanner(options) {
-  return new Promise(resolve => {
-    if (initializedOptions) throw new Error('initializePlanner may not be called more than once')
+export async function initializePlanner(options) {
+  await i18n.init(options.env.LOCALE)
+  return new Promise((resolve, reject) => {
+    try {
+      if (initializedOptions) throw new Error('initializePlanner may not be called more than once')
 
-    options = mergeDefaultOptions(options)
+      options = mergeDefaultOptions(options)
 
-    if (!(options.env.MOMENT_LOCALE && options.env.TIMEZONE)) {
-      throw new Error(
-        'env.MOMENT_LOCALE and env.TIMEZONE are required options for initializePlanner'
-      )
+      if (!(options.env.MOMENT_LOCALE && options.env.TIMEZONE)) {
+        throw new Error(
+          'env.MOMENT_LOCALE and env.TIMEZONE are required options for initializePlanner'
+        )
+      }
+
+      const {flashError, flashMessage, srFlashMessage} = options
+      if (!(flashError && flashMessage && srFlashMessage)) {
+        throw new Error('flash message callbacks are required options for initializePlanner')
+      }
+
+      if (!options.convertApiUserContent) {
+        throw new Error('convertApiUserContent is a required option for initializePlanner')
+      }
+
+      externalPlannerActive = () => options.getActiveApp() === 'planner'
+
+      moment.locale(options.env.MOMENT_LOCALE)
+      moment.tz.setDefault(options.env.TIMEZONE)
+      initializeAlerts({
+        visualSuccessCallback: flashMessage,
+        visualErrorCallback: flashError,
+        srAlertCallback: srFlashMessage
+      })
+      initializeContent(options)
+      initializeDateTimeFormatters(options.dateTimeFormatters)
+
+      options.plannerNewActivityButtonId = plannerNewActivityButtonId
+      if (options.env.K5_USER || options.env.K5_SUBJECT_COURSE) {
+        dynamicUiManager.setOffsetElementIds(weeklyPlannerHeaderId, null)
+      } else {
+        dynamicUiManager.setOffsetElementIds(plannerHeaderId, plannerNewActivityButtonId)
+      }
+
+      if (options.externalFallbackFocusable) {
+        dynamicUiManager.registerAnimatable(
+          'item',
+          externalFocusableWrapper(options.externalFallbackFocusable),
+          -1,
+          [specialFallbackFocusId('item')]
+        )
+      }
+
+      initializeCourseAndGroupColors(options)
+
+      initializedOptions = options
+      store.dispatch(initialOptions(options))
+      resolve(initializedOptions)
+    } catch (err) {
+      reject(err)
     }
-
-    const {flashError, flashMessage, srFlashMessage} = options
-    if (!(flashError && flashMessage && srFlashMessage)) {
-      throw new Error('flash message callbacks are required options for initializePlanner')
-    }
-
-    if (!options.convertApiUserContent) {
-      throw new Error('convertApiUserContent is a required option for initializePlanner')
-    }
-
-    externalPlannerActive = () => options.getActiveApp() === 'planner'
-
-    i18n.init(options.env.MOMENT_LOCALE)
-    moment.locale(options.env.MOMENT_LOCALE)
-    moment.tz.setDefault(options.env.TIMEZONE)
-    initializeAlerts({
-      visualSuccessCallback: flashMessage,
-      visualErrorCallback: flashError,
-      srAlertCallback: srFlashMessage
-    })
-    initializeContent(options)
-    initializeDateTimeFormatters(options.dateTimeFormatters)
-
-    options.plannerNewActivityButtonId = plannerNewActivityButtonId
-    if (options.env.K5_USER || options.env.K5_SUBJECT_COURSE) {
-      dynamicUiManager.setOffsetElementIds(weeklyPlannerHeaderId, null)
-    } else {
-      dynamicUiManager.setOffsetElementIds(plannerHeaderId, plannerNewActivityButtonId)
-    }
-
-    if (options.externalFallbackFocusable) {
-      dynamicUiManager.registerAnimatable(
-        'item',
-        externalFocusableWrapper(options.externalFallbackFocusable),
-        -1,
-        [specialFallbackFocusId('item')]
-      )
-    }
-
-    initializeCourseAndGroupColors(options)
-
-    initializedOptions = options
-    store.dispatch(initialOptions(options))
-    resolve(initializedOptions)
   })
 }
 
@@ -244,15 +250,27 @@ function loading() {
 export function createPlannerApp() {
   if (!store.getState().weeklyDashboard) {
     // disable load on scroll for weekly dashboard
-    registerScrollEvents({
-      scrollIntoPast: handleScrollIntoPastAttempt,
-      scrollIntoFuture: handleScrollIntoFutureAttempt,
-      scrollPositionChange: pos => dynamicUiManager.handleScrollPositionChange(pos)
-    })
+    if (!createPlannerApp.scrollEventsRegistered) {
+      // register events only once
+      registerScrollEvents({
+        scrollIntoPast: handleScrollIntoPastAttempt,
+        scrollIntoFuture: handleScrollIntoFutureAttempt,
+        scrollPositionChange: pos => dynamicUiManager.handleScrollPositionChange(pos)
+      })
+      createPlannerApp.scrollEventsRegistered = true
+    }
 
-    store.dispatch(getPlannerItems(moment.tz(initializedOptions.env.timeZone).startOf('day')))
+    store
+      .dispatch(getPlannerItems(moment.tz(initializedOptions.env.timeZone).startOf('day')))
+      .then(() => {
+        store.dispatch(getInitialOpportunities())
+      })
   } else {
-    store.dispatch(getWeeklyPlannerItems(moment.tz(initializedOptions.env.timeZone).startOf('day')))
+    store
+      .dispatch(getWeeklyPlannerItems(moment.tz(initializedOptions.env.timeZone).startOf('day')))
+      .then(() => {
+        store.dispatch(startLoadingAllOpportunities())
+      })
   }
 
   return (
@@ -273,6 +291,7 @@ export function createPlannerApp() {
     </DynamicUiProvider>
   )
 }
+createPlannerApp.scrollEventsRegistered = false
 
 function renderApp(element) {
   ReactDOM.render(createPlannerApp(), element)
@@ -313,7 +332,6 @@ export function renderToDoSidebar(element) {
     <Provider store={store}>
       <Suspense fallback={loading()}>
         <ToDoSidebar
-          courses={env.STUDENT_PLANNER_COURSES}
           timeZone={env.TIMEZONE}
           locale={env.MOMENT_LOCALE}
           changeDashboardView={initializedOptions.changeDashboardView}
@@ -362,5 +380,23 @@ export function preloadInitialItems() {
 
   if (store.getState().weeklyDashboard) {
     store.dispatch(preloadSurroundingWeeks())
+  }
+}
+
+// Call with student id to load planner scoped to
+// one of an observer's students
+export function reloadPlannerForObserver(newObserveeId) {
+  if (!initializedOptions)
+    throw new Error('initializePlanner must be called before reloadPlannerForObserver')
+
+  // if observer is observing themselves, then we're not really observing
+  const observeeId =
+    !newObserveeId || newObserveeId === store.getState().currentUser.id ? null : newObserveeId
+
+  if (
+    observeeId !== store.getState().selectedObservee &&
+    (store.getState().weeklyDashboard || ENV.FEATURES.observer_picker)
+  ) {
+    store.dispatch(reloadWithObservee(observeeId))
   }
 }

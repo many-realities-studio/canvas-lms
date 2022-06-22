@@ -32,17 +32,54 @@ const optionsList = {
     second: 'numeric',
     timeZoneName: 'short'
   },
+  'time.formats.medium': {
+    // ddd, D MMM YYYY HH:mma
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric'
+  },
+  'time.formats.short': {
+    // ddd, D MMM HH:mma
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric'
+  },
+  'date.formats.full': {
+    // MMM D, YYYY h:mma
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric'
+  },
   'date.formats.date_at_time': {
     // MMM D [at] h:mma
-    name: 'date.formats.date_at_time',
     dateStyle: 'long',
     timeStyle: 'short'
+  },
+  'date.formats.long': {
+    // MMM D, YYYY
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric'
   },
   'date.formats.long_with_weekday': {
     // dddd, MMMM D
     weekday: 'long',
     month: 'long',
     day: 'numeric'
+  },
+  'date.formats.full_with_weekday': {
+    // MMM D, YYYY h:mma
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric'
   },
   'date.formats.medium_with_weekday': {
     // ddd MMM D, YYYY
@@ -61,6 +98,17 @@ const optionsList = {
     // MMM D
     month: 'short',
     day: 'numeric'
+  },
+  'date.formats.full_compact': {
+    // M/D/YY, H:M a
+    dateStyle: 'short',
+    timeStyle: 'short'
+  },
+  'date.formats.compact': {
+    // MM/DD/YYYY
+    day: 'numeric',
+    month: 'numeric',
+    year: 'numeric'
   }
 }
 
@@ -69,6 +117,7 @@ Object.freeze(optionsList)
 
 export default function useDateTimeFormat(formatName, timeZone, locale) {
   locale = locale || ENV?.LOCALE || navigator.language
+  if (locale === 'fr-CA') locale = 'fr-QB' // Français québécois time formatting is more like we want
   timeZone = timeZone || ENV?.TIMEZONE || Intl.DateTimeFormat().resolvedOptions().timeZone
 
   const formatter = useMemo(() => {
@@ -77,7 +126,15 @@ export default function useDateTimeFormat(formatName, timeZone, locale) {
   }, [formatName, locale, timeZone])
 
   return useCallback(
-    date => formatter.format(date instanceof Date ? date : new Date(date)),
+    date => {
+      try {
+        if (date === null) return ''
+        return formatter.format(date instanceof Date ? date : new Date(date))
+      } catch (e) {
+        if (e instanceof RangeError) return ''
+        throw e
+      }
+    },
     [formatter]
   )
 }

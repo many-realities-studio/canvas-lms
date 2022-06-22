@@ -37,8 +37,8 @@ class CourseForMenuPresenter
   def to_h
     position = @user.dashboard_positions[course.asset_string]
 
-    observee = if course.primary_enrollment_type == 'ObserverEnrollment'
-                 ObserverEnrollment.observed_students(course, @user)&.keys&.map(&:name).join(', ')
+    observee = if course.primary_enrollment_type == "ObserverEnrollment"
+                 ObserverEnrollment.observed_students(course, @user)&.keys&.map(&:name)&.join(", ")
                end
 
     {
@@ -57,7 +57,7 @@ class CourseForMenuPresenter
       isFavorited: course.favorite_for_user?(@user),
       isK5Subject: course.elementary_subject_course?,
       isHomeroom: course.homeroom_course,
-      canManage: course.grants_right?(@user, :manage_content),
+      canManage: course.grants_any_right?(@user, :manage_content, :manage_course_content_edit),
       canReadAnnouncements: course.grants_right?(@user, :read_announcements),
       image: course.image,
       color: course.elementary_enabled? ? course.course_color : nil,
@@ -90,12 +90,12 @@ class CourseForMenuPresenter
   private
 
   def subtitle
-    label = if course.primary_enrollment_state == 'invited'
-              before_label('#shared.menu_enrollment.labels.invited_as', 'invited as')
+    label = if course.primary_enrollment_state == "invited"
+              before_label("#shared.menu_enrollment.labels.invited_as", "invited as")
             else
-              before_label('#shared.menu_enrollment.labels.enrolled_as', 'enrolled as')
+              before_label("#shared.menu_enrollment.labels.enrolled_as", "enrolled as")
             end
-    [label, course.primary_enrollment_role.try(:label)].join(' ')
+    [label, course.primary_enrollment_role.try(:label)].join(" ")
   end
 
   def term

@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-import I18n from 'i18n!permissions'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import {createActions} from 'redux-actions'
 import $ from 'jquery'
 import {ALL_ROLES_VALUE} from '@canvas/permissions/react/propTypes'
@@ -23,6 +23,8 @@ import {ALL_ROLES_VALUE} from '@canvas/permissions/react/propTypes'
 import * as apiClient from './apiClient'
 
 import {showFlashError, showFlashSuccess} from '@canvas/alerts/react/FlashAlert'
+
+const I18n = useI18nScope('permissions')
 
 const types = [
   'ADD_NEW_ROLE',
@@ -68,7 +70,7 @@ actions.searchPermissions = function searchPermissions({permissionSearchString, 
   }
 }
 
-actions.createNewRole = function(label, baseRole, context) {
+actions.createNewRole = function (label, baseRole, context) {
   return (dispatch, getState) => {
     dispatch(actions.addTraySavingStart())
     const roleContext = context
@@ -94,7 +96,7 @@ actions.createNewRole = function(label, baseRole, context) {
   }
 }
 
-actions.updateRoleName = function(id, label, baseType) {
+actions.updateRoleName = function (id, label, baseType) {
   return (dispatch, getState) => {
     apiClient
       .updateRole(getState().contextId, id, {label, base_role_type: baseType})
@@ -107,21 +109,21 @@ actions.updateRoleName = function(id, label, baseType) {
   }
 }
 
-actions.setAndOpenRoleTray = function(role) {
+actions.setAndOpenRoleTray = function (role) {
   return dispatch => {
     dispatch(actions.hideAllTrays())
     dispatch(actions.displayRoleTray({role}))
   }
 }
 
-actions.setAndOpenAddTray = function() {
+actions.setAndOpenAddTray = function () {
   return dispatch => {
     dispatch(actions.hideAllTrays())
     dispatch(actions.displayAddTray())
   }
 }
 
-actions.setAndOpenPermissionTray = function(permission) {
+actions.setAndOpenPermissionTray = function (permission) {
   return dispatch => {
     dispatch(actions.hideAllTrays())
     dispatch(actions.displayPermissionTray({permission}))
@@ -176,7 +178,7 @@ actions.modifyPermissions = function modifyPermissions({
   }
 }
 
-actions.deleteRole = function(role, successCallback, failCallback) {
+actions.deleteRole = function (role, successCallback, failCallback) {
   return (dispatch, getState) => {
     const selectedRoles = getState().selectedRoles
     apiClient

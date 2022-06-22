@@ -16,10 +16,27 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+import {render} from '@testing-library/react'
+
 import sampleData from './sampleData.json'
 import * as util from '../util'
 
+const DEFAULT_ENV = {
+  PRODUCTION: true,
+  ACCOUNT: {
+    site_admin: true
+  }
+}
+
 describe('feature_flags:util', () => {
+  beforeEach(() => {
+    global.ENV = DEFAULT_ENV
+  })
+
+  afterEach(() => {
+    global.ENV = {}
+  })
+
   describe('buildTransitions', () => {
     it('generates the right things for allowed, allowsDefaults', () => {
       expect(util.buildTransitions(sampleData.allowedFeature.feature_flag, true)).toEqual(
@@ -89,6 +106,56 @@ describe('feature_flags:util', () => {
         false
       )
       expect(util.doesAllowDefaults(sampleData.allowedOnCourseFeature.feature_flag)).toBe(false)
+    })
+  })
+
+  describe('transitionMessage', () => {
+    it('generates message with warning if flipping a siteadmin flag in anything except development', () => {
+      global.ENV.RAILS_ENVIRONMENT = 'test-env'
+      global.ENV.ACCOUNT.site_admin = true
+      const message = util.transitionMessage(sampleData.offFeature.feature_flag, 'on')
+      const {getByText} = render(message)
+      expect(
+        getByText(
+          'You are currently in the test-env environment. This will affect every customer. Are you sure?'
+        )
+      ).toBeInTheDocument()
+    })
+
+    it('does not return a message for siteadmin accounts in development', () => {
+      global.ENV.RAILS_ENVIRONMENT = 'development'
+      global.ENV.ACCOUNT.site_admin = true
+      const message = util.transitionMessage(sampleData.offFeature.feature_flag, 'on')
+      const {queryByText} = render(message)
+      expect(
+        queryByText(
+          'You are currently in the development environment. This will affect every customer. Are you sure?'
+        )
+      ).not.toBeInTheDocument()
+    })
+
+    it('does not return a message for non-siteadmin accounts in anything except development', () => {
+      global.ENV.RAILS_ENVIRONMENT = 'test-env'
+      global.ENV.ACCOUNT.site_admin = false
+      const message = util.transitionMessage(sampleData.offFeature.feature_flag, 'on')
+      const {queryByText} = render(message)
+      expect(
+        queryByText(
+          'You are currently in the test-env environment. This will affect every customer. Are you sure?'
+        )
+      ).not.toBeInTheDocument()
+    })
+
+    it('does not return a message for non-siteadmin accounts in development', () => {
+      global.ENV.RAILS_ENVIRONMENT = 'development'
+      global.ENV.ACCOUNT.site_admin = false
+      const message = util.transitionMessage(sampleData.offFeature.feature_flag, 'on')
+      const {queryByText} = render(message)
+      expect(
+        queryByText(
+          'You are currently in the development environment. This will affect every customer. Are you sure?'
+        )
+      ).not.toBeInTheDocument()
     })
   })
 })

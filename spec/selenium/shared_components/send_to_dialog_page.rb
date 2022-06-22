@@ -17,13 +17,17 @@
 # You should have received a copy of the GNU Affero General Public License along
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 
-require_relative '../common'
+require_relative "../common"
 
 module SendToDialogPage
   # ------------------------------ Selectors -----------------------------
 
   def send_to_dialog_css_selector
     "[role='dialog'][aria-label='Send To...']"
+  end
+
+  def user_search_selector
+    "input[placeholder='Begin typing to search']"
   end
 
   # ------------------------------ Elements ------------------------------
@@ -33,7 +37,7 @@ module SendToDialogPage
   end
 
   def user_search
-    f("input[placeholder='Begin typing to search']")
+    f(user_search_selector)
   end
 
   def user_dropdown(user_name)

@@ -18,20 +18,19 @@
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-require 'account_reports/report_helper'
-
 module AccountReports
   class OutcomeExport
     include ReportHelper
+    include Outcomes::OutcomeFriendlyDescriptionResolver
 
     def initialize(account_report)
       @account_report = account_report
       include_deleted_objects
     end
 
-    NO_SCORE_HEADERS = %w(vendor_guid object_type title description display_name parent_guids workflow_state).freeze
-    OUTCOME_EXPORT_SCALAR_HEADERS = %w(vendor_guid object_type title description display_name calculation_method calculation_int parent_guids workflow_state mastery_points).freeze
-    OUTCOME_EXPORT_HEADERS = (OUTCOME_EXPORT_SCALAR_HEADERS + ['ratings']).freeze
+    NO_SCORE_HEADERS = %w[vendor_guid object_type title description friendly_description display_name parent_guids workflow_state].freeze
+    OUTCOME_EXPORT_SCALAR_HEADERS = %w[vendor_guid object_type title description friendly_description display_name calculation_method calculation_int parent_guids workflow_state mastery_points].freeze
+    OUTCOME_EXPORT_HEADERS = (OUTCOME_EXPORT_SCALAR_HEADERS + ["ratings"]).freeze
 
     def outcome_export
       enable_i18n_features = true
@@ -50,7 +49,7 @@ module AccountReports
 
     private
 
-    def vendor_guid_field(table, prefix: 'canvas_outcome_group')
+    def vendor_guid_field(table, prefix: "canvas_outcome_group")
       "COALESCE(
         #{table}.vendor_guid,
         CONCAT('#{prefix}:', #{table}.id)
@@ -58,13 +57,13 @@ module AccountReports
     end
 
     def outcome_group_scope
-      LearningOutcomeGroup.connection.execute(<<~SQL)
+      LearningOutcomeGroup.connection.execute(<<~SQL.squish)
         WITH RECURSIVE outcome_tree AS (
           SELECT
             root_group.id,
             root_group.learning_outcome_group_id,
             root_group.workflow_state,
-            #{vendor_guid_field('root_group')} AS vendor_guid,
+            #{vendor_guid_field("root_group")} AS vendor_guid,
             CAST('' AS bpchar) AS parent_guid,
             root_group.description,
             root_group.title,
@@ -79,7 +78,7 @@ module AccountReports
             child_group.id,
             child_group.learning_outcome_group_id,
             child_group.workflow_state,
-            #{vendor_guid_field('child_group')} AS vendor_guid,
+            #{vendor_guid_field("child_group")} AS vendor_guid,
             ot.vendor_guid AS parent_guid,
             child_group.description,
             child_group.title,
@@ -100,7 +99,7 @@ module AccountReports
 
     def export_outcome_groups(csv, headers)
       outcome_group_scope.each do |row|
-        row['object_type'] = 'group'
+        row["object_type"] = "group"
         csv << headers.map { |h| row[h] }
       end
     end
@@ -108,27 +107,27 @@ module AccountReports
     def simple_outcome_scope
       ContentTag.active.where(
         context: account,
-        tag_type: 'learning_outcome_association'
+        tag_type: "learning_outcome_association"
       ).joins(:learning_outcome_content).preload(:learning_outcome_content)
     end
 
     def outcome_scope
-      simple_outcome_scope.joins(<<~SQL).
+      simple_outcome_scope.joins(<<~SQL.squish)
         JOIN #{LearningOutcomeGroup.quoted_table_name} learning_outcome_groups
         ON learning_outcome_groups.id = content_tags.associated_asset_id
       SQL
-        where("learning_outcomes.workflow_state <> 'deleted'")
-                          .order('learning_outcomes.id')
-                          .group('learning_outcomes.id')
-                          .group('content_tags.content_id')
-                          .select(<<~SQL)
+                          .where("learning_outcomes.workflow_state <> 'deleted'")
+                          .order("learning_outcomes.id")
+                          .group("learning_outcomes.id")
+                          .group("content_tags.content_id")
+                          .select(<<~SQL.squish)
                             content_tags.content_id,
                             learning_outcomes.*,
-                            #{vendor_guid_field('learning_outcomes', prefix: 'canvas_outcome')} AS vendor_guid,
+                            #{vendor_guid_field("learning_outcomes", prefix: "canvas_outcome")} AS vendor_guid,
                             learning_outcomes.short_description AS title,
                             STRING_AGG(
                               CASE WHEN learning_outcome_groups.learning_outcome_group_id IS NULL THEN NULL
-                                   ELSE #{vendor_guid_field('learning_outcome_groups')}
+                                   ELSE #{vendor_guid_field("learning_outcome_groups")}
                                    END,
                               ' ' ORDER BY learning_outcome_groups.id
                             ) AS parent_guids
@@ -137,12 +136,15 @@ module AccountReports
 
     def export_outcomes(csv, headers, include_ratings)
       I18n.locale = account.default_locale if account.default_locale.present?
-      outcome_scope.find_each do |row|
+      outcomes = outcome_scope
+      friendly_descriptions = resolve_friendly_descriptions(account, nil, outcomes.map(&:id)).map { |description| [description.learning_outcome_id, description.description] }.to_h
+      outcomes.find_each do |row|
         outcome_model = row.learning_outcome_content
         outcome = row.attributes.dup
-        outcome['object_type'] = 'outcome'
+        outcome["object_type"] = "outcome"
         criterion = outcome_model.rubric_criterion
-        outcome['mastery_points'] = I18n.n(criterion[:mastery_points])
+        outcome["mastery_points"] = I18n.n(criterion[:mastery_points])
+        outcome["friendly_description"] = friendly_descriptions[row.id]
         csv_row = headers.map { |h| outcome[h] }
         ratings = criterion[:ratings]
         if ratings.present? && include_ratings

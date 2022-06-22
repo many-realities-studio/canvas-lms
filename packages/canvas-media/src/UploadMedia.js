@@ -18,6 +18,7 @@
 import {arrayOf, bool, func, instanceOf, shape, string} from 'prop-types'
 import React, {Suspense} from 'react'
 import ReactDOM from 'react-dom'
+import {isEqual} from 'lodash'
 
 import {Button, CloseButton} from '@instructure/ui-buttons'
 import {Heading} from '@instructure/ui-heading'
@@ -27,6 +28,10 @@ import {px} from '@instructure/ui-utils'
 import {ProgressBar} from '@instructure/ui-progress'
 import {Text} from '@instructure/ui-text'
 
+import {
+  RCS_MAX_BODY_SIZE,
+  RCS_REQUEST_SIZE_BUFFER
+} from '@instructure/canvas-rce/src/rce/plugins/shared/Upload/constants'
 import {ACCEPTED_FILE_TYPES} from './acceptedMediaFileTypes'
 import LoadingIndicator from './shared/LoadingIndicator'
 import saveMediaRecording, {saveClosedCaptions} from './saveMediaRecording'
@@ -76,12 +81,8 @@ export default class UploadMedia extends React.Component {
   constructor(props) {
     super(props)
 
-    let defaultSelectedPanel = -1
-    if (props.tabs.upload) {
-      defaultSelectedPanel = 0
-    } else if (props.tabs.record) {
-      defaultSelectedPanel = 1
-    }
+    const defaultSelectedPanel = this.inferSelectedPanel(props.tabs)
+
     if (props.computerFile) {
       props.computerFile.title = props.computerFile.name
     }
@@ -98,6 +99,18 @@ export default class UploadMedia extends React.Component {
     }
 
     this.modalBodyRef = React.createRef()
+  }
+
+  inferSelectedPanel = tabs => {
+    let selectedPanel = -1
+
+    if (tabs.upload) {
+      selectedPanel = 0
+    } else if (tabs.record) {
+      selectedPanel = 1
+    }
+
+    return selectedPanel
   }
 
   isReady = () => {
@@ -140,6 +153,7 @@ export default class UploadMedia extends React.Component {
   uploadFile(file) {
     this.setState({uploading: true}, () => {
       this.props.onStartUpload && this.props.onStartUpload(file)
+      file.userEnteredTitle = file.title
       saveMediaRecording(
         file,
         this.props.rcsConfig,
@@ -158,14 +172,16 @@ export default class UploadMedia extends React.Component {
       this.props.onUploadComplete && this.props.onUploadComplete(err, data)
     } else {
       try {
+        let captions
         if (this.state.selectedPanel === PANELS.COMPUTER && this.state.subtitles.length > 0) {
-          await saveClosedCaptions(
+          captions = await saveClosedCaptions(
             data.mediaObject.media_object.media_id,
             this.state.subtitles,
-            this.props.rcsConfig
+            this.props.rcsConfig,
+            RCS_MAX_BODY_SIZE - RCS_REQUEST_SIZE_BUFFER
           )
         }
-        this.props.onUploadComplete && this.props.onUploadComplete(null, data)
+        this.props.onUploadComplete && this.props.onUploadComplete(null, data, captions?.data)
       } catch (ex) {
         this.props.onUploadComplete && this.props.onUploadComplete(ex, null)
       }
@@ -177,8 +193,20 @@ export default class UploadMedia extends React.Component {
     this.setBodySize(this.state)
   }
 
-  componentDidUpdate(_prevProps, prevState) {
+  componentDidUpdate(prevProps, prevState) {
     this.setBodySize(prevState)
+
+    // If the specified tabs have not changed, don't attempt
+    // to set the selected panel state (this would trigger
+    // and endless loop).
+    if (isEqual(prevProps.tabs, this.props.tabs)) return
+
+    if (prevState.selectedPanel === -1) {
+      // The tabs prop has changed and the selectedPanel was
+      // never set in the constructor. Attempt to infer the
+      // selected panel based on the new tabs list
+      this.setState({selectedPanel: this.inferSelectedPanel(this.props.tabs)})
+    }
   }
 
   setBodySize(state) {
@@ -206,6 +234,10 @@ export default class UploadMedia extends React.Component {
       RECORD_PANEL_TITLE,
       MEDIA_RECORD_NOT_AVAILABLE
     } = this.props.uploadMediaTranslations.UploadMediaStrings
+
+    if (!this.props.open) {
+      return null
+    }
 
     return (
       <Tabs

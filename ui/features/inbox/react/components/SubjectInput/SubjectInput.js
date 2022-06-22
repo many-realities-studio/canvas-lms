@@ -16,14 +16,16 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import {ComposeInputWrapper} from '../../ComposeInputWrapper/ComposeInputWrapper'
-import I18n from 'i18n!conversations_2'
+import {ComposeInputWrapper} from '../ComposeInputWrapper/ComposeInputWrapper'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import PropTypes from 'prop-types'
 import React from 'react'
 
 import {PresentationContent, ScreenReaderContent} from '@instructure/ui-a11y-content'
 import {Text} from '@instructure/ui-text'
 import {TextInput} from '@instructure/ui-text-input'
+
+const I18n = useI18nScope('conversations_2')
 
 export const SubjectInput = ({value, onChange, onBlur, onFocus}) => {
   return (
@@ -37,7 +39,7 @@ export const SubjectInput = ({value, onChange, onBlur, onFocus}) => {
         <TextInput
           data-testid="subject-input"
           renderLabel={<ScreenReaderContent>{I18n.t('Subject')}</ScreenReaderContent>}
-          placeholder={I18n.t('No Subject')}
+          placeholder={I18n.t('Insert Subject')}
           value={value}
           width="100%"
           onChange={onChange}

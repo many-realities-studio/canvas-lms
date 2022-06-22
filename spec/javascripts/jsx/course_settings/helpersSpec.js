@@ -16,7 +16,7 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import Helpers from 'ui/features/course_settings/react/helpers.js'
+import Helpers from 'ui/features/course_settings/react/helpers'
 
 QUnit.module('Course Settings Helpers')
 

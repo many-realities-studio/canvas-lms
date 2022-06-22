@@ -30,14 +30,30 @@ react_discussions_post:
       in the Canvas Community
   applies_to: Course
 
-isolated_view:
+draft_discussions:
   state: hidden
   beta: true
+  display_name: Draft Discussion Entries
+  description: |-
+    Will allow for saving drafts as students type their replies to a discussion topic
+    in the discussions redesign
+  applies_to: SiteAdmin
+
+isolated_view:
+  state: hidden
   display_name: Discussions Redesign - Isolated View
   description: |-
     This feature flag enables Isolated View inside the new
     Discussions Redesign work.
   applies_to: SiteAdmin
+
+discussion_create:
+  state: hidden
+  display_name: Discussion Create/Edit Page React Update
+  description: |-
+    This feature flag enables the use of the updated
+    discussion create/edit page
+  applies_to: RootAccount
 
 react_inbox:
   state: hidden

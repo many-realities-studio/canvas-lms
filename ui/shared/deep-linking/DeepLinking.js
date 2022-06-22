@@ -24,6 +24,24 @@ export function isValidDeepLinkingEvent(event, env) {
   return !!(
     event.origin === env.DEEP_LINKING_POST_MESSAGE_ORIGIN &&
     event.data &&
-    event.data.messageType === deepLinkingResponseMessageType
+    event.data.subject === deepLinkingResponseMessageType
   )
+}
+
+export const addDeepLinkingListener = cb => {
+  window.removeEventListener('message', handleDeepLinking)
+  window.addEventListener('message', handleDeepLinking(cb))
+}
+
+export const handleDeepLinking = cb => async event => {
+  // Don't attempt to process invalid messages
+  if (!isValidDeepLinkingEvent(event, ENV)) {
+    return
+  }
+
+  await cb(event)
+}
+
+export const reloadPage = () => {
+  window.location.reload()
 }

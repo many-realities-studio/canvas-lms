@@ -20,10 +20,12 @@ import $ from 'jquery'
 import React from 'react'
 import PropTypes from 'prop-types'
 import ReactDOM from 'react-dom'
-import I18n from 'i18n!moderated_grading'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import '@canvas/rails-flash-notifications'
 import iframeAllowances from '@canvas/external-apps/iframeAllowances'
 import OriginalityReportVisibilityPicker from './OriginalityReportVisibilityPicker'
+
+const I18n = useI18nScope('moderated_grading')
 
 class AssignmentConfigurationTools extends React.Component {
   static displayName = 'AssignmentConfigurationTools'
@@ -70,7 +72,7 @@ class AssignmentConfigurationTools extends React.Component {
       type: 'GET',
       url: toolsUrl,
       data,
-      success: $.proxy(function(data) {
+      success: $.proxy(function (data) {
         let prevToolLaunch
         if (this.props.selectedTool && this.props.selectedToolType) {
           for (let i = 0; i < data.length; i++) {
@@ -137,7 +139,7 @@ class AssignmentConfigurationTools extends React.Component {
 
   handleAlertFocus = event => {
     const newState = {
-      iframeStyle: {border: '2px solid #008EE2', width: `${this.iframe.offsetWidth - 4}px`}
+      iframeStyle: {border: '2px solid #0374B5', width: `${this.iframe.offsetWidth - 4}px`}
     }
     if (event.target.className.search('before') > -1) {
       newState.beforeExternalContentAlertClass = ''
@@ -262,7 +264,7 @@ class AssignmentConfigurationTools extends React.Component {
   }
 }
 
-const attach = function(
+const attach = function (
   element,
   courseId,
   secureParams,

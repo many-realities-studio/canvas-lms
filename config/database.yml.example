@@ -14,6 +14,9 @@ development:
   database: canvas_development
   password: your_password
   timeout: 5000
+  secondary:
+    replica: true
+    username: canvas_readonly_user
 
 production:
   adapter: postgresql

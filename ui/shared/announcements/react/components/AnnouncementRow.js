@@ -16,11 +16,10 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import I18n from 'i18n!shared_components'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import React from 'react'
 import {bool, func} from 'prop-types'
-import $ from 'jquery'
-import '@canvas/datetime'
+import useDateTimeFormat from '@canvas/use-date-time-format-hook'
 
 import {View} from '@instructure/ui-view'
 import {Text} from '@instructure/ui-text'
@@ -36,6 +35,8 @@ import announcementShape from '../proptypes/announcement'
 import masterCourseDataShape from '@canvas/courses/react/proptypes/masterCourseData'
 import {makeTimestamp} from '@canvas/datetime/react/date-utils'
 
+const I18n = useI18nScope('shared_components')
+
 export default function AnnouncementRow({
   announcement,
   canManage,
@@ -46,6 +47,7 @@ export default function AnnouncementRow({
   canHaveSections,
   announcementsLocked
 }) {
+  const dateFormatter = useDateTimeFormat('time.formats.medium')
   const timestamp = makeTimestamp(announcement, I18n.t('Delayed until:'), I18n.t('Posted on:'))
   const readCount =
     announcement.discussion_subentry_count > 0 ? (
@@ -154,7 +156,7 @@ export default function AnnouncementRow({
           </span>
           <span className="ic-item-row__meta-content-timestamp">
             <Text color="secondary" size="small" as="p">
-              {$.datetimeString(timestamp.date, {format: 'medium'})}
+              {dateFormatter(timestamp.date)}
             </Text>
           </span>
         </div>

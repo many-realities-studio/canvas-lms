@@ -22,7 +22,6 @@ import {HTMLElement, KeyboardEventHandler, MouseEventHandler} from 'react'
 // by default. Declaring them as wildcard modules allows TS to recognize them as
 // bare-bones interfaces with the `any` type.
 // See https://www.typescriptlang.org/docs/handbook/modules.html#wildcard-module-declarations
-declare module 'i18n!*'
 declare module '*.coffee'
 declare module '*.graphql'
 declare module '*.handlebars'
@@ -34,6 +33,7 @@ interface MissingInputProps {
   onClick?: MouseEventHandler<HTMLElement>
   onKeyDown?: KeyboardEventHandler<HTMLElement>
   role?: string
+  disabled?: boolean
 }
 
 interface MissingElementProps {
@@ -46,12 +46,16 @@ interface MissingThemeableProps {
 }
 
 declare module '@instructure/ui-buttons' {
-  export interface BaseButtonProps extends MissingInputProps {}
-  export interface ButtonProps extends MissingInputProps {}
-  export interface CloseButtonProps extends MissingInputProps {}
-  export interface CondensedButtonProps extends MissingInputProps {}
-  export interface IconButtonProps extends MissingInputProps {}
-  export interface ToggleButtonProps extends MissingInputProps {}
+  export interface BaseButtonProps extends MissingInputProps, MissingThemeableProps {}
+  export interface ButtonProps extends MissingInputProps, MissingThemeableProps {}
+  export interface CloseButtonProps extends MissingInputProps, MissingThemeableProps {}
+  export interface CondensedButtonProps extends MissingInputProps, MissingThemeableProps {}
+  export interface IconButtonProps extends MissingInputProps, MissingThemeableProps {}
+  export interface ToggleButtonProps extends MissingInputProps, MissingThemeableProps {}
+}
+
+declare module '@instructure/ui-motion' {
+  export interface TransitionProps extends MissingThemeableProps {}
 }
 
 declare module '@instructure/ui-text-input' {
@@ -63,5 +67,37 @@ declare module '@instructure/ui-toggle-details' {
 }
 
 declare module '@instructure/ui-view' {
-  export interface ViewProps extends MissingElementProps, MissingThemeableProps {}
+  export interface ViewProps extends MissingElementProps, MissingThemeableProps {
+    className?: string
+  }
+}
+
+declare module '@instructure/ui-buttons' {
+  export interface ButtonProps {
+    id?: string
+  }
+}
+
+declare module '@instructure/ui-menu' {
+  export interface Menu {
+    contentRef?: any
+  }
+}
+
+declare module '@instructure/ui-link' {
+  export interface Link {
+    size?: string
+  }
+}
+
+declare module '@instructure/ui-text' {
+  export interface Text {
+    tag?: string
+  }
+}
+
+declare module '@instructure/ui-select' {
+  export interface SelectProps {
+    renderLabel?: string
+  }
 }

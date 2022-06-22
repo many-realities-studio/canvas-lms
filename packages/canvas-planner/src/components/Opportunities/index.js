@@ -23,7 +23,7 @@ import keycode from 'keycode'
 
 import {Tabs} from '@instructure/ui-tabs'
 import {CloseButton} from '@instructure/ui-buttons'
-import {array, string, func, number, oneOfType} from 'prop-types'
+import {array, bool, string, func, number, oneOfType} from 'prop-types'
 import Opportunity from '../Opportunity'
 import {specialFallbackFocusId} from '../../dynamic-ui/util'
 import {animatable} from '../../dynamic-ui'
@@ -44,7 +44,8 @@ export class Opportunities extends Component {
     togglePopover: func.isRequired,
     maxHeight: oneOfType([number, string]),
     registerAnimatable: func,
-    deregisterAnimatable: func
+    deregisterAnimatable: func,
+    isObserving: bool
   }
 
   static defaultProps = {
@@ -147,6 +148,7 @@ export class Opportunities extends Component {
               plannerOverride={opportunity.planner_override}
               url={opportunity.html_url}
               animatableIndex={oppIndex}
+              isObserving={this.props.isObserving}
             />
           </li>
         ))}
@@ -184,14 +186,12 @@ export class Opportunities extends Component {
       <CloseButton
         placement="end"
         offset="x-small"
-        variant="icon"
         onClick={this.props.togglePopover}
-        buttonRef={el => {
+        screenReaderLabel={formatMessage('Close Opportunity Center popup')}
+        elementRef={el => {
           this.closeButtonRef = el
         }}
-      >
-        {formatMessage('Close Opportunity Center popup')}
-      </CloseButton>
+      />
     )
   }
 

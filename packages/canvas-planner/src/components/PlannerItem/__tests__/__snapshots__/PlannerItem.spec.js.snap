@@ -81,27 +81,22 @@ exports[`does not render end time if the same as start time 1`] = `
             }
           }
         >
-          <Button
+          <CondensedButton
             as="button"
-            buttonRef={[Function]}
+            color="primary"
             cursor="pointer"
-            display="inline-block"
             elementRef={[Function]}
             margin="0"
             onClick={[Function]}
             size="medium"
-            textAlign="center"
             theme={
               Object {
                 "linkColor": undefined,
                 "linkHoverColor": undefined,
-                "mediumHeight": "normal",
-                "mediumPadding": "0",
+                "mediumPaddingHorizontal": "0",
               }
             }
             type="button"
-            variant="link"
-            withBackground={true}
           >
             <ScreenReaderContent
               as="span"
@@ -113,14 +108,14 @@ exports[`does not render end time if the same as start time 1`] = `
             >
               This Assignment is about awesome stuff
             </PresentationContent>
-          </Button>
+          </CondensedButton>
           <CalendarEventModal
             allDay={false}
             courseName="A Course about being Diffrient"
             currentUser={
               Object {
                 "avatarUrl": "/picture/is/here",
-                "color": "#00AC18",
+                "color": "#0B874B",
                 "displayName": "Jane",
                 "id": "1",
               }
@@ -240,48 +235,31 @@ exports[`prefers to render feedback if it and the location are available 1`] = `
             A Course about being Diffrient Assignment
           </Text>
         </div>
-        <div
-          className="PlannerItem-styles__title"
-          style={
+        <Link
+          color="link"
+          elementRef={[Function]}
+          href="http://example.com"
+          iconPlacement="start"
+          interaction="enabled"
+          isWithinText={false}
+          theme={
             Object {
-              "position": "relative",
+              "linkColor": undefined,
+              "linkHoverColor": undefined,
             }
           }
         >
-          <Button
-            as="button"
-            buttonRef={[Function]}
-            cursor="pointer"
-            display="inline-block"
-            elementRef={[Function]}
-            href="http://example.com"
-            margin="0"
-            size="medium"
-            textAlign="center"
-            theme={
-              Object {
-                "linkColor": undefined,
-                "linkHoverColor": undefined,
-                "mediumHeight": "normal",
-                "mediumPadding": "0",
-              }
-            }
-            type="button"
-            variant="link"
-            withBackground={true}
+          <ScreenReaderContent
+            as="span"
           >
-            <ScreenReaderContent
-              as="span"
-            >
-              Assignment This Assignment is about awesome stuff, due Saturday, December 17, 2011 3:30 AM.
-            </ScreenReaderContent>
-            <PresentationContent
-              as="span"
-            >
-              This Assignment is about awesome stuff
-            </PresentationContent>
-          </Button>
-        </div>
+            Assignment This Assignment is about awesome stuff, due Saturday, December 17, 2011 3:30 AM.
+          </ScreenReaderContent>
+          <PresentationContent
+            as="span"
+          >
+            This Assignment is about awesome stuff
+          </PresentationContent>
+        </Link>
       </div>
       <div
         className="PlannerItem-styles__secondary PlannerItem-styles__secondary_no_badges"
@@ -318,10 +296,13 @@ exports[`prefers to render feedback if it and the location are available 1`] = `
         className="PlannerItem-styles__feedbackAvatar"
       >
         <Avatar
+          color="default"
           data-fs-exclude={true}
           display="inline-block"
+          hasInverseColor={false}
           name="Dr. David Bowman"
           onImageLoaded={[Function]}
+          renderIcon={null}
           shape="circle"
           size="small"
           src="/avatar/is/here/"
@@ -418,48 +399,31 @@ exports[`renders Announcement correctly with everything 1`] = `
             A Course about being Diffrient Announcement
           </Text>
         </div>
-        <div
-          className="PlannerItem-styles__title"
-          style={
+        <Link
+          color="link"
+          elementRef={[Function]}
+          href="http://example.com"
+          iconPlacement="start"
+          interaction="enabled"
+          isWithinText={false}
+          theme={
             Object {
-              "position": "relative",
+              "linkColor": undefined,
+              "linkHoverColor": undefined,
             }
           }
         >
-          <Button
-            as="button"
-            buttonRef={[Function]}
-            cursor="pointer"
-            display="inline-block"
-            elementRef={[Function]}
-            href="http://example.com"
-            margin="0"
-            size="medium"
-            textAlign="center"
-            theme={
-              Object {
-                "linkColor": undefined,
-                "linkHoverColor": undefined,
-                "mediumHeight": "normal",
-                "mediumPadding": "0",
-              }
-            }
-            type="button"
-            variant="link"
-            withBackground={true}
+          <ScreenReaderContent
+            as="span"
           >
-            <ScreenReaderContent
-              as="span"
-            >
-              Announcement I am an Announcement posted Saturday, December 17, 2011 3:30 AM.
-            </ScreenReaderContent>
-            <PresentationContent
-              as="span"
-            >
-              I am an Announcement
-            </PresentationContent>
-          </Button>
-        </div>
+            Announcement I am an Announcement posted Saturday, December 17, 2011 3:30 AM.
+          </ScreenReaderContent>
+          <PresentationContent
+            as="span"
+          >
+            I am an Announcement
+          </PresentationContent>
+        </Link>
       </div>
       <div
         className="PlannerItem-styles__secondary PlannerItem-styles__secondary_no_badges"
@@ -587,48 +551,31 @@ exports[`renders Announcement correctly with just date 1`] = `
             A Course about being Diffrient Announcement
           </Text>
         </div>
-        <div
-          className="PlannerItem-styles__title"
-          style={
+        <Link
+          color="link"
+          elementRef={[Function]}
+          href="http://example.com"
+          iconPlacement="start"
+          interaction="enabled"
+          isWithinText={false}
+          theme={
             Object {
-              "position": "relative",
+              "linkColor": undefined,
+              "linkHoverColor": undefined,
             }
           }
         >
-          <Button
-            as="button"
-            buttonRef={[Function]}
-            cursor="pointer"
-            display="inline-block"
-            elementRef={[Function]}
-            href="http://example.com"
-            margin="0"
-            size="medium"
-            textAlign="center"
-            theme={
-              Object {
-                "linkColor": undefined,
-                "linkHoverColor": undefined,
-                "mediumHeight": "normal",
-                "mediumPadding": "0",
-              }
-            }
-            type="button"
-            variant="link"
-            withBackground={true}
+          <ScreenReaderContent
+            as="span"
           >
-            <ScreenReaderContent
-              as="span"
-            >
-              Announcement I am an Announcement posted Saturday, December 17, 2011 3:30 AM.
-            </ScreenReaderContent>
-            <PresentationContent
-              as="span"
-            >
-              I am an Announcement
-            </PresentationContent>
-          </Button>
-        </div>
+            Announcement I am an Announcement posted Saturday, December 17, 2011 3:30 AM.
+          </ScreenReaderContent>
+          <PresentationContent
+            as="span"
+          >
+            I am an Announcement
+          </PresentationContent>
+        </Link>
       </div>
       <div
         className="PlannerItem-styles__secondary PlannerItem-styles__secondary_no_badges"
@@ -735,48 +682,31 @@ exports[`renders Announcement correctly with just points 1`] = `
             A Course about being Diffrient Announcement
           </Text>
         </div>
-        <div
-          className="PlannerItem-styles__title"
-          style={
+        <Link
+          color="link"
+          elementRef={[Function]}
+          href="http://example.com"
+          iconPlacement="start"
+          interaction="enabled"
+          isWithinText={false}
+          theme={
             Object {
-              "position": "relative",
+              "linkColor": undefined,
+              "linkHoverColor": undefined,
             }
           }
         >
-          <Button
-            as="button"
-            buttonRef={[Function]}
-            cursor="pointer"
-            display="inline-block"
-            elementRef={[Function]}
-            href="http://example.com"
-            margin="0"
-            size="medium"
-            textAlign="center"
-            theme={
-              Object {
-                "linkColor": undefined,
-                "linkHoverColor": undefined,
-                "mediumHeight": "normal",
-                "mediumPadding": "0",
-              }
-            }
-            type="button"
-            variant="link"
-            withBackground={true}
+          <ScreenReaderContent
+            as="span"
           >
-            <ScreenReaderContent
-              as="span"
-            >
-              Announcement I am an Announcement posted Saturday, December 17, 2011 3:30 AM.
-            </ScreenReaderContent>
-            <PresentationContent
-              as="span"
-            >
-              I am an Announcement
-            </PresentationContent>
-          </Button>
-        </div>
+            Announcement I am an Announcement posted Saturday, December 17, 2011 3:30 AM.
+          </ScreenReaderContent>
+          <PresentationContent
+            as="span"
+          >
+            I am an Announcement
+          </PresentationContent>
+        </Link>
       </div>
       <div
         className="PlannerItem-styles__secondary PlannerItem-styles__secondary_no_badges"
@@ -904,48 +834,31 @@ exports[`renders Announcement correctly without right side content 1`] = `
             A Course about being Diffrient Announcement
           </Text>
         </div>
-        <div
-          className="PlannerItem-styles__title"
-          style={
+        <Link
+          color="link"
+          elementRef={[Function]}
+          href="http://example.com"
+          iconPlacement="start"
+          interaction="enabled"
+          isWithinText={false}
+          theme={
             Object {
-              "position": "relative",
+              "linkColor": undefined,
+              "linkHoverColor": undefined,
             }
           }
         >
-          <Button
-            as="button"
-            buttonRef={[Function]}
-            cursor="pointer"
-            display="inline-block"
-            elementRef={[Function]}
-            href="http://example.com"
-            margin="0"
-            size="medium"
-            textAlign="center"
-            theme={
-              Object {
-                "linkColor": undefined,
-                "linkHoverColor": undefined,
-                "mediumHeight": "normal",
-                "mediumPadding": "0",
-              }
-            }
-            type="button"
-            variant="link"
-            withBackground={true}
+          <ScreenReaderContent
+            as="span"
           >
-            <ScreenReaderContent
-              as="span"
-            >
-              Announcement I am an Announcement posted Saturday, December 17, 2011 3:30 AM.
-            </ScreenReaderContent>
-            <PresentationContent
-              as="span"
-            >
-              I am an Announcement
-            </PresentationContent>
-          </Button>
-        </div>
+            Announcement I am an Announcement posted Saturday, December 17, 2011 3:30 AM.
+          </ScreenReaderContent>
+          <PresentationContent
+            as="span"
+          >
+            I am an Announcement
+          </PresentationContent>
+        </Link>
       </div>
       <div
         className="PlannerItem-styles__secondary PlannerItem-styles__secondary_no_badges"
@@ -1052,48 +965,31 @@ exports[`renders Assignment correctly with everything 1`] = `
             A Course about being Diffrient Assignment
           </Text>
         </div>
-        <div
-          className="PlannerItem-styles__title"
-          style={
+        <Link
+          color="link"
+          elementRef={[Function]}
+          href="http://www.non_default_url.com"
+          iconPlacement="start"
+          interaction="enabled"
+          isWithinText={false}
+          theme={
             Object {
-              "position": "relative",
+              "linkColor": undefined,
+              "linkHoverColor": undefined,
             }
           }
         >
-          <Button
-            as="button"
-            buttonRef={[Function]}
-            cursor="pointer"
-            display="inline-block"
-            elementRef={[Function]}
-            href="http://www.non_default_url.com"
-            margin="0"
-            size="medium"
-            textAlign="center"
-            theme={
-              Object {
-                "linkColor": undefined,
-                "linkHoverColor": undefined,
-                "mediumHeight": "normal",
-                "mediumPadding": "0",
-              }
-            }
-            type="button"
-            variant="link"
-            withBackground={true}
+          <ScreenReaderContent
+            as="span"
           >
-            <ScreenReaderContent
-              as="span"
-            >
-              Assignment I am an Assignment, due Saturday, December 17, 2011 3:30 AM.
-            </ScreenReaderContent>
-            <PresentationContent
-              as="span"
-            >
-              I am an Assignment
-            </PresentationContent>
-          </Button>
-        </div>
+            Assignment I am an Assignment, due Saturday, December 17, 2011 3:30 AM.
+          </ScreenReaderContent>
+          <PresentationContent
+            as="span"
+          >
+            I am an Assignment
+          </PresentationContent>
+        </Link>
       </div>
       <div
         className="PlannerItem-styles__secondary PlannerItem-styles__secondary_no_badges"
@@ -1221,48 +1117,31 @@ exports[`renders Assignment correctly with just date 1`] = `
             A Course about being Diffrient Assignment
           </Text>
         </div>
-        <div
-          className="PlannerItem-styles__title"
-          style={
+        <Link
+          color="link"
+          elementRef={[Function]}
+          href="http://example.com"
+          iconPlacement="start"
+          interaction="enabled"
+          isWithinText={false}
+          theme={
             Object {
-              "position": "relative",
+              "linkColor": undefined,
+              "linkHoverColor": undefined,
             }
           }
         >
-          <Button
-            as="button"
-            buttonRef={[Function]}
-            cursor="pointer"
-            display="inline-block"
-            elementRef={[Function]}
-            href="http://example.com"
-            margin="0"
-            size="medium"
-            textAlign="center"
-            theme={
-              Object {
-                "linkColor": undefined,
-                "linkHoverColor": undefined,
-                "mediumHeight": "normal",
-                "mediumPadding": "0",
-              }
-            }
-            type="button"
-            variant="link"
-            withBackground={true}
+          <ScreenReaderContent
+            as="span"
           >
-            <ScreenReaderContent
-              as="span"
-            >
-              Assignment I am an Assignment, due Saturday, December 17, 2011 3:30 AM.
-            </ScreenReaderContent>
-            <PresentationContent
-              as="span"
-            >
-              I am an Assignment
-            </PresentationContent>
-          </Button>
-        </div>
+            Assignment I am an Assignment, due Saturday, December 17, 2011 3:30 AM.
+          </ScreenReaderContent>
+          <PresentationContent
+            as="span"
+          >
+            I am an Assignment
+          </PresentationContent>
+        </Link>
       </div>
       <div
         className="PlannerItem-styles__secondary PlannerItem-styles__secondary_no_badges"
@@ -1369,48 +1248,31 @@ exports[`renders Assignment correctly with just points 1`] = `
             A Course about being Diffrient Assignment
           </Text>
         </div>
-        <div
-          className="PlannerItem-styles__title"
-          style={
+        <Link
+          color="link"
+          elementRef={[Function]}
+          href="http://example.com"
+          iconPlacement="start"
+          interaction="enabled"
+          isWithinText={false}
+          theme={
             Object {
-              "position": "relative",
+              "linkColor": undefined,
+              "linkHoverColor": undefined,
             }
           }
         >
-          <Button
-            as="button"
-            buttonRef={[Function]}
-            cursor="pointer"
-            display="inline-block"
-            elementRef={[Function]}
-            href="http://example.com"
-            margin="0"
-            size="medium"
-            textAlign="center"
-            theme={
-              Object {
-                "linkColor": undefined,
-                "linkHoverColor": undefined,
-                "mediumHeight": "normal",
-                "mediumPadding": "0",
-              }
-            }
-            type="button"
-            variant="link"
-            withBackground={true}
+          <ScreenReaderContent
+            as="span"
           >
-            <ScreenReaderContent
-              as="span"
-            >
-              Assignment I am an Assignment, due Saturday, December 17, 2011 3:30 AM.
-            </ScreenReaderContent>
-            <PresentationContent
-              as="span"
-            >
-              I am an Assignment
-            </PresentationContent>
-          </Button>
-        </div>
+            Assignment I am an Assignment, due Saturday, December 17, 2011 3:30 AM.
+          </ScreenReaderContent>
+          <PresentationContent
+            as="span"
+          >
+            I am an Assignment
+          </PresentationContent>
+        </Link>
       </div>
       <div
         className="PlannerItem-styles__secondary PlannerItem-styles__secondary_no_badges"
@@ -1538,48 +1400,31 @@ exports[`renders Assignment correctly without right side content 1`] = `
             A Course about being Diffrient Assignment
           </Text>
         </div>
-        <div
-          className="PlannerItem-styles__title"
-          style={
+        <Link
+          color="link"
+          elementRef={[Function]}
+          href="http://example.com"
+          iconPlacement="start"
+          interaction="enabled"
+          isWithinText={false}
+          theme={
             Object {
-              "position": "relative",
+              "linkColor": undefined,
+              "linkHoverColor": undefined,
             }
           }
         >
-          <Button
-            as="button"
-            buttonRef={[Function]}
-            cursor="pointer"
-            display="inline-block"
-            elementRef={[Function]}
-            href="http://example.com"
-            margin="0"
-            size="medium"
-            textAlign="center"
-            theme={
-              Object {
-                "linkColor": undefined,
-                "linkHoverColor": undefined,
-                "mediumHeight": "normal",
-                "mediumPadding": "0",
-              }
-            }
-            type="button"
-            variant="link"
-            withBackground={true}
+          <ScreenReaderContent
+            as="span"
           >
-            <ScreenReaderContent
-              as="span"
-            >
-              Assignment I am an Assignment, due Saturday, December 17, 2011 3:30 AM.
-            </ScreenReaderContent>
-            <PresentationContent
-              as="span"
-            >
-              I am an Assignment
-            </PresentationContent>
-          </Button>
-        </div>
+            Assignment I am an Assignment, due Saturday, December 17, 2011 3:30 AM.
+          </ScreenReaderContent>
+          <PresentationContent
+            as="span"
+          >
+            I am an Assignment
+          </PresentationContent>
+        </Link>
       </div>
       <div
         className="PlannerItem-styles__secondary PlannerItem-styles__secondary_no_badges"
@@ -1694,27 +1539,22 @@ exports[`renders Calendar Event correctly with an all day date 1`] = `
             }
           }
         >
-          <Button
+          <CondensedButton
             as="button"
-            buttonRef={[Function]}
+            color="primary"
             cursor="pointer"
-            display="inline-block"
             elementRef={[Function]}
             margin="0"
             onClick={[Function]}
             size="medium"
-            textAlign="center"
             theme={
               Object {
                 "linkColor": undefined,
                 "linkHoverColor": undefined,
-                "mediumHeight": "normal",
-                "mediumPadding": "0",
+                "mediumPaddingHorizontal": "0",
               }
             }
             type="button"
-            variant="link"
-            withBackground={true}
           >
             <ScreenReaderContent
               as="span"
@@ -1726,14 +1566,14 @@ exports[`renders Calendar Event correctly with an all day date 1`] = `
             >
               I am a Calendar Event
             </PresentationContent>
-          </Button>
+          </CondensedButton>
           <CalendarEventModal
             allDay={true}
             courseName="A Course about being Diffrient"
             currentUser={
               Object {
                 "avatarUrl": "/picture/is/here",
-                "color": "#00AC18",
+                "color": "#0B874B",
                 "displayName": "Jane",
                 "id": "1",
               }
@@ -1860,27 +1700,22 @@ exports[`renders Calendar Event correctly with everything 1`] = `
             }
           }
         >
-          <Button
+          <CondensedButton
             as="button"
-            buttonRef={[Function]}
+            color="primary"
             cursor="pointer"
-            display="inline-block"
             elementRef={[Function]}
             margin="0"
             onClick={[Function]}
             size="medium"
-            textAlign="center"
             theme={
               Object {
                 "linkColor": undefined,
                 "linkHoverColor": undefined,
-                "mediumHeight": "normal",
-                "mediumPadding": "0",
+                "mediumPaddingHorizontal": "0",
               }
             }
             type="button"
-            variant="link"
-            withBackground={true}
           >
             <ScreenReaderContent
               as="span"
@@ -1892,14 +1727,14 @@ exports[`renders Calendar Event correctly with everything 1`] = `
             >
               I am a Calendar Event
             </PresentationContent>
-          </Button>
+          </CondensedButton>
           <CalendarEventModal
             allDay={false}
             courseName="A Course about being Diffrient"
             currentUser={
               Object {
                 "avatarUrl": "/picture/is/here",
-                "color": "#00AC18",
+                "color": "#0B874B",
                 "displayName": "Jane",
                 "id": "1",
               }
@@ -2047,27 +1882,22 @@ exports[`renders Calendar Event correctly with just date 1`] = `
             }
           }
         >
-          <Button
+          <CondensedButton
             as="button"
-            buttonRef={[Function]}
+            color="primary"
             cursor="pointer"
-            display="inline-block"
             elementRef={[Function]}
             margin="0"
             onClick={[Function]}
             size="medium"
-            textAlign="center"
             theme={
               Object {
                 "linkColor": undefined,
                 "linkHoverColor": undefined,
-                "mediumHeight": "normal",
-                "mediumPadding": "0",
+                "mediumPaddingHorizontal": "0",
               }
             }
             type="button"
-            variant="link"
-            withBackground={true}
           >
             <ScreenReaderContent
               as="span"
@@ -2079,14 +1909,14 @@ exports[`renders Calendar Event correctly with just date 1`] = `
             >
               I am a Calendar Event
             </PresentationContent>
-          </Button>
+          </CondensedButton>
           <CalendarEventModal
             allDay={false}
             courseName="A Course about being Diffrient"
             currentUser={
               Object {
                 "avatarUrl": "/picture/is/here",
-                "color": "#00AC18",
+                "color": "#0B874B",
                 "displayName": "Jane",
                 "id": "1",
               }
@@ -2213,27 +2043,22 @@ exports[`renders Calendar Event correctly with start and end time 1`] = `
             }
           }
         >
-          <Button
+          <CondensedButton
             as="button"
-            buttonRef={[Function]}
+            color="primary"
             cursor="pointer"
-            display="inline-block"
             elementRef={[Function]}
             margin="0"
             onClick={[Function]}
             size="medium"
-            textAlign="center"
             theme={
               Object {
                 "linkColor": undefined,
                 "linkHoverColor": undefined,
-                "mediumHeight": "normal",
-                "mediumPadding": "0",
+                "mediumPaddingHorizontal": "0",
               }
             }
             type="button"
-            variant="link"
-            withBackground={true}
           >
             <ScreenReaderContent
               as="span"
@@ -2245,14 +2070,14 @@ exports[`renders Calendar Event correctly with start and end time 1`] = `
             >
               I am a Calendar Event
             </PresentationContent>
-          </Button>
+          </CondensedButton>
           <CalendarEventModal
             allDay={false}
             courseName="A Course about being Diffrient"
             currentUser={
               Object {
                 "avatarUrl": "/picture/is/here",
-                "color": "#00AC18",
+                "color": "#0B874B",
                 "displayName": "Jane",
                 "id": "1",
               }
@@ -2380,27 +2205,22 @@ exports[`renders Calendar Event correctly without right side content 1`] = `
             }
           }
         >
-          <Button
+          <CondensedButton
             as="button"
-            buttonRef={[Function]}
+            color="primary"
             cursor="pointer"
-            display="inline-block"
             elementRef={[Function]}
             margin="0"
             onClick={[Function]}
             size="medium"
-            textAlign="center"
             theme={
               Object {
                 "linkColor": undefined,
                 "linkHoverColor": undefined,
-                "mediumHeight": "normal",
-                "mediumPadding": "0",
+                "mediumPaddingHorizontal": "0",
               }
             }
             type="button"
-            variant="link"
-            withBackground={true}
           >
             <ScreenReaderContent
               as="span"
@@ -2412,14 +2232,14 @@ exports[`renders Calendar Event correctly without right side content 1`] = `
             >
               I am a Calendar Event
             </PresentationContent>
-          </Button>
+          </CondensedButton>
           <CalendarEventModal
             allDay={false}
             courseName="A Course about being Diffrient"
             currentUser={
               Object {
                 "avatarUrl": "/picture/is/here",
-                "color": "#00AC18",
+                "color": "#0B874B",
                 "displayName": "Jane",
                 "id": "1",
               }
@@ -2538,48 +2358,31 @@ exports[`renders Discussion correctly with everything 1`] = `
             A Course about being Diffrient Discussion
           </Text>
         </div>
-        <div
-          className="PlannerItem-styles__title"
-          style={
+        <Link
+          color="link"
+          elementRef={[Function]}
+          href="http://example.com"
+          iconPlacement="start"
+          interaction="enabled"
+          isWithinText={false}
+          theme={
             Object {
-              "position": "relative",
+              "linkColor": undefined,
+              "linkHoverColor": undefined,
             }
           }
         >
-          <Button
-            as="button"
-            buttonRef={[Function]}
-            cursor="pointer"
-            display="inline-block"
-            elementRef={[Function]}
-            href="http://example.com"
-            margin="0"
-            size="medium"
-            textAlign="center"
-            theme={
-              Object {
-                "linkColor": undefined,
-                "linkHoverColor": undefined,
-                "mediumHeight": "normal",
-                "mediumPadding": "0",
-              }
-            }
-            type="button"
-            variant="link"
-            withBackground={true}
+          <ScreenReaderContent
+            as="span"
           >
-            <ScreenReaderContent
-              as="span"
-            >
-              Discussion I am a Discussion, due Saturday, December 17, 2011 3:30 AM.
-            </ScreenReaderContent>
-            <PresentationContent
-              as="span"
-            >
-              I am a Discussion
-            </PresentationContent>
-          </Button>
-        </div>
+            Discussion I am a Discussion, due Saturday, December 17, 2011 3:30 AM.
+          </ScreenReaderContent>
+          <PresentationContent
+            as="span"
+          >
+            I am a Discussion
+          </PresentationContent>
+        </Link>
       </div>
       <div
         className="PlannerItem-styles__secondary PlannerItem-styles__secondary_no_badges"
@@ -2707,48 +2510,31 @@ exports[`renders Discussion correctly with just date 1`] = `
             A Course about being Diffrient Discussion
           </Text>
         </div>
-        <div
-          className="PlannerItem-styles__title"
-          style={
+        <Link
+          color="link"
+          elementRef={[Function]}
+          href="http://example.com"
+          iconPlacement="start"
+          interaction="enabled"
+          isWithinText={false}
+          theme={
             Object {
-              "position": "relative",
+              "linkColor": undefined,
+              "linkHoverColor": undefined,
             }
           }
         >
-          <Button
-            as="button"
-            buttonRef={[Function]}
-            cursor="pointer"
-            display="inline-block"
-            elementRef={[Function]}
-            href="http://example.com"
-            margin="0"
-            size="medium"
-            textAlign="center"
-            theme={
-              Object {
-                "linkColor": undefined,
-                "linkHoverColor": undefined,
-                "mediumHeight": "normal",
-                "mediumPadding": "0",
-              }
-            }
-            type="button"
-            variant="link"
-            withBackground={true}
+          <ScreenReaderContent
+            as="span"
           >
-            <ScreenReaderContent
-              as="span"
-            >
-              Discussion I am a Discussion, due Saturday, December 17, 2011 3:30 AM.
-            </ScreenReaderContent>
-            <PresentationContent
-              as="span"
-            >
-              I am a Discussion
-            </PresentationContent>
-          </Button>
-        </div>
+            Discussion I am a Discussion, due Saturday, December 17, 2011 3:30 AM.
+          </ScreenReaderContent>
+          <PresentationContent
+            as="span"
+          >
+            I am a Discussion
+          </PresentationContent>
+        </Link>
       </div>
       <div
         className="PlannerItem-styles__secondary PlannerItem-styles__secondary_no_badges"
@@ -2855,48 +2641,31 @@ exports[`renders Discussion correctly with just points 1`] = `
             A Course about being Diffrient Discussion
           </Text>
         </div>
-        <div
-          className="PlannerItem-styles__title"
-          style={
+        <Link
+          color="link"
+          elementRef={[Function]}
+          href="http://example.com"
+          iconPlacement="start"
+          interaction="enabled"
+          isWithinText={false}
+          theme={
             Object {
-              "position": "relative",
+              "linkColor": undefined,
+              "linkHoverColor": undefined,
             }
           }
         >
-          <Button
-            as="button"
-            buttonRef={[Function]}
-            cursor="pointer"
-            display="inline-block"
-            elementRef={[Function]}
-            href="http://example.com"
-            margin="0"
-            size="medium"
-            textAlign="center"
-            theme={
-              Object {
-                "linkColor": undefined,
-                "linkHoverColor": undefined,
-                "mediumHeight": "normal",
-                "mediumPadding": "0",
-              }
-            }
-            type="button"
-            variant="link"
-            withBackground={true}
+          <ScreenReaderContent
+            as="span"
           >
-            <ScreenReaderContent
-              as="span"
-            >
-              Discussion I am a Discussion, due Saturday, December 17, 2011 3:30 AM.
-            </ScreenReaderContent>
-            <PresentationContent
-              as="span"
-            >
-              I am a Discussion
-            </PresentationContent>
-          </Button>
-        </div>
+            Discussion I am a Discussion, due Saturday, December 17, 2011 3:30 AM.
+          </ScreenReaderContent>
+          <PresentationContent
+            as="span"
+          >
+            I am a Discussion
+          </PresentationContent>
+        </Link>
       </div>
       <div
         className="PlannerItem-styles__secondary PlannerItem-styles__secondary_no_badges"
@@ -3024,48 +2793,31 @@ exports[`renders Discussion correctly without right side content 1`] = `
             A Course about being Diffrient Discussion
           </Text>
         </div>
-        <div
-          className="PlannerItem-styles__title"
-          style={
+        <Link
+          color="link"
+          elementRef={[Function]}
+          href="http://example.com"
+          iconPlacement="start"
+          interaction="enabled"
+          isWithinText={false}
+          theme={
             Object {
-              "position": "relative",
+              "linkColor": undefined,
+              "linkHoverColor": undefined,
             }
           }
         >
-          <Button
-            as="button"
-            buttonRef={[Function]}
-            cursor="pointer"
-            display="inline-block"
-            elementRef={[Function]}
-            href="http://example.com"
-            margin="0"
-            size="medium"
-            textAlign="center"
-            theme={
-              Object {
-                "linkColor": undefined,
-                "linkHoverColor": undefined,
-                "mediumHeight": "normal",
-                "mediumPadding": "0",
-              }
-            }
-            type="button"
-            variant="link"
-            withBackground={true}
+          <ScreenReaderContent
+            as="span"
           >
-            <ScreenReaderContent
-              as="span"
-            >
-              Discussion I am a Discussion, due Saturday, December 17, 2011 3:30 AM.
-            </ScreenReaderContent>
-            <PresentationContent
-              as="span"
-            >
-              I am a Discussion
-            </PresentationContent>
-          </Button>
-        </div>
+            Discussion I am a Discussion, due Saturday, December 17, 2011 3:30 AM.
+          </ScreenReaderContent>
+          <PresentationContent
+            as="span"
+          >
+            I am a Discussion
+          </PresentationContent>
+        </Link>
       </div>
       <div
         className="PlannerItem-styles__secondary PlannerItem-styles__secondary_no_badges"
@@ -3172,48 +2924,31 @@ exports[`renders Note correctly with Group 1`] = `
             Account-level group 1 Page
           </Text>
         </div>
-        <div
-          className="PlannerItem-styles__title"
-          style={
+        <Link
+          color="link"
+          elementRef={[Function]}
+          href="/groups/9/pages/this-is-an-account-level-group-page"
+          iconPlacement="start"
+          interaction="enabled"
+          isWithinText={false}
+          theme={
             Object {
-              "position": "relative",
+              "linkColor": undefined,
+              "linkHoverColor": undefined,
             }
           }
         >
-          <Button
-            as="button"
-            buttonRef={[Function]}
-            cursor="pointer"
-            display="inline-block"
-            elementRef={[Function]}
-            href="/groups/9/pages/this-is-an-account-level-group-page"
-            margin="0"
-            size="medium"
-            textAlign="center"
-            theme={
-              Object {
-                "linkColor": undefined,
-                "linkHoverColor": undefined,
-                "mediumHeight": "normal",
-                "mediumPadding": "0",
-              }
-            }
-            type="button"
-            variant="link"
-            withBackground={true}
+          <ScreenReaderContent
+            as="span"
           >
-            <ScreenReaderContent
-              as="span"
-            >
-              Page this is an account-level group page, due Saturday, December 17, 2011 3:30 AM.
-            </ScreenReaderContent>
-            <PresentationContent
-              as="span"
-            >
-              this is an account-level group page
-            </PresentationContent>
-          </Button>
-        </div>
+            Page this is an account-level group page, due Saturday, December 17, 2011 3:30 AM.
+          </ScreenReaderContent>
+          <PresentationContent
+            as="span"
+          >
+            this is an account-level group page
+          </PresentationContent>
+        </Link>
       </div>
       <div
         className="PlannerItem-styles__secondary PlannerItem-styles__secondary_no_badges"
@@ -3297,10 +3032,13 @@ exports[`renders Note correctly with everything 1`] = `
     }
   >
     <Avatar
+      color="default"
       data-fs-exclude={true}
       display="inline-block"
+      hasInverseColor={false}
       name="Jane"
       onImageLoaded={[Function]}
+      renderIcon={null}
       shape="circle"
       size="small"
       src="/picture/is/here"
@@ -3336,27 +3074,22 @@ exports[`renders Note correctly with everything 1`] = `
             }
           }
         >
-          <Button
+          <CondensedButton
             as="button"
-            buttonRef={[Function]}
+            color="primary"
             cursor="pointer"
-            display="inline-block"
             elementRef={[Function]}
             margin="0"
             onClick={[Function]}
             size="medium"
-            textAlign="center"
             theme={
               Object {
                 "linkColor": undefined,
                 "linkHoverColor": undefined,
-                "mediumHeight": "normal",
-                "mediumPadding": "0",
+                "mediumPaddingHorizontal": "0",
               }
             }
             type="button"
-            variant="link"
-            withBackground={true}
           >
             <ScreenReaderContent
               as="span"
@@ -3368,7 +3101,7 @@ exports[`renders Note correctly with everything 1`] = `
             >
               I am a Note
             </PresentationContent>
-          </Button>
+          </CondensedButton>
         </div>
       </div>
       <div
@@ -3387,32 +3120,28 @@ exports[`renders Note correctly with everything 1`] = `
               immutable={false}
               theme={
                 Object {
-                  Symbol(Button__MTEzMjky): Object {
+                  Symbol(IconButton__MTIxNDA2): Object {
                     "iconColor": undefined,
                   },
                 }
               }
             >
-              <Button
+              <IconButton
                 as="button"
+                color="secondary"
                 cursor="pointer"
-                display="inline-block"
+                data-testid="edit-event-button"
                 elementRef={[Function]}
-                icon={[Function]}
                 margin="0"
                 onClick={[Function]}
+                renderIcon={[Function]}
+                screenReaderLabel="Edit"
+                shape="rectangle"
                 size="medium"
-                textAlign="center"
                 type="button"
-                variant="icon"
-                withBackground={true}
-              >
-                <ScreenReaderContent
-                  as="span"
-                >
-                  Edit
-                </ScreenReaderContent>
-              </Button>
+                withBackground={false}
+                withBorder={false}
+              />
             </ApplyTheme>
           </div>
           <div
@@ -3488,10 +3217,13 @@ exports[`renders Note correctly without Course 1`] = `
     }
   >
     <Avatar
+      color="default"
       data-fs-exclude={true}
       display="inline-block"
+      hasInverseColor={false}
       name="Jane"
       onImageLoaded={[Function]}
+      renderIcon={null}
       shape="circle"
       size="small"
       src="/picture/is/here"
@@ -3527,27 +3259,22 @@ exports[`renders Note correctly without Course 1`] = `
             }
           }
         >
-          <Button
+          <CondensedButton
             as="button"
-            buttonRef={[Function]}
+            color="primary"
             cursor="pointer"
-            display="inline-block"
             elementRef={[Function]}
             margin="0"
             onClick={[Function]}
             size="medium"
-            textAlign="center"
             theme={
               Object {
                 "linkColor": undefined,
                 "linkHoverColor": undefined,
-                "mediumHeight": "normal",
-                "mediumPadding": "0",
+                "mediumPaddingHorizontal": "0",
               }
             }
             type="button"
-            variant="link"
-            withBackground={true}
           >
             <ScreenReaderContent
               as="span"
@@ -3559,7 +3286,7 @@ exports[`renders Note correctly without Course 1`] = `
             >
               I am a Note
             </PresentationContent>
-          </Button>
+          </CondensedButton>
         </div>
       </div>
       <div
@@ -3578,32 +3305,28 @@ exports[`renders Note correctly without Course 1`] = `
               immutable={false}
               theme={
                 Object {
-                  Symbol(Button__MTEzMjky): Object {
+                  Symbol(IconButton__MTIxNDA2): Object {
                     "iconColor": undefined,
                   },
                 }
               }
             >
-              <Button
+              <IconButton
                 as="button"
+                color="secondary"
                 cursor="pointer"
-                display="inline-block"
+                data-testid="edit-event-button"
                 elementRef={[Function]}
-                icon={[Function]}
                 margin="0"
                 onClick={[Function]}
+                renderIcon={[Function]}
+                screenReaderLabel="Edit"
+                shape="rectangle"
                 size="medium"
-                textAlign="center"
                 type="button"
-                variant="icon"
-                withBackground={true}
-              >
-                <ScreenReaderContent
-                  as="span"
-                >
-                  Edit
-                </ScreenReaderContent>
-              </Button>
+                withBackground={false}
+                withBorder={false}
+              />
             </ApplyTheme>
           </div>
           <div
@@ -3702,48 +3425,31 @@ exports[`renders Page correctly with everything 1`] = `
             A Course about being Diffrient Page
           </Text>
         </div>
-        <div
-          className="PlannerItem-styles__title"
-          style={
+        <Link
+          color="link"
+          elementRef={[Function]}
+          href="http://example.com"
+          iconPlacement="start"
+          interaction="enabled"
+          isWithinText={false}
+          theme={
             Object {
-              "position": "relative",
+              "linkColor": undefined,
+              "linkHoverColor": undefined,
             }
           }
         >
-          <Button
-            as="button"
-            buttonRef={[Function]}
-            cursor="pointer"
-            display="inline-block"
-            elementRef={[Function]}
-            href="http://example.com"
-            margin="0"
-            size="medium"
-            textAlign="center"
-            theme={
-              Object {
-                "linkColor": undefined,
-                "linkHoverColor": undefined,
-                "mediumHeight": "normal",
-                "mediumPadding": "0",
-              }
-            }
-            type="button"
-            variant="link"
-            withBackground={true}
+          <ScreenReaderContent
+            as="span"
           >
-            <ScreenReaderContent
-              as="span"
-            >
-              Page I am a Page, due Saturday, December 17, 2011 3:30 AM.
-            </ScreenReaderContent>
-            <PresentationContent
-              as="span"
-            >
-              I am a Page
-            </PresentationContent>
-          </Button>
-        </div>
+            Page I am a Page, due Saturday, December 17, 2011 3:30 AM.
+          </ScreenReaderContent>
+          <PresentationContent
+            as="span"
+          >
+            I am a Page
+          </PresentationContent>
+        </Link>
       </div>
       <div
         className="PlannerItem-styles__secondary PlannerItem-styles__secondary_no_badges"
@@ -3871,48 +3577,31 @@ exports[`renders Page correctly with just date 1`] = `
              Page
           </Text>
         </div>
-        <div
-          className="PlannerItem-styles__title"
-          style={
+        <Link
+          color="link"
+          elementRef={[Function]}
+          href="http://example.com"
+          iconPlacement="start"
+          interaction="enabled"
+          isWithinText={false}
+          theme={
             Object {
-              "position": "relative",
+              "linkColor": undefined,
+              "linkHoverColor": undefined,
             }
           }
         >
-          <Button
-            as="button"
-            buttonRef={[Function]}
-            cursor="pointer"
-            display="inline-block"
-            elementRef={[Function]}
-            href="http://example.com"
-            margin="0"
-            size="medium"
-            textAlign="center"
-            theme={
-              Object {
-                "linkColor": undefined,
-                "linkHoverColor": undefined,
-                "mediumHeight": "normal",
-                "mediumPadding": "0",
-              }
-            }
-            type="button"
-            variant="link"
-            withBackground={true}
+          <ScreenReaderContent
+            as="span"
           >
-            <ScreenReaderContent
-              as="span"
-            >
-              Page I am a Page, due Saturday, December 17, 2011 3:30 AM.
-            </ScreenReaderContent>
-            <PresentationContent
-              as="span"
-            >
-              I am a Page
-            </PresentationContent>
-          </Button>
-        </div>
+            Page I am a Page, due Saturday, December 17, 2011 3:30 AM.
+          </ScreenReaderContent>
+          <PresentationContent
+            as="span"
+          >
+            I am a Page
+          </PresentationContent>
+        </Link>
       </div>
       <div
         className="PlannerItem-styles__secondary PlannerItem-styles__secondary_no_badges"
@@ -4019,48 +3708,31 @@ exports[`renders Page correctly with just points 1`] = `
             A Course about being Diffrient Page
           </Text>
         </div>
-        <div
-          className="PlannerItem-styles__title"
-          style={
+        <Link
+          color="link"
+          elementRef={[Function]}
+          href="http://example.com"
+          iconPlacement="start"
+          interaction="enabled"
+          isWithinText={false}
+          theme={
             Object {
-              "position": "relative",
+              "linkColor": undefined,
+              "linkHoverColor": undefined,
             }
           }
         >
-          <Button
-            as="button"
-            buttonRef={[Function]}
-            cursor="pointer"
-            display="inline-block"
-            elementRef={[Function]}
-            href="http://example.com"
-            margin="0"
-            size="medium"
-            textAlign="center"
-            theme={
-              Object {
-                "linkColor": undefined,
-                "linkHoverColor": undefined,
-                "mediumHeight": "normal",
-                "mediumPadding": "0",
-              }
-            }
-            type="button"
-            variant="link"
-            withBackground={true}
+          <ScreenReaderContent
+            as="span"
           >
-            <ScreenReaderContent
-              as="span"
-            >
-              Page I am a Page, due Saturday, December 17, 2011 3:30 AM.
-            </ScreenReaderContent>
-            <PresentationContent
-              as="span"
-            >
-              I am a Page
-            </PresentationContent>
-          </Button>
-        </div>
+            Page I am a Page, due Saturday, December 17, 2011 3:30 AM.
+          </ScreenReaderContent>
+          <PresentationContent
+            as="span"
+          >
+            I am a Page
+          </PresentationContent>
+        </Link>
       </div>
       <div
         className="PlannerItem-styles__secondary PlannerItem-styles__secondary_no_badges"
@@ -4188,48 +3860,31 @@ exports[`renders Page correctly without right side content 1`] = `
             A Course about being Diffrient Page
           </Text>
         </div>
-        <div
-          className="PlannerItem-styles__title"
-          style={
+        <Link
+          color="link"
+          elementRef={[Function]}
+          href="http://example.com"
+          iconPlacement="start"
+          interaction="enabled"
+          isWithinText={false}
+          theme={
             Object {
-              "position": "relative",
+              "linkColor": undefined,
+              "linkHoverColor": undefined,
             }
           }
         >
-          <Button
-            as="button"
-            buttonRef={[Function]}
-            cursor="pointer"
-            display="inline-block"
-            elementRef={[Function]}
-            href="http://example.com"
-            margin="0"
-            size="medium"
-            textAlign="center"
-            theme={
-              Object {
-                "linkColor": undefined,
-                "linkHoverColor": undefined,
-                "mediumHeight": "normal",
-                "mediumPadding": "0",
-              }
-            }
-            type="button"
-            variant="link"
-            withBackground={true}
+          <ScreenReaderContent
+            as="span"
           >
-            <ScreenReaderContent
-              as="span"
-            >
-              Page I am a Page, due Saturday, December 17, 2011 3:30 AM.
-            </ScreenReaderContent>
-            <PresentationContent
-              as="span"
-            >
-              I am a Page
-            </PresentationContent>
-          </Button>
-        </div>
+            Page I am a Page, due Saturday, December 17, 2011 3:30 AM.
+          </ScreenReaderContent>
+          <PresentationContent
+            as="span"
+          >
+            I am a Page
+          </PresentationContent>
+        </Link>
       </div>
       <div
         className="PlannerItem-styles__secondary PlannerItem-styles__secondary_no_badges"
@@ -4336,48 +3991,31 @@ exports[`renders Quiz correctly with everything 1`] = `
             A Course about being Diffrient Quiz
           </Text>
         </div>
-        <div
-          className="PlannerItem-styles__title"
-          style={
+        <Link
+          color="link"
+          elementRef={[Function]}
+          href="http://example.com"
+          iconPlacement="start"
+          interaction="enabled"
+          isWithinText={false}
+          theme={
             Object {
-              "position": "relative",
+              "linkColor": undefined,
+              "linkHoverColor": undefined,
             }
           }
         >
-          <Button
-            as="button"
-            buttonRef={[Function]}
-            cursor="pointer"
-            display="inline-block"
-            elementRef={[Function]}
-            href="http://example.com"
-            margin="0"
-            size="medium"
-            textAlign="center"
-            theme={
-              Object {
-                "linkColor": undefined,
-                "linkHoverColor": undefined,
-                "mediumHeight": "normal",
-                "mediumPadding": "0",
-              }
-            }
-            type="button"
-            variant="link"
-            withBackground={true}
+          <ScreenReaderContent
+            as="span"
           >
-            <ScreenReaderContent
-              as="span"
-            >
-              Quiz I am a Quiz, due Saturday, December 17, 2011 3:30 AM.
-            </ScreenReaderContent>
-            <PresentationContent
-              as="span"
-            >
-              I am a Quiz
-            </PresentationContent>
-          </Button>
-        </div>
+            Quiz I am a Quiz, due Saturday, December 17, 2011 3:30 AM.
+          </ScreenReaderContent>
+          <PresentationContent
+            as="span"
+          >
+            I am a Quiz
+          </PresentationContent>
+        </Link>
       </div>
       <div
         className="PlannerItem-styles__secondary PlannerItem-styles__secondary_no_badges"
@@ -4505,48 +4143,31 @@ exports[`renders Quiz correctly with just date 1`] = `
             A Course about being Diffrient Quiz
           </Text>
         </div>
-        <div
-          className="PlannerItem-styles__title"
-          style={
+        <Link
+          color="link"
+          elementRef={[Function]}
+          href="http://example.com"
+          iconPlacement="start"
+          interaction="enabled"
+          isWithinText={false}
+          theme={
             Object {
-              "position": "relative",
+              "linkColor": undefined,
+              "linkHoverColor": undefined,
             }
           }
         >
-          <Button
-            as="button"
-            buttonRef={[Function]}
-            cursor="pointer"
-            display="inline-block"
-            elementRef={[Function]}
-            href="http://example.com"
-            margin="0"
-            size="medium"
-            textAlign="center"
-            theme={
-              Object {
-                "linkColor": undefined,
-                "linkHoverColor": undefined,
-                "mediumHeight": "normal",
-                "mediumPadding": "0",
-              }
-            }
-            type="button"
-            variant="link"
-            withBackground={true}
+          <ScreenReaderContent
+            as="span"
           >
-            <ScreenReaderContent
-              as="span"
-            >
-              Quiz I am a Quiz, due Saturday, December 17, 2011 3:30 AM.
-            </ScreenReaderContent>
-            <PresentationContent
-              as="span"
-            >
-              I am a Quiz
-            </PresentationContent>
-          </Button>
-        </div>
+            Quiz I am a Quiz, due Saturday, December 17, 2011 3:30 AM.
+          </ScreenReaderContent>
+          <PresentationContent
+            as="span"
+          >
+            I am a Quiz
+          </PresentationContent>
+        </Link>
       </div>
       <div
         className="PlannerItem-styles__secondary PlannerItem-styles__secondary_no_badges"
@@ -4653,48 +4274,31 @@ exports[`renders Quiz correctly with just points 1`] = `
             A Course about being Diffrient Quiz
           </Text>
         </div>
-        <div
-          className="PlannerItem-styles__title"
-          style={
+        <Link
+          color="link"
+          elementRef={[Function]}
+          href="http://example.com"
+          iconPlacement="start"
+          interaction="enabled"
+          isWithinText={false}
+          theme={
             Object {
-              "position": "relative",
+              "linkColor": undefined,
+              "linkHoverColor": undefined,
             }
           }
         >
-          <Button
-            as="button"
-            buttonRef={[Function]}
-            cursor="pointer"
-            display="inline-block"
-            elementRef={[Function]}
-            href="http://example.com"
-            margin="0"
-            size="medium"
-            textAlign="center"
-            theme={
-              Object {
-                "linkColor": undefined,
-                "linkHoverColor": undefined,
-                "mediumHeight": "normal",
-                "mediumPadding": "0",
-              }
-            }
-            type="button"
-            variant="link"
-            withBackground={true}
+          <ScreenReaderContent
+            as="span"
           >
-            <ScreenReaderContent
-              as="span"
-            >
-              Quiz I am a Quiz, due Saturday, December 17, 2011 3:30 AM.
-            </ScreenReaderContent>
-            <PresentationContent
-              as="span"
-            >
-              I am a Quiz
-            </PresentationContent>
-          </Button>
-        </div>
+            Quiz I am a Quiz, due Saturday, December 17, 2011 3:30 AM.
+          </ScreenReaderContent>
+          <PresentationContent
+            as="span"
+          >
+            I am a Quiz
+          </PresentationContent>
+        </Link>
       </div>
       <div
         className="PlannerItem-styles__secondary PlannerItem-styles__secondary_no_badges"
@@ -4822,48 +4426,31 @@ exports[`renders Quiz correctly without right side content 1`] = `
             A Course about being Diffrient Quiz
           </Text>
         </div>
-        <div
-          className="PlannerItem-styles__title"
-          style={
+        <Link
+          color="link"
+          elementRef={[Function]}
+          href="http://example.com"
+          iconPlacement="start"
+          interaction="enabled"
+          isWithinText={false}
+          theme={
             Object {
-              "position": "relative",
+              "linkColor": undefined,
+              "linkHoverColor": undefined,
             }
           }
         >
-          <Button
-            as="button"
-            buttonRef={[Function]}
-            cursor="pointer"
-            display="inline-block"
-            elementRef={[Function]}
-            href="http://example.com"
-            margin="0"
-            size="medium"
-            textAlign="center"
-            theme={
-              Object {
-                "linkColor": undefined,
-                "linkHoverColor": undefined,
-                "mediumHeight": "normal",
-                "mediumPadding": "0",
-              }
-            }
-            type="button"
-            variant="link"
-            withBackground={true}
+          <ScreenReaderContent
+            as="span"
           >
-            <ScreenReaderContent
-              as="span"
-            >
-              Quiz I am a Quiz, due Saturday, December 17, 2011 3:30 AM.
-            </ScreenReaderContent>
-            <PresentationContent
-              as="span"
-            >
-              I am a Quiz
-            </PresentationContent>
-          </Button>
-        </div>
+            Quiz I am a Quiz, due Saturday, December 17, 2011 3:30 AM.
+          </ScreenReaderContent>
+          <PresentationContent
+            as="span"
+          >
+            I am a Quiz
+          </PresentationContent>
+        </Link>
       </div>
       <div
         className="PlannerItem-styles__secondary PlannerItem-styles__secondary_no_badges"
@@ -4970,48 +4557,31 @@ exports[`renders assignment peer reviews correctly 1`] = `
             A Course about being Diffrient Peer Review
           </Text>
         </div>
-        <div
-          className="PlannerItem-styles__title"
-          style={
+        <Link
+          color="link"
+          elementRef={[Function]}
+          href="http://example.com"
+          iconPlacement="start"
+          interaction="enabled"
+          isWithinText={false}
+          theme={
             Object {
-              "position": "relative",
+              "linkColor": undefined,
+              "linkHoverColor": undefined,
             }
           }
         >
-          <Button
-            as="button"
-            buttonRef={[Function]}
-            cursor="pointer"
-            display="inline-block"
-            elementRef={[Function]}
-            href="http://example.com"
-            margin="0"
-            size="medium"
-            textAlign="center"
-            theme={
-              Object {
-                "linkColor": undefined,
-                "linkHoverColor": undefined,
-                "mediumHeight": "normal",
-                "mediumPadding": "0",
-              }
-            }
-            type="button"
-            variant="link"
-            withBackground={true}
+          <ScreenReaderContent
+            as="span"
           >
-            <ScreenReaderContent
-              as="span"
-            >
-              Peer Review some reviewable assignment, reminder Saturday, December 17, 2011 3:30 AM.
-            </ScreenReaderContent>
-            <PresentationContent
-              as="span"
-            >
-              some reviewable assignment
-            </PresentationContent>
-          </Button>
-        </div>
+            Peer Review some reviewable assignment, reminder Saturday, December 17, 2011 3:30 AM.
+          </ScreenReaderContent>
+          <PresentationContent
+            as="span"
+          >
+            some reviewable assignment
+          </PresentationContent>
+        </Link>
       </div>
       <div
         className="PlannerItem-styles__secondary PlannerItem-styles__secondary_no_badges"
@@ -5118,48 +4688,31 @@ exports[`renders correctly 1`] = `
             A Course about being Diffrient Assignment
           </Text>
         </div>
-        <div
-          className="PlannerItem-styles__title"
-          style={
+        <Link
+          color="link"
+          elementRef={[Function]}
+          href="http://example.com"
+          iconPlacement="start"
+          interaction="enabled"
+          isWithinText={false}
+          theme={
             Object {
-              "position": "relative",
+              "linkColor": undefined,
+              "linkHoverColor": undefined,
             }
           }
         >
-          <Button
-            as="button"
-            buttonRef={[Function]}
-            cursor="pointer"
-            display="inline-block"
-            elementRef={[Function]}
-            href="http://example.com"
-            margin="0"
-            size="medium"
-            textAlign="center"
-            theme={
-              Object {
-                "linkColor": undefined,
-                "linkHoverColor": undefined,
-                "mediumHeight": "normal",
-                "mediumPadding": "0",
-              }
-            }
-            type="button"
-            variant="link"
-            withBackground={true}
+          <ScreenReaderContent
+            as="span"
           >
-            <ScreenReaderContent
-              as="span"
-            >
-              Assignment This Assignment is about awesome stuff, due Saturday, December 17, 2011 3:30 AM.
-            </ScreenReaderContent>
-            <PresentationContent
-              as="span"
-            >
-              This Assignment is about awesome stuff
-            </PresentationContent>
-          </Button>
-        </div>
+            Assignment This Assignment is about awesome stuff, due Saturday, December 17, 2011 3:30 AM.
+          </ScreenReaderContent>
+          <PresentationContent
+            as="span"
+          >
+            This Assignment is about awesome stuff
+          </PresentationContent>
+        </Link>
       </div>
       <div
         className="PlannerItem-styles__secondary PlannerItem-styles__secondary_no_badges"
@@ -5287,48 +4840,31 @@ exports[`renders feedback anonymously according to the assignment settings 1`] =
             A Course about being Diffrient Assignment
           </Text>
         </div>
-        <div
-          className="PlannerItem-styles__title"
-          style={
+        <Link
+          color="link"
+          elementRef={[Function]}
+          href="http://example.com"
+          iconPlacement="start"
+          interaction="enabled"
+          isWithinText={false}
+          theme={
             Object {
-              "position": "relative",
+              "linkColor": undefined,
+              "linkHoverColor": undefined,
             }
           }
         >
-          <Button
-            as="button"
-            buttonRef={[Function]}
-            cursor="pointer"
-            display="inline-block"
-            elementRef={[Function]}
-            href="http://example.com"
-            margin="0"
-            size="medium"
-            textAlign="center"
-            theme={
-              Object {
-                "linkColor": undefined,
-                "linkHoverColor": undefined,
-                "mediumHeight": "normal",
-                "mediumPadding": "0",
-              }
-            }
-            type="button"
-            variant="link"
-            withBackground={true}
+          <ScreenReaderContent
+            as="span"
           >
-            <ScreenReaderContent
-              as="span"
-            >
-              Assignment This Assignment is about awesome stuff, due Saturday, December 17, 2011 3:30 AM.
-            </ScreenReaderContent>
-            <PresentationContent
-              as="span"
-            >
-              This Assignment is about awesome stuff
-            </PresentationContent>
-          </Button>
-        </div>
+            Assignment This Assignment is about awesome stuff, due Saturday, December 17, 2011 3:30 AM.
+          </ScreenReaderContent>
+          <PresentationContent
+            as="span"
+          >
+            This Assignment is about awesome stuff
+          </PresentationContent>
+        </Link>
       </div>
       <div
         className="PlannerItem-styles__secondary PlannerItem-styles__secondary_no_badges"
@@ -5365,10 +4901,13 @@ exports[`renders feedback anonymously according to the assignment settings 1`] =
         className="PlannerItem-styles__feedbackAvatar"
       >
         <Avatar
+          color="default"
           data-fs-exclude={true}
           display="inline-block"
+          hasInverseColor={false}
           name="?"
           onImageLoaded={[Function]}
+          renderIcon={null}
           shape="circle"
           size="small"
         />
@@ -5464,48 +5003,31 @@ exports[`renders feedback if available 1`] = `
             A Course about being Diffrient Assignment
           </Text>
         </div>
-        <div
-          className="PlannerItem-styles__title"
-          style={
+        <Link
+          color="link"
+          elementRef={[Function]}
+          href="http://example.com"
+          iconPlacement="start"
+          interaction="enabled"
+          isWithinText={false}
+          theme={
             Object {
-              "position": "relative",
+              "linkColor": undefined,
+              "linkHoverColor": undefined,
             }
           }
         >
-          <Button
-            as="button"
-            buttonRef={[Function]}
-            cursor="pointer"
-            display="inline-block"
-            elementRef={[Function]}
-            href="http://example.com"
-            margin="0"
-            size="medium"
-            textAlign="center"
-            theme={
-              Object {
-                "linkColor": undefined,
-                "linkHoverColor": undefined,
-                "mediumHeight": "normal",
-                "mediumPadding": "0",
-              }
-            }
-            type="button"
-            variant="link"
-            withBackground={true}
+          <ScreenReaderContent
+            as="span"
           >
-            <ScreenReaderContent
-              as="span"
-            >
-              Assignment This Assignment is about awesome stuff, due Saturday, December 17, 2011 3:30 AM.
-            </ScreenReaderContent>
-            <PresentationContent
-              as="span"
-            >
-              This Assignment is about awesome stuff
-            </PresentationContent>
-          </Button>
-        </div>
+            Assignment This Assignment is about awesome stuff, due Saturday, December 17, 2011 3:30 AM.
+          </ScreenReaderContent>
+          <PresentationContent
+            as="span"
+          >
+            This Assignment is about awesome stuff
+          </PresentationContent>
+        </Link>
       </div>
       <div
         className="PlannerItem-styles__secondary PlannerItem-styles__secondary_no_badges"
@@ -5542,10 +5064,13 @@ exports[`renders feedback if available 1`] = `
         className="PlannerItem-styles__feedbackAvatar"
       >
         <Avatar
+          color="default"
           data-fs-exclude={true}
           display="inline-block"
+          hasInverseColor={false}
           name="Boyd Crowder"
           onImageLoaded={[Function]}
+          renderIcon={null}
           shape="circle"
           size="small"
           src="/avatar/is/here/"
@@ -5642,48 +5167,31 @@ exports[`renders media feedback if available 1`] = `
             A Course about being Diffrient Assignment
           </Text>
         </div>
-        <div
-          className="PlannerItem-styles__title"
-          style={
+        <Link
+          color="link"
+          elementRef={[Function]}
+          href="http://example.com"
+          iconPlacement="start"
+          interaction="enabled"
+          isWithinText={false}
+          theme={
             Object {
-              "position": "relative",
+              "linkColor": undefined,
+              "linkHoverColor": undefined,
             }
           }
         >
-          <Button
-            as="button"
-            buttonRef={[Function]}
-            cursor="pointer"
-            display="inline-block"
-            elementRef={[Function]}
-            href="http://example.com"
-            margin="0"
-            size="medium"
-            textAlign="center"
-            theme={
-              Object {
-                "linkColor": undefined,
-                "linkHoverColor": undefined,
-                "mediumHeight": "normal",
-                "mediumPadding": "0",
-              }
-            }
-            type="button"
-            variant="link"
-            withBackground={true}
+          <ScreenReaderContent
+            as="span"
           >
-            <ScreenReaderContent
-              as="span"
-            >
-              Assignment This Assignment is about awesome stuff, due Saturday, December 17, 2011 3:30 AM.
-            </ScreenReaderContent>
-            <PresentationContent
-              as="span"
-            >
-              This Assignment is about awesome stuff
-            </PresentationContent>
-          </Button>
-        </div>
+            Assignment This Assignment is about awesome stuff, due Saturday, December 17, 2011 3:30 AM.
+          </ScreenReaderContent>
+          <PresentationContent
+            as="span"
+          >
+            This Assignment is about awesome stuff
+          </PresentationContent>
+        </Link>
       </div>
       <div
         className="PlannerItem-styles__secondary PlannerItem-styles__secondary_no_badges"
@@ -5720,10 +5228,13 @@ exports[`renders media feedback if available 1`] = `
         className="PlannerItem-styles__feedbackAvatar"
       >
         <Avatar
+          color="default"
           data-fs-exclude={true}
           display="inline-block"
+          hasInverseColor={false}
           name="Howard Stern"
           onImageLoaded={[Function]}
+          renderIcon={null}
           shape="circle"
           size="small"
           src="/avatar/is/here/"
@@ -5828,27 +5339,22 @@ exports[`renders the end time if available 1`] = `
             }
           }
         >
-          <Button
+          <CondensedButton
             as="button"
-            buttonRef={[Function]}
+            color="primary"
             cursor="pointer"
-            display="inline-block"
             elementRef={[Function]}
             margin="0"
             onClick={[Function]}
             size="medium"
-            textAlign="center"
             theme={
               Object {
                 "linkColor": undefined,
                 "linkHoverColor": undefined,
-                "mediumHeight": "normal",
-                "mediumPadding": "0",
+                "mediumPaddingHorizontal": "0",
               }
             }
             type="button"
-            variant="link"
-            withBackground={true}
           >
             <ScreenReaderContent
               as="span"
@@ -5860,14 +5366,14 @@ exports[`renders the end time if available 1`] = `
             >
               This Assignment is about awesome stuff
             </PresentationContent>
-          </Button>
+          </CondensedButton>
           <CalendarEventModal
             allDay={false}
             courseName="A Course about being Diffrient"
             currentUser={
               Object {
                 "avatarUrl": "/picture/is/here",
-                "color": "#00AC18",
+                "color": "#0B874B",
                 "displayName": "Jane",
                 "id": "1",
               }
@@ -5987,48 +5493,31 @@ exports[`renders the location if available 1`] = `
             A Course about being Diffrient Assignment
           </Text>
         </div>
-        <div
-          className="PlannerItem-styles__title"
-          style={
+        <Link
+          color="link"
+          elementRef={[Function]}
+          href="http://example.com"
+          iconPlacement="start"
+          interaction="enabled"
+          isWithinText={false}
+          theme={
             Object {
-              "position": "relative",
+              "linkColor": undefined,
+              "linkHoverColor": undefined,
             }
           }
         >
-          <Button
-            as="button"
-            buttonRef={[Function]}
-            cursor="pointer"
-            display="inline-block"
-            elementRef={[Function]}
-            href="http://example.com"
-            margin="0"
-            size="medium"
-            textAlign="center"
-            theme={
-              Object {
-                "linkColor": undefined,
-                "linkHoverColor": undefined,
-                "mediumHeight": "normal",
-                "mediumPadding": "0",
-              }
-            }
-            type="button"
-            variant="link"
-            withBackground={true}
+          <ScreenReaderContent
+            as="span"
           >
-            <ScreenReaderContent
-              as="span"
-            >
-              Assignment This Assignment is about awesome stuff, due Saturday, December 17, 2011 3:30 AM.
-            </ScreenReaderContent>
-            <PresentationContent
-              as="span"
-            >
-              This Assignment is about awesome stuff
-            </PresentationContent>
-          </Button>
-        </div>
+            Assignment This Assignment is about awesome stuff, due Saturday, December 17, 2011 3:30 AM.
+          </ScreenReaderContent>
+          <PresentationContent
+            as="span"
+          >
+            This Assignment is about awesome stuff
+          </PresentationContent>
+        </Link>
       </div>
       <div
         className="PlannerItem-styles__secondary PlannerItem-styles__secondary_no_badges"
@@ -6124,10 +5613,13 @@ exports[`renders user-created Todo correctly 1`] = `
     }
   >
     <Avatar
+      color="default"
       data-fs-exclude={true}
       display="inline-block"
+      hasInverseColor={false}
       name="Jane"
       onImageLoaded={[Function]}
+      renderIcon={null}
       shape="circle"
       size="small"
       src="/picture/is/here"
@@ -6155,48 +5647,31 @@ exports[`renders user-created Todo correctly 1`] = `
             To Do TO DO
           </Text>
         </div>
-        <div
-          className="PlannerItem-styles__title"
-          style={
+        <Link
+          color="link"
+          elementRef={[Function]}
+          href="http://example.com"
+          iconPlacement="start"
+          interaction="enabled"
+          isWithinText={false}
+          theme={
             Object {
-              "position": "relative",
+              "linkColor": undefined,
+              "linkHoverColor": undefined,
             }
           }
         >
-          <Button
-            as="button"
-            buttonRef={[Function]}
-            cursor="pointer"
-            display="inline-block"
-            elementRef={[Function]}
-            href="http://example.com"
-            margin="0"
-            size="medium"
-            textAlign="center"
-            theme={
-              Object {
-                "linkColor": undefined,
-                "linkHoverColor": undefined,
-                "mediumHeight": "normal",
-                "mediumPadding": "0",
-              }
-            }
-            type="button"
-            variant="link"
-            withBackground={true}
+          <ScreenReaderContent
+            as="span"
           >
-            <ScreenReaderContent
-              as="span"
-            >
-              Task do that one thing, due Saturday, December 17, 2011 3:30 AM.
-            </ScreenReaderContent>
-            <PresentationContent
-              as="span"
-            >
-              do that one thing
-            </PresentationContent>
-          </Button>
-        </div>
+            Task do that one thing, due Saturday, December 17, 2011 3:30 AM.
+          </ScreenReaderContent>
+          <PresentationContent
+            as="span"
+          >
+            do that one thing
+          </PresentationContent>
+        </Link>
       </div>
       <div
         className="PlannerItem-styles__secondary PlannerItem-styles__secondary_no_badges"

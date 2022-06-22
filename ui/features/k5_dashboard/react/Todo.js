@@ -19,7 +19,7 @@
 import React, {useState} from 'react'
 import PropTypes from 'prop-types'
 import moment from 'moment-timezone'
-import I18n from 'i18n!todo'
+import {useScope as useI18nScope} from '@canvas/i18n'
 
 import {AccessibleContent, PresentationContent} from '@instructure/ui-a11y-content'
 import {Badge} from '@instructure/ui-badge'
@@ -34,10 +34,20 @@ import {showFlashError} from '@canvas/alerts/react/FlashAlert'
 import {ignoreTodo} from '@canvas/k5/react/utils'
 import tz from '@canvas/timezone'
 
+const I18n = useI18nScope('todo')
+
 export const getBaseDueAt = ({all_dates}) =>
   (all_dates.filter(d => d.base)[0] || all_dates[0])?.due_at
 
-const Todo = ({assignment, context_name, html_url, ignore, needs_grading_count, timeZone}) => {
+const Todo = ({
+  assignment,
+  context_name,
+  html_url,
+  ignore,
+  needs_grading_count,
+  timeZone,
+  openInNewTab
+}) => {
   const [ignored, setIgnored] = useState(false)
 
   // Only assignments are supported (ungraded_quizzes are not)
@@ -87,7 +97,7 @@ const Todo = ({assignment, context_name, html_url, ignore, needs_grading_count, 
       <Flex as="div" direction="column" margin="0 small 0 0" width="27rem">
         <Link
           href={html_url}
-          target="_blank"
+          target={openInNewTab ? '_blank' : undefined}
           isWithinText={false}
           theme={{
             fontWeight: '700'
@@ -146,7 +156,8 @@ Todo.propTypes = {
   html_url: PropTypes.string.isRequired,
   ignore: PropTypes.string.isRequired,
   needs_grading_count: PropTypes.number,
-  timeZone: PropTypes.string.isRequired
+  timeZone: PropTypes.string.isRequired,
+  openInNewTab: PropTypes.bool.isRequired
 }
 
 export default Todo

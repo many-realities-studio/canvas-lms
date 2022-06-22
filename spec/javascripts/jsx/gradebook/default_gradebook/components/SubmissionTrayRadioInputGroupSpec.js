@@ -18,7 +18,7 @@
 
 import React from 'react'
 import {mount} from 'enzyme'
-import SubmissionTrayRadioInputGroup from 'ui/features/gradebook/react/default_gradebook/components/SubmissionTrayRadioInputGroup.js'
+import SubmissionTrayRadioInputGroup from 'ui/features/gradebook/react/default_gradebook/components/SubmissionTrayRadioInputGroup'
 
 function mountComponent(customProps) {
   const props = {
@@ -41,48 +41,58 @@ function mountComponent(customProps) {
 }
 
 QUnit.module('SubmissionTrayRadioInputGroup', {
+  setup() {
+    this.originalENV = window.ENV
+    window.ENV = {
+      FEATURES: {
+        extended_submission_state: true
+      }
+    }
+  },
+
   getRadioOption(value) {
     return this.wrapper.find(`input[type="radio"][value="${value}"]`).instance()
   },
 
   teardown() {
+    window.ENV = this.originalENV
     this.wrapper.unmount()
   }
 })
 
-test('renders FormFieldGroup enabled if disabled is false', function() {
+test('renders FormFieldGroup enabled if disabled is false', function () {
   this.wrapper = mountComponent({disabled: false})
   strictEqual(this.wrapper.find('FormFieldGroup').props().disabled, false)
 })
 
-test('renders FormFieldGroup disabled if disabled is true', function() {
+test('renders FormFieldGroup disabled if disabled is true', function () {
   this.wrapper = mountComponent({disabled: true})
   strictEqual(this.wrapper.find('FormFieldGroup').props().disabled, true)
 })
 
-test('renders all SubmissionTrayRadioInputs enabled if disabled is false', function() {
+test('renders all SubmissionTrayRadioInputs enabled if disabled is false', function () {
   this.wrapper = mountComponent({disabled: false})
   const inputDisabledStatus = this.wrapper
     .find('SubmissionTrayRadioInput')
     .map(input => input.props().disabled)
-  deepEqual(inputDisabledStatus, [false, false, false, false])
+  deepEqual(inputDisabledStatus, [false, false, false, false, false])
 })
 
-test('renders all SubmissionTrayRadioInputs disabled if disabled is false', function() {
+test('renders all SubmissionTrayRadioInputs disabled if disabled is false', function () {
   this.wrapper = mountComponent({disabled: true})
   const inputDisabledStatus = this.wrapper
     .find('SubmissionTrayRadioInput')
     .map(input => input.props().disabled)
-  deepEqual(inputDisabledStatus, [true, true, true, true])
+  deepEqual(inputDisabledStatus, [true, true, true, true, true])
 })
 
-test('renders with "none" selected if the submission is not late, missing, or excused', function() {
+test('renders with "none" selected if the submission is not late, missing, or excused', function () {
   this.wrapper = mountComponent()
   const radio = this.getRadioOption('none')
   strictEqual(radio.checked, true)
 })
 
-test('renders with "none" selected if the submission is excused and the student is anonymous', function() {
+test('renders with "none" selected if the submission is excused and the student is anonymous', function () {
   this.wrapper = mountComponent({
     assignment: {anonymizeStudents: true},
     submission: {excused: true, late: false, missing: false, secondsLate: 0}
@@ -91,7 +101,7 @@ test('renders with "none" selected if the submission is excused and the student 
   strictEqual(radio.checked, true)
 })
 
-test('renders with "none" selected if the submission is late and the student is anonymous', function() {
+test('renders with "none" selected if the submission is late and the student is anonymous', function () {
   this.wrapper = mountComponent({
     assignment: {anonymizeStudents: true},
     submission: {excused: false, late: true, missing: false, secondsLate: 0}
@@ -100,7 +110,7 @@ test('renders with "none" selected if the submission is late and the student is 
   strictEqual(radio.checked, true)
 })
 
-test('renders with "none" selected if the submission is missing and the student is anonymous', function() {
+test('renders with "none" selected if the submission is missing and the student is anonymous', function () {
   this.wrapper = mountComponent({
     assignment: {anonymizeStudents: true},
     submission: {excused: false, late: false, missing: true, secondsLate: 0}
@@ -109,7 +119,7 @@ test('renders with "none" selected if the submission is missing and the student 
   strictEqual(radio.checked, true)
 })
 
-test('renders with "Excused" selected if the submission is excused', function() {
+test('renders with "Excused" selected if the submission is excused', function () {
   this.wrapper = mountComponent({
     submission: {excused: true, late: false, missing: false, secondsLate: 0}
   })
@@ -117,7 +127,7 @@ test('renders with "Excused" selected if the submission is excused', function() 
   strictEqual(radio.checked, true)
 })
 
-test('renders with "Excused" selected if the submission is excused and also late', function() {
+test('renders with "Excused" selected if the submission is excused and also late', function () {
   this.wrapper = mountComponent({
     submission: {excused: true, late: true, missing: false, secondsLate: 0}
   })
@@ -125,7 +135,7 @@ test('renders with "Excused" selected if the submission is excused and also late
   strictEqual(radio.checked, true)
 })
 
-test('renders with "Excused" selected if the submission is excused and also missing', function() {
+test('renders with "Excused" selected if the submission is excused and also missing', function () {
   this.wrapper = mountComponent({
     submission: {excused: true, late: false, missing: true, secondsLate: 0}
   })
@@ -133,7 +143,7 @@ test('renders with "Excused" selected if the submission is excused and also miss
   strictEqual(radio.checked, true)
 })
 
-test('renders with "Late" selected if the submission is not excused and is late', function() {
+test('renders with "Late" selected if the submission is not excused and is late', function () {
   this.wrapper = mountComponent({
     submission: {excused: false, late: true, missing: false, secondsLate: 60}
   })
@@ -141,11 +151,25 @@ test('renders with "Late" selected if the submission is not excused and is late'
   strictEqual(radio.checked, true)
 })
 
-test('renders with "Missing" selected if the submission is not excused and is missing', function() {
+test('renders with "Missing" selected if the submission is not excused and is missing', function () {
   this.wrapper = mountComponent({
     submission: {excused: false, late: false, missing: true, secondsLate: 0}
   })
   const radio = this.getRadioOption('missing')
+  strictEqual(radio.checked, true)
+})
+
+test('renders with "Extended" selected if the submission is not excused and is extended', function () {
+  this.wrapper = mountComponent({
+    submission: {
+      excused: false,
+      late: false,
+      missing: false,
+      latePolicyStatus: 'extended',
+      secondsLate: 0
+    }
+  })
+  const radio = this.getRadioOption('extended')
   strictEqual(radio.checked, true)
 })
 

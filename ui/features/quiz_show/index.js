@@ -24,17 +24,19 @@ import '@canvas/message-students-dialog/jquery/message_students'
 import '@canvas/jquery/jquery.disableWhileLoading'
 import '@canvas/module-sequence-footer'
 import LockManager from '@canvas/blueprint-courses/react/components/LockManager/index'
+import ready from '@instructure/ready'
 
-const lockManager = new LockManager()
-lockManager.init({itemType: 'quiz', page: 'show'})
+ready(() => {
+  const lockManager = new LockManager()
+  lockManager.init({itemType: 'quiz', page: 'show'})
+  renderCoursePacingNotice()
 
-$(() => {
   inputMethods.setWidths()
-  $('.answer input[type=text]').each(function() {
+  $('.answer input[type=text]').each(function () {
     $(this).width(($(this).val().length || 11) * 9.5)
   })
 
-  $('.download_submissions_link').click(function(event) {
+  $('.download_submissions_link').click(function (event) {
     event.preventDefault()
     INST.downloadSubmissions($(this).attr('href'))
   })
@@ -55,6 +57,22 @@ $(() => {
     courseID: ENV.COURSE_ID,
     assetType: 'Quiz',
     assetID: ENV.QUIZ.id,
-    location
+    location: window.location
   })
 })
+
+function renderCoursePacingNotice() {
+  const $mountPoint = document.getElementById('course_paces_due_date_notice')
+
+  if ($mountPoint) {
+    import('@canvas/due-dates/react/CoursePacingNotice')
+      .then(CoursePacingNoticeModule => {
+        const renderNotice = CoursePacingNoticeModule.renderCoursePacingNotice
+        renderNotice($mountPoint, ENV.COURSE_ID)
+      })
+      .catch(ex => {
+        // eslint-disable-next-line no-console
+        console.warn('Falied loading CoursePacingNotice', ex)
+      })
+  }
+}

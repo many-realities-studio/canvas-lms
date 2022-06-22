@@ -71,7 +71,12 @@
 </style>
 
 <% css_bundle :roster_user, :context_list, :pairing_code %>
-<% @responsive_misc = @domain_root_account.feature_enabled?(:responsive_misc) %>
+<% js_env user_suspend_status: {
+  pseudonyms: @user.all_active_pseudonyms.map do |p|
+    {id: p.id, workflow_state: p.workflow_state, unique_id: p.unique_id}
+  end
+} %>
+
 <div id="user-info-fieldsets">
   <%= render :partial => 'users/name' %>
   <%= render :partial => 'users/logins' %>
@@ -99,13 +104,13 @@
             <li>
               <a href="<%= url_for(account) %>">
                 <span
-                  class="name<%= @responsive_misc ? '' : ' ellipsis' %>"
-                  style="<%= @responsive_misc ? 'word-break: break-word;' : '' %>">
+                  class="name"
+                  style="word-break: break-word">
                   <%= account.name %>
                 </span>
                 <span
-                  class="subtitle<%= @responsive_misc ? '' : ' ellipsis' %>"
-                  style="<%= @responsive_misc ? 'word-break: break-word;' : '' %>">
+                  class="subtitle"
+                  style="word-break: break-word">
                 </span>
               </a>
             </li>
@@ -122,13 +127,13 @@
             <li>
               <a href="<%= group_path(membership.group) %>">
                 <span
-                  class="name<%= @responsive_misc ? '' : ' ellipsis' %>"
-                  style="<%= @responsive_misc ? 'word-break: break-word;' : '' %>">
+                  class="name"
+                  style="word-break: break-word">
                   <%= membership.group.name %>
                 </span>
                 <span
-                  class="subtitle<%= @responsive_misc ? '' : ' ellipsis' %>"
-                  style="<%= @responsive_misc ? 'word-break: break-word;' : '' %>">
+                  class="subtitle"
+                  style="word-break: break-word">
                   <%= membership.group.context.name rescue "" %>
                 </span>
               </a>
@@ -146,7 +151,7 @@
   </fieldset>
   </div>
 
-  <% if can_do(@user, @current_user, :view_statistics) && page_views_enabled? %>
+  <% if @show_page_views %>
     <h3>
       <%= t('page_views', 'Page Views') %>
     </h3>

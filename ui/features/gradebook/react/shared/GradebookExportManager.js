@@ -17,7 +17,9 @@
  */
 
 import axios from '@canvas/axios'
-import I18n from 'i18n!gradebookSharedGradebookexportManager'
+import {useScope as useI18nScope} from '@canvas/i18n'
+
+const I18n = useI18nScope('gradebookSharedGradebookexportManager')
 
 class GradebookExportManager {
   static DEFAULT_POLLING_INTERVAL = 2000
@@ -117,7 +119,13 @@ class GradebookExportManager {
     }, this.pollingInterval)
   }
 
-  startExport(gradingPeriodId, getAssignmentOrder) {
+  startExport(
+    gradingPeriodId,
+    getAssignmentOrder,
+    showStudentFirstLastName = false,
+    getStudentOrder,
+    currentView = false
+  ) {
     if (!this.exportingUrl) {
       return Promise.reject(I18n.t('No way to export gradebooks provided!'))
     }
@@ -128,12 +136,19 @@ class GradebookExportManager {
     }
 
     const params = {
-      grading_period_id: gradingPeriodId
+      grading_period_id: gradingPeriodId,
+      show_student_first_last_name: showStudentFirstLastName,
+      current_view: currentView
     }
 
     const assignmentOrder = getAssignmentOrder()
     if (assignmentOrder && assignmentOrder.length > 0) {
       params.assignment_order = assignmentOrder
+    }
+
+    const studentOrder = getStudentOrder()
+    if (studentOrder && studentOrder.length > 0) {
+      params.student_order = studentOrder.map(Number)
     }
 
     return axios.post(this.exportingUrl, params).then(response => {

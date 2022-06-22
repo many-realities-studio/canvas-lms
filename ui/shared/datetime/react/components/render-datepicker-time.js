@@ -16,10 +16,12 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import I18n from 'i18n!renderDatepickerTime'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import tz from '@canvas/timezone'
 import React from 'react'
 import ReactDOM from 'react-dom'
+
+const I18n = useI18nScope('renderDatepickerTime')
 
 const STRINGS = {
   get timeLabel() {
@@ -76,10 +78,10 @@ function renderDatepickerTime($input) {
   )
 
   let meridianSelect = ''
-  if (tz.useMeridian()) {
+  if (tz.hasMeridian()) {
     meridianSelect = (
       <select
-        defaultValue={data.ampm}
+        defaultValue={data.ampm.toLowerCase()}
         className="ui-datepicker-time-ampm un-bootrstrapify"
         title={STRINGS.selectTitle}
       >

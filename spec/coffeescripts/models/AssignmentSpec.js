@@ -225,7 +225,7 @@ test('escapes the name retrieved from the js env', () => {
   )
 })
 
-QUnit.module('Assignment#defaultToolName', {
+QUnit.module('Assignment#defaultToolName is undefined', {
   setup() {
     fakeENV.setup({
       DEFAULT_ASSIGNMENT_TOOL_NAME: undefined
@@ -1072,7 +1072,7 @@ test('uses edit url for htmlUrl when managing a quiz_lti assignment and new_quiz
   ENV.PERMISSIONS = {manage: true}
   ENV.FLAGS = {new_quizzes_modules_support: true}
   const json = assignment.toView()
-  equal(json.htmlUrl, 'http://example.com/assignments/1/edit')
+  equal(json.htmlUrl, 'http://example.com/assignments/1/edit?quiz_lti')
   ENV.PERMISSIONS = {}
   ENV.FLAGS = {}
 })
@@ -1107,6 +1107,12 @@ test('includes htmlEditUrl', () => {
   const assignment = new Assignment({html_url: 'http://example.com/assignments/1'})
   const json = assignment.toView()
   equal(json.htmlEditUrl, 'http://example.com/assignments/1/edit')
+})
+
+test('includes htmlBuildUrl', () => {
+  const assignment = new Assignment({html_url: 'http://example.com/assignments/1'})
+  const json = assignment.toView()
+  equal(json.htmlBuildUrl, 'http://example.com/assignments/1')
 })
 
 test('includes multipleDueDates', () => {
@@ -1175,6 +1181,69 @@ test('returns false when anonymousInstructorAnnotations is false', () => {
   const assignment = new Assignment({name: 'foo'})
   assignment.anonymousInstructorAnnotations(false)
   strictEqual(assignment.toView().anonymousInstructorAnnotations, false)
+})
+
+QUnit.module('Assignment#singleSection', {
+  setup() {
+    fakeENV.setup()
+  },
+  teardown() {
+    fakeENV.teardown()
+  }
+})
+
+test('returns null when all_dates is null', () => {
+  const assignment = new Assignment({})
+  sandbox.stub(assignment, 'allDates').returns(null)
+  equal(assignment.singleSection(), null)
+})
+
+test('returns null when there are multiple all_dates records', () => {
+  const date = new Date('2022-02-15T11:13:00')
+  const assignment = new Assignment({
+    all_dates: [
+      {
+        lock_at: date,
+        unlock_at: date,
+        due_at: null,
+        title: 'Section A'
+      },
+      {
+        lock_at: date,
+        unlock_at: date,
+        due_at: null,
+        title: 'Section B'
+      },
+      {
+        lock_at: date,
+        unlock_at: date,
+        due_at: null,
+        title: 'Section C'
+      }
+    ]
+  })
+  equal(assignment.singleSection(), null)
+})
+
+test('returns null when there are no records in all_dates', () => {
+  const assignment = new Assignment({
+    all_dates: []
+  })
+  equal(assignment.singleSection(), null)
+})
+
+test('returns the first element in all_dates when the length is 1', () => {
+  const assignment = new Assignment({
+    all_dates: [
+      {
+        lock_at: new Date('2022-02-15T11:13:00'),
+        unlock_at: new Date('2022-02-16T11:13:00'),
+        due_at: new Date('2022-02-17T11:13:00'),
+        title: 'Section A'
+      }
+    ]
+  })
+  deepEqual(assignment.singleSection(), assignment.allDates()[0])
 })
 
 QUnit.module('Assignment#canDuplicate')

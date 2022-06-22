@@ -23,11 +23,11 @@ import template from '../../jst/WikiPageEdit.handlebars'
 import ValidatedFormView from '@canvas/forms/backbone/views/ValidatedFormView.coffee'
 import WikiPageDeleteDialog from './WikiPageDeleteDialog'
 import WikiPageReloadView from './WikiPageReloadView'
-import I18n from 'i18n!pages'
-import KeyboardShortcuts from '@canvas/tinymce-keyboard-shortcuts'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import DueDateCalendarPicker from '@canvas/due-dates/react/DueDateCalendarPicker'
-import {send} from '@canvas/rce/RceCommandShim'
 import '@canvas/datetime'
+
+const I18n = useI18nScope('pages')
 
 RichContentEditor.preloadRemoteModule()
 
@@ -74,7 +74,6 @@ export default class WikiPageEditView extends ValidatedFormView {
   toJSON() {
     let IS
     const json = super.toJSON(...arguments)
-    json.use_rce_enhancements = ENV.use_rce_enhancements
 
     json.IS = IS = {
       TEACHER_ROLE: false,
@@ -175,7 +174,6 @@ export default class WikiPageEditView extends ValidatedFormView {
       this.$studentTodoAtContainer.hide()
     }
 
-    RichContentEditor.initSidebar()
     RichContentEditor.loadNewEditor(this.$wikiPageBody, {focus: true, manageParent: true})
 
     this.checkUnsavedOnLeave = true
@@ -183,11 +181,7 @@ export default class WikiPageEditView extends ValidatedFormView {
 
     if (!this.firstRender) {
       this.firstRender = true
-      $(() =>
-        $('[autofocus]:not(:focus)')
-          .eq(0)
-          .focus()
-      )
+      $(() => $('[autofocus]:not(:focus)').eq(0).focus())
     }
 
     this.reloadPending = false
@@ -208,8 +202,6 @@ export default class WikiPageEditView extends ValidatedFormView {
     })
     this.reloadView.on('reload', () => this.render())
     this.reloadView.pollForChanges()
-
-    return this.$helpDialog.html(new KeyboardShortcuts().render().$el)
   }
 
   destroyEditor() {
@@ -224,11 +216,7 @@ export default class WikiPageEditView extends ValidatedFormView {
     RichContentEditor.callOnRCE(this.$wikiPageBody, 'toggle')
     // hide the clicked link, and show the other toggle link.
     // todo: replace .andSelf with .addBack when JQuery is upgraded.
-    $(event.currentTarget)
-      .siblings('a')
-      .andSelf()
-      .toggle()
-      .focus()
+    $(event.currentTarget).siblings('a').andSelf().toggle().focus()
   }
 
   // Validate they entered in a title.

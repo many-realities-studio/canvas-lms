@@ -17,28 +17,31 @@
  */
 
 import React, {useCallback, useMemo} from 'react'
-import {arrayOf, func, string} from 'prop-types'
+import {arrayOf, func, object} from 'prop-types'
 import {SimpleSelect} from '@instructure/ui-simple-select'
 import {Flex} from '@instructure/ui-flex'
 import {EnrollmentShape} from './Shape'
-import I18n from 'i18n!*'
+import {useScope as useI18nScope} from '@canvas/i18n'
+import {groupBy, sortBy, sortedUniqBy} from 'lodash'
+import {ScreenReaderContent} from '@instructure/ui-a11y-content'
+
+const I18n = useI18nScope('notification_preferences')
 
 export default function NotificationPreferencesContextSelect(props) {
-  const activeUniqueEnrollments = useMemo(() => {
-    const courseIds = new Set()
-    return (
-      props.enrollments?.filter(e => {
-        if (e.state !== 'active') return false
-        const duplicate = courseIds.has(e.course.id)
-        courseIds.add(e.course.id)
-        return !duplicate
-      }) || []
-    )
+  const sortedGroupedUniqueEnrollments = useMemo(() => {
+    if (!props.enrollments) return []
+
+    const uniqueEnrollments = sortedUniqBy(props.enrollments, 'course._id')
+    const groupedEnrollments = Object.entries(groupBy(uniqueEnrollments, 'course.term._id'))
+    return sortBy(groupedEnrollments, [([_, e]) => e[0].course.term.name])
   }, [props.enrollments])
 
   const handleChange = useCallback(
-    (_, data) => {
-      if (props.handleContextChanged) props.handleContextChanged(data.value)
+    (e, data) => {
+      if (props.handleContextChanged) {
+        const name = e.target.textContent ? e.target.textContent : props.currentContext.name
+        props.handleContextChanged({value: data.value, name})
+      }
     },
     [props]
   )
@@ -46,17 +49,25 @@ export default function NotificationPreferencesContextSelect(props) {
   return (
     <Flex justifyItems="space-between" margin="small 0">
       <SimpleSelect
-        renderLabel={I18n.t('Settings for')}
-        value={props.currentContext || 'account'}
+        renderLabel={[
+          I18n.t('Settings for'),
+          <ScreenReaderContent>{props.currentContext.name}</ScreenReaderContent>
+        ]}
+        value={props.currentContext.value || 'account'}
         onChange={handleChange}
+        data-testId="settings-for-label"
       >
         <SimpleSelect.Option id="account" value="account">
           {I18n.t('Account')}
         </SimpleSelect.Option>
-        {activeUniqueEnrollments.map(e => (
-          <SimpleSelect.Option key={e.course.id} id={e.course.id} value={e.course._id}>
-            {e.course.name}
-          </SimpleSelect.Option>
+        {sortedGroupedUniqueEnrollments.map(([termId, enrollments]) => (
+          <SimpleSelect.Group renderLabel={enrollments[0].course.term.name} key={termId}>
+            {enrollments.map(e => (
+              <SimpleSelect.Option key={e.course._id} id={e.course._id} value={e.course._id}>
+                {e.course.name}
+              </SimpleSelect.Option>
+            ))}
+          </SimpleSelect.Group>
         ))}
       </SimpleSelect>
     </Flex>
@@ -64,7 +75,7 @@ export default function NotificationPreferencesContextSelect(props) {
 }
 
 NotificationPreferencesContextSelect.propTypes = {
-  currentContext: string,
+  currentContext: object,
   enrollments: arrayOf(EnrollmentShape),
   handleContextChanged: func
 }

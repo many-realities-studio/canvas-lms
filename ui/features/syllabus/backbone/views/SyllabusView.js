@@ -29,6 +29,11 @@ import _ from 'underscore'
 import Backbone from '@canvas/backbone'
 import template from '../../jst/Syllabus.handlebars'
 
+function assignmentSubType(json) {
+  if (/discussion/.test(json.submission_types)) return 'discussion_topic'
+  if (/quiz/.test(json.submission_types)) return 'quiz'
+  return undefined
+}
 export default class SyllabusView extends Backbone.View {
   static initClass() {
     this.prototype.template = template
@@ -111,7 +116,7 @@ export default class SyllabusView extends Backbone.View {
     const relatedEvents = {}
     let lastDate = null
     let lastEvent = null
-    const dateCollator = function(memo, json) {
+    const dateCollator = function (memo, json) {
       let due_at, end_at, html_url, start_at, todo_at
       let related_id = json.related_id
       if (related_id == null) {
@@ -124,17 +129,18 @@ export default class SyllabusView extends Backbone.View {
       } else if (html_url_for_event) {
         html_url = json.html_url
       }
+
       const title = json.title
       if (json.start_at) {
-        start_at = $.fudgeDateForProfileTimezone(Date.parse(json.start_at))
+        start_at = $.fudgeDateForProfileTimezone(json.start_at)
       }
       if (json.end_at) {
-        end_at = $.fudgeDateForProfileTimezone(Date.parse(json.end_at))
+        end_at = $.fudgeDateForProfileTimezone(json.end_at)
       }
       if (json.type === 'assignment') {
         due_at = start_at
       } else if (json.type === 'wiki_page' || json.type === 'discussion_topic') {
-        todo_at = $.fudgeDateForProfileTimezone(Date.parse(json.todo_at))
+        todo_at = $.fudgeDateForProfileTimezone(json.todo_at)
       }
 
       let override = null
@@ -178,6 +184,7 @@ export default class SyllabusView extends Backbone.View {
       lastEvent = {
         related_id,
         type: json.type,
+        subtype: assignmentSubType(json),
         title,
         html_url,
         start_at,

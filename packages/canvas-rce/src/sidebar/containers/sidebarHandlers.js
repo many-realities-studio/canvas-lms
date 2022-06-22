@@ -26,7 +26,7 @@ import {
   // saveMediaRecording,
   mediaUploadComplete,
   uploadPreflight,
-  uploadToButtonsAndIconsFolder,
+  uploadToIconMakerFolder,
   uploadToMediaFolder
 } from '../actions/upload'
 import {searchFlickr, openOrCloseFlickrForm} from '../actions/flickr'
@@ -38,6 +38,8 @@ import {changeContext, changeSearchString, changeSortBy} from '../actions/filter
 import {allFilesLoading} from '../actions/all_files'
 import {get as getSession} from '../actions/session'
 
+export const DEFAULT_FILE_CATEGORY = 'uncategorized'
+
 export default function propsFromDispatch(dispatch) {
   return {
     loadSession: () => dispatch(getSession),
@@ -47,16 +49,17 @@ export default function propsFromDispatch(dispatch) {
     fetchNextPage: key => dispatch(fetchNextPage(key)),
     toggleFolder: id => dispatch(toggleFolder(id)),
     fetchFolders: () => dispatch(fetchFolders()),
-    fetchInitialImages: () => dispatch(fetchInitialImages()),
-    fetchNextImages: () => dispatch(fetchNextImages()),
+    fetchInitialImages: (opts = {category: DEFAULT_FILE_CATEGORY}) =>
+      dispatch(fetchInitialImages(opts)),
+    fetchNextImages: (opts = {category: DEFAULT_FILE_CATEGORY}) => dispatch(fetchNextImages(opts)),
     startUpload: (tabContext, fileMetaProps) =>
       dispatch(uploadPreflight(tabContext, fileMetaProps)),
     flickrSearch: term => dispatch(searchFlickr(term)),
     toggleFlickrForm: () => dispatch(openOrCloseFlickrForm()),
     toggleUploadForm: () => dispatch(openOrCloseUploadForm()),
     toggleNewPageForm: () => dispatch(openOrCloseNewPageForm()),
-    startButtonsAndIconsUpload: (fileMetaProps, uploadSettings) =>
-      dispatch(uploadToButtonsAndIconsFolder(fileMetaProps, uploadSettings)),
+    startIconMakerUpload: (fileMetaProps, uploadSettings) =>
+      dispatch(uploadToIconMakerFolder(fileMetaProps, uploadSettings)),
     startMediaUpload: (tabContext, fileMetaProps) =>
       dispatch(uploadToMediaFolder(tabContext, fileMetaProps)),
     createMediaServerSession: () => dispatch(createMediaServerSession()),

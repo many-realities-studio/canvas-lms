@@ -17,8 +17,17 @@
  */
 
 import axios from '@canvas/axios'
-import I18n from 'i18n!gradebookGradebookApi'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import {underscore} from 'convert-case'
+import doFetchApi from '@canvas/do-fetch-api-effect'
+import {serializeFilter} from '../Gradebook.utils'
+
+const I18n = useI18nScope('gradebookGradebookApi')
+
+function applyScoreToUngradedSubmissions(courseId, params) {
+  const url = `/api/v1/courses/${courseId}/apply_score_to_ungraded_submissions`
+  return axios.put(url, underscore(params))
+}
 
 function createTeacherNotesColumn(courseId) {
   const url = `/api/v1/courses/${courseId}/custom_gradebook_columns`
@@ -37,13 +46,89 @@ function updateTeacherNotesColumn(courseId, columnId, attr) {
   return axios.put(url, {column: attr})
 }
 
-function updateSubmission(courseId, assignmentId, userId, submission) {
+function updateSubmission(courseId, assignmentId, userId, submission, enterGradesAs) {
   const url = `/api/v1/courses/${courseId}/assignments/${assignmentId}/submissions/${userId}`
-  return axios.put(url, {submission: underscore(submission), include: ['visibility']})
+  return axios.put(url, {
+    submission: underscore(submission),
+    include: ['visibility'],
+    prefer_points_over_scheme: enterGradesAs === 'points'
+  })
+}
+
+function saveUserSettings(courseId, gradebook_settings) {
+  const url = `/api/v1/courses/${courseId}/gradebook_settings`
+  return axios.put(url, {gradebook_settings})
+}
+
+function updateColumnOrder(courseId, columnOrder) {
+  const url = `/courses/${courseId}/gradebook/save_gradebook_column_order`
+  return axios.post(url, {column_order: columnOrder})
+}
+
+function createGradebookFilter(courseId, filter) {
+  const {name, payload} = serializeFilter(filter)
+  return doFetchApi({
+    path: `/api/v1/courses/${courseId}/gradebook_filters`,
+    method: 'POST',
+    body: {gradebook_filter: {name, payload}}
+  })
+}
+
+function deleteGradebookFilter(courseId, filterId) {
+  return doFetchApi({
+    path: `/api/v1/courses/${courseId}/gradebook_filters/${filterId}`,
+    method: 'DELETE'
+  })
+}
+
+function updateGradebookFilter(courseId, filter) {
+  const {name, payload} = serializeFilter(filter)
+  return doFetchApi({
+    path: `/api/v1/courses/${courseId}/gradebook_filters/${filter.id}`,
+    method: 'PUT',
+    body: {gradebook_filter: {name, payload}}
+  })
+}
+
+function sendMessageStudentsWho(
+  recipientsIds,
+  subject,
+  body,
+  contextCode,
+  mediaFile,
+  attachmentIds
+) {
+  const params = {
+    recipients: recipientsIds,
+    subject,
+    body,
+    context_code: contextCode,
+    mode: 'async',
+    group_conversation: true,
+    bulk_message: true
+  }
+
+  if (mediaFile) {
+    params.media_comment_id = mediaFile.id
+    params.media_comment_type = mediaFile.type
+  }
+
+  if (attachmentIds) {
+    params.attachment_ids = attachmentIds
+  }
+
+  return axios.post('/api/v1/conversations', params)
 }
 
 export default {
+  applyScoreToUngradedSubmissions,
+  createGradebookFilter,
   createTeacherNotesColumn,
+  deleteGradebookFilter,
+  saveUserSettings,
+  updateColumnOrder,
+  updateGradebookFilter,
+  updateSubmission,
   updateTeacherNotesColumn,
-  updateSubmission
+  sendMessageStudentsWho
 }

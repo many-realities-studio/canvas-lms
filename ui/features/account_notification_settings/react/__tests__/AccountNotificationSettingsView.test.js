@@ -16,11 +16,11 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 import {createCache} from '@canvas/apollo'
-import {render, screen} from '@testing-library/react'
+import {render, screen, within} from '@testing-library/react'
 import {MockedProvider} from '@apollo/react-testing'
 import mockGraphqlQuery from '@canvas/graphql-query-mock'
 import React from 'react'
-import {COURSE_NOTIFICATIONS_QUERY} from '../../../course_notification_settings/graphql/Queries'
+import {COURSE_NOTIFICATIONS_QUERY} from '@canvas/notification-preferences-course/graphql/Queries'
 import {ACCOUNT_NOTIFICATIONS_QUERY} from '../../graphql/Queries'
 import AccountNotificationSettingsView from '../AccountNotificationSettingsView'
 import {NOTIFICATION_PREFERENCES_CONTEXT_SELECT_QUERY} from '@canvas/notification-preferences/graphql/Queries'
@@ -101,33 +101,41 @@ describe('Notification Settings page', () => {
   it('displays account settings by default', async () => {
     const mocks = await mockAccountNotificationsQuery({Node: {__typename: 'User'}})
 
-    const {findByLabelText, findByText} = render(
+    const {findByTestId, findByText} = render(
       <MockedProvider mocks={mocks} cache={createCache()}>
         <AccountNotificationSettingsView accountId="1" userId="1" courseSelectorEnabled />
       </MockedProvider>
     )
 
-    expect(await findByLabelText('Settings for')).toHaveValue('Account')
+    expect(await findByTestId('settings-for-label')).toHaveValue('Account')
     expect(
       await findByText('Account-level notifications apply to all courses', {exact: false})
     ).toBeInTheDocument()
   })
 
-  it('does not include inactive enrollments in the dropdown', async () => {
-    const mocks = (await mockAccountNotificationsQuery({Node: {__typename: 'User'}})).concat(
-      await mockUserEnrollmentsQuery({Node: {__typename: 'User'}})
-    )
+  it('displays course terms in the dropdown', async () => {
+    const accountMocks = await mockAccountNotificationsQuery({Node: {__typename: 'User'}})
+    const enrollmentMocks = await mockUserEnrollmentsQuery({Node: {__typename: 'User'}})
+    enrollmentMocks[0].result.data.legacyNode.enrollments.forEach(e => {
+      e.course.name = 'Course Name'
+      e.course.term.name = 'Term Name'
+      e.course.term.id = '1'
+    })
 
-    const {findByLabelText} = render(
-      <MockedProvider mocks={mocks} cache={createCache()}>
+    const {findByTestId} = render(
+      <MockedProvider mocks={accountMocks.concat(enrollmentMocks)} cache={createCache()}>
         <AccountNotificationSettingsView accountId="1" userId="1" courseSelectorEnabled />
       </MockedProvider>
     )
 
-    const dropdown = await findByLabelText('Settings for')
+    const dropdown = await findByTestId('settings-for-label')
     userEvent.click(dropdown)
 
-    expect(await screen.queryByText('Hello World')).not.toBeInTheDocument()
+    const terms = await screen.findAllByText('Term Name')
+    expect(terms.length).toEqual(1)
+
+    const termNameGroupQueries = within(terms[0].parentElement)
+    expect((await termNameGroupQueries.findAllByText('Course Name')).length).toEqual(2)
   })
 
   it('only shows a course with multiple enrollments once', async () => {
@@ -140,13 +148,13 @@ describe('Notification Settings page', () => {
       e.course._id = '1'
     })
 
-    const {findByLabelText} = render(
+    const {findByTestId} = render(
       <MockedProvider mocks={accountMocks.concat(enrollmentMocks)} cache={createCache()}>
         <AccountNotificationSettingsView accountId="1" userId="1" courseSelectorEnabled />
       </MockedProvider>
     )
 
-    const dropdown = await findByLabelText('Settings for')
+    const dropdown = await findByTestId('settings-for-label')
     userEvent.click(dropdown)
 
     expect((await screen.findAllByText('Duplicate enrollment course')).length).toEqual(1)
@@ -161,7 +169,7 @@ describe('Notification Settings page', () => {
     enrollmentMocks[0].result.data.legacyNode.enrollments[0].course.name = 'My favorite course 💕'
     enrollmentMocks[0].result.data.legacyNode.enrollments[0].course._id = '1'
 
-    const {findByLabelText} = render(
+    const {findByTestId} = render(
       <MockedProvider
         mocks={accountMocks.concat(courseMocks, enrollmentMocks)}
         cache={createCache()}
@@ -171,7 +179,7 @@ describe('Notification Settings page', () => {
     )
 
     // Switch to a course
-    const dropdown = await findByLabelText('Settings for')
+    const dropdown = await findByTestId('settings-for-label')
     userEvent.click(dropdown)
 
     const courseOption = await screen.findByText('My favorite course 💕')
@@ -190,7 +198,7 @@ describe('Notification Settings page', () => {
     const courseMocks = await mockCourseNotificationsQuery({Node: {__typename: 'User'}})
     const enrollmentMocks = await mockUserEnrollmentsQuery({Node: {__typename: 'User'}})
 
-    const {queryByLabelText} = render(
+    const {queryByTestId} = render(
       <MockedProvider
         mocks={accountMocks.concat(courseMocks, enrollmentMocks)}
         cache={createCache()}
@@ -199,6 +207,6 @@ describe('Notification Settings page', () => {
       </MockedProvider>
     )
 
-    expect(await queryByLabelText('Settings for')).not.toBeInTheDocument()
+    expect(await queryByTestId('settings-for-label')).not.toBeInTheDocument()
   })
 })

@@ -16,45 +16,76 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import I18n from 'i18n!conversations_2'
 import {render, fireEvent} from '@testing-library/react'
 import React from 'react'
+import {responsiveQuerySizes} from '../../../../util/utils'
 import {MessageDetailItem} from '../MessageDetailItem'
 
-describe('MessageDetailItem', () => {
-  it('renders with provided data', () => {
-    const props = {
-      conversationMessage: {
-        author: {name: 'Tom Thompson'},
-        recipients: [{name: 'Tom Thompson'}, {name: 'Billy Harris'}],
-        createdAt: 'Tue, 20 Apr 2021 14:31:25 UTC +00:00',
-        body: 'This is the body text for the message.'
-      },
-      contextName: 'Fake Course 1'
-    }
+jest.mock('../../../../util/utils', () => ({
+  ...jest.requireActual('../../../../util/utils'),
+  responsiveQuerySizes: jest.fn()
+}))
 
-    const {getByText} = render(<MessageDetailItem {...props} />)
+const defaultProps = {
+  conversationMessage: {
+    author: {name: 'Tom Thompson'},
+    recipients: [{name: 'Tom Thompson'}, {name: 'Billy Harris'}],
+    createdAt: 'Tue, 20 Apr 2021 14:31:25 UTC +00:00',
+    body: 'This is the body text for the message.'
+  },
+  contextName: 'Fake Course 1'
+}
+
+const setup = props => {
+  return render(<MessageDetailItem {...defaultProps} {...props} />)
+}
+
+describe('MessageDetailItem', () => {
+  beforeAll(() => {
+    // Add appropriate mocks for responsive
+    window.matchMedia = jest.fn().mockImplementation(() => {
+      return {
+        matches: true,
+        media: '',
+        onchange: null,
+        addListener: jest.fn(),
+        removeListener: jest.fn()
+      }
+    })
+
+    // Repsonsive Query Mock Default
+    responsiveQuerySizes.mockImplementation(() => ({
+      desktop: {minWidth: '768px'}
+    }))
+  })
+
+  it('renders with provided data', () => {
+    const {getByText} = setup()
 
     expect(getByText('Tom Thompson')).toBeInTheDocument()
     expect(getByText(', Billy Harris')).toBeInTheDocument()
     expect(getByText('This is the body text for the message.')).toBeInTheDocument()
     expect(getByText('Fake Course 1')).toBeInTheDocument()
-
-    const dateOptions = {
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: 'numeric'
-    }
-
-    const createdAt = Intl.DateTimeFormat(I18n.currentLocale(), dateOptions).format(
-      new Date(props.conversationMessage.createdAt)
-    )
-    expect(getByText(createdAt)).toBeInTheDocument()
+    expect(getByText('Apr 20, 2021 at 2:31pm')).toBeInTheDocument()
   })
 
-  it('sends the selected option to the provided callback function', () => {
-    const handleOptionSelectMock = jest.fn()
+  it('shows attachment links if they exist', () => {
+    const props = {
+      conversationMessage: {
+        author: {name: 'Tom Thompson'},
+        recipients: [{name: 'Tom Thompson'}, {name: 'Billy Harris'}],
+        createdAt: 'Tue, 20 Apr 2021 14:31:25 UTC +00:00',
+        body: 'This is the body text for the message.',
+        attachmentsConnection: {nodes: [{displayName: 'attachment1.jpeg', url: 'testingurl'}]}
+      },
+      contextName: 'Fake Course 1'
+    }
+
+    const {getByText} = render(<MessageDetailItem {...props} />)
+    expect(getByText('attachment1.jpeg')).toBeInTheDocument()
+  })
+
+  it('does not render the reply or reply all options when function is not provided', () => {
     const props = {
       conversationMessage: {
         author: {name: 'Tom Thompson'},
@@ -63,22 +94,97 @@ describe('MessageDetailItem', () => {
         body: 'This is the body text for the message.'
       },
       contextName: 'Fake Course 1',
-      handleOptionSelect: handleOptionSelectMock
+      onReply: null,
+      onReplyAll: null
     }
 
-    const {getByRole, getByText} = render(<MessageDetailItem {...props} />)
-
-    const replyButton = getByRole(
-      (role, element) => role === 'button' && element.textContent === 'Reply'
-    )
-    fireEvent.click(replyButton)
-    expect(handleOptionSelectMock).toHaveBeenLastCalledWith('reply')
+    const {getByRole, queryByText, queryByTestId} = render(<MessageDetailItem {...props} />)
 
     const moreOptionsButton = getByRole(
       (role, element) => role === 'button' && element.textContent === 'More options'
     )
+
+    fireEvent.click(moreOptionsButton)
+    expect(queryByText('Reply All')).not.toBeInTheDocument()
+    expect(queryByTestId('message-reply')).not.toBeInTheDocument()
+  })
+
+  it('sends the selected option to the provided callback function', () => {
+    const props = {
+      conversationMessage: {
+        author: {name: 'Tom Thompson'},
+        recipients: [{name: 'Tom Thompson'}, {name: 'Billy Harris'}],
+        createdAt: 'Tue, 20 Apr 2021 14:31:25 UTC +00:00',
+        body: 'This is the body text for the message.'
+      },
+      contextName: 'Fake Course 1',
+      onReply: jest.fn(),
+      onReplyAll: jest.fn(),
+      onDelete: jest.fn(),
+      onForward: jest.fn()
+    }
+
+    const {getByTestId, getByText} = render(<MessageDetailItem {...props} />)
+
+    const replyButton = getByTestId('message-reply')
+    fireEvent.click(replyButton)
+    expect(props.onReply).toHaveBeenCalled()
+
+    const moreOptionsButton = getByTestId('message-more-options')
+    fireEvent.click(moreOptionsButton)
+    fireEvent.click(getByText('Reply All'))
+    expect(props.onReplyAll).toHaveBeenCalled()
+
+    fireEvent.click(moreOptionsButton)
+    fireEvent.click(getByText('Delete'))
+    expect(props.onDelete).toHaveBeenCalled()
+
     fireEvent.click(moreOptionsButton)
     fireEvent.click(getByText('Forward'))
-    expect(handleOptionSelectMock).toHaveBeenLastCalledWith('forward')
+    expect(props.onForward).toHaveBeenCalled()
+  })
+
+  describe('Responsive', () => {
+    describe('Mobile', () => {
+      beforeEach(() => {
+        responsiveQuerySizes.mockImplementation(() => ({
+          mobile: {maxWidth: '67'}
+        }))
+      })
+
+      it('Should emite correct Mobile Test Id', async () => {
+        const {findByTestId} = setup()
+        const item = await findByTestId('message-detail-item-mobile')
+        expect(item).toBeTruthy()
+      })
+    })
+
+    describe('Tablet', () => {
+      beforeEach(() => {
+        responsiveQuerySizes.mockImplementation(() => ({
+          tablet: {maxWidth: '67'}
+        }))
+      })
+
+      it('Should emite correct Tablet Test Id', async () => {
+        const {findByTestId} = setup()
+        const item = await findByTestId('message-detail-item-tablet')
+        expect(item).toBeTruthy()
+      })
+    })
+
+    describe('Desktop', () => {
+      beforeEach(() => {
+        responsiveQuerySizes.mockImplementation(() => ({
+          desktop: {maxWidth: '67'}
+        }))
+      })
+
+      it('Should emite correct Desktop Test Id', async () => {
+        const {findByTestId} = setup()
+        const item = await findByTestId('message-detail-item-desktop')
+        expect(item).toBeTruthy()
+      })
+    })
   })
 })

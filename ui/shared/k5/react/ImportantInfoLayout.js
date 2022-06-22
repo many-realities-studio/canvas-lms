@@ -17,15 +17,17 @@
  */
 
 import React from 'react'
-import I18n from 'i18n!important_info_announcement'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import PropTypes from 'prop-types'
 
 import {Heading} from '@instructure/ui-heading'
 import {View} from '@instructure/ui-view'
 import LoadingWrapper from './LoadingWrapper'
-import LoadingSkeleton from '@canvas/k5/react/LoadingSkeleton'
+import LoadingSkeleton from './LoadingSkeleton'
 
 import ImportantInfo, {ImportantInfoShape, ImportantInfoEditHeader} from './ImportantInfo'
+
+const I18n = useI18nScope('important_info_announcement')
 
 const ImportantInfoLayout = ({isLoading, importantInfos, courseId}) => {
   const sectionHeading = <Heading level="h2">{I18n.t('Important Info')}</Heading>

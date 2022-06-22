@@ -21,7 +21,7 @@ import {momentObj} from 'react-moment-proptypes'
 import {themeable} from '@instructure/ui-themeable'
 import {ToggleDetails} from '@instructure/ui-toggle-details'
 import {Pill} from '@instructure/ui-pill'
-import {func, number, string, arrayOf, shape, oneOf} from 'prop-types'
+import {func, number, string, arrayOf, shape, oneOf, bool} from 'prop-types'
 import BadgeList from '../BadgeList'
 import NotificationBadge, {MissingIndicator, NewActivityIndicator} from '../NotificationBadge'
 import {badgeShape, sizeShape} from '../plannerPropTypes'
@@ -43,7 +43,8 @@ export class CompletedItemsFacade extends Component {
     deregisterAnimatable: func,
     notificationBadge: oneOf(['none', 'newActivity', 'missing']),
     date: momentObj, // the scroll-to-today animation requires a date on each component in the planner
-    responsiveSize: sizeShape
+    responsiveSize: sizeShape,
+    simplifiedControls: bool
   }
 
   static defaultProps = {
@@ -90,7 +91,9 @@ export class CompletedItemsFacade extends Component {
       return (
         <BadgeList>
           {this.props.badges.map(b => (
-            <Pill key={b.id} text={b.text} variant={b.variant} />
+            <Pill key={b.id} color={b.variant}>
+              {b.text}
+            </Pill>
           ))}
         </BadgeList>
       )
@@ -135,7 +138,8 @@ export class CompletedItemsFacade extends Component {
         className={classnames(
           styles.root,
           styles[this.props.responsiveSize],
-          'planner-completed-items'
+          'planner-completed-items',
+          this.props.simplifiedControls ? styles.k5Layout : ''
         )}
         ref={elt => (this.rootDiv = elt)}
       >

@@ -16,7 +16,7 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import I18n from 'i18n!external_tools'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import React from 'react'
 import {bool, func, number, object} from 'prop-types'
 import {Checkbox} from '@instructure/ui-checkbox'
@@ -34,10 +34,15 @@ import classMunger from '../lib/classMunger'
 import {showFlashAlert} from '@canvas/alerts/react/FlashAlert'
 import '@canvas/jquery/jquery.instructure_misc_helpers'
 
+const I18n = useI18nScope('external_tools')
+
 const MAX_FAVS = 2
 export default class ExternalToolsTableRow extends React.Component {
   static propTypes = {
     tool: object.isRequired,
+    canAdd: bool.isRequired,
+    canEdit: bool.isRequired,
+    canDelete: bool.isRequired,
     canAddEdit: bool.isRequired,
     setFocusAbove: func.isRequired,
     favoriteCount: number.isRequired,
@@ -156,8 +161,10 @@ export default class ExternalToolsTableRow extends React.Component {
   }
 
   renderButtons = () => {
+    const permsToRenderSettingsCog =
+      this.props.canEdit || this.props.canDelete || this.props.canAddEdit
     const {tool} = this.props
-    if (tool.installed_locally && !tool.restricted_by_master_course) {
+    if (tool.installed_locally && !tool.restricted_by_master_course && permsToRenderSettingsCog) {
       let configureButton = null
       let updateBadge = null
 
@@ -198,6 +205,7 @@ export default class ExternalToolsTableRow extends React.Component {
               <ManageUpdateExternalToolButton tool={tool} returnFocus={this.returnFocus} />
               <EditExternalToolButton
                 tool={tool}
+                canEdit={this.props.canEdit && !this.is13Tool}
                 canAddEdit={this.props.canAddEdit && !this.is13Tool}
                 returnFocus={this.returnFocus}
               />
@@ -208,6 +216,7 @@ export default class ExternalToolsTableRow extends React.Component {
               />
               <ReregisterExternalToolButton
                 tool={tool}
+                canAdd={this.props.canAdd}
                 canAddEdit={this.props.canAddEdit}
                 returnFocus={this.returnFocus}
               />
@@ -216,6 +225,7 @@ export default class ExternalToolsTableRow extends React.Component {
               ) : null}
               <DeleteExternalToolButton
                 tool={tool}
+                canDelete={this.props.canDelete}
                 canAddEdit={this.props.canAddEdit}
                 returnFocus={this.returnFocus}
               />

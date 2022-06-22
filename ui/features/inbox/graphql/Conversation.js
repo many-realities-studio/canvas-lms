@@ -16,41 +16,40 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import {arrayOf, number, shape, string} from 'prop-types'
+import {arrayOf, bool, shape, string} from 'prop-types'
 import {ConversationMessage} from './ConversationMessage'
 import {ConversationParticipant} from './ConversationParticipant'
 import gql from 'graphql-tag'
+import {PageInfo} from './PageInfo'
 import {User} from './User'
 
 export const Conversation = {
   fragment: gql`
     fragment Conversation on Conversation {
       _id
+      id
       contextId
       contextType
       contextName
       subject
-      conversationMessagesConnection {
-        nodes {
-          ...ConversationMessage
-        }
-      }
+      canReply
       conversationParticipantsConnection {
         nodes {
           ...ConversationParticipant
         }
       }
     }
-    ${ConversationMessage.fragment}
     ${ConversationParticipant.fragment}
   `,
 
   shape: shape({
     _id: string,
-    contextId: number,
+    id: string,
+    contextId: string,
     contextType: string,
     contextName: string,
     subject: string,
+    canReply: bool,
     conversationMessagesConnection: shape({
       nodes: arrayOf(ConversationMessage.shape)
     }),
@@ -61,10 +60,12 @@ export const Conversation = {
 
   mock: ({
     _id = '196',
-    contextId = 195,
+    id = 'Q29udmVyc2F0aW9uLTE5Ng==',
+    contextId = '195',
     contextType = 'Course',
     contextName = 'XavierSchool',
     subject = 'testing 123',
+    canReply = true,
     conversationMessagesConnection = {
       nodes: [
         ConversationMessage.mock(),
@@ -91,6 +92,7 @@ export const Conversation = {
           ]
         })
       ],
+      pageInfo: PageInfo.mock({hasNextPage: false}),
       __typename: 'ConversationMessageConnection'
     },
     conversationParticipantsConnection = {
@@ -118,12 +120,14 @@ export const Conversation = {
     }
   } = {}) => ({
     _id,
+    id,
     contextId,
     contextType,
     contextName,
     subject,
     conversationMessagesConnection,
     conversationParticipantsConnection,
+    canReply,
     __typename: 'Conversation'
   })
 }

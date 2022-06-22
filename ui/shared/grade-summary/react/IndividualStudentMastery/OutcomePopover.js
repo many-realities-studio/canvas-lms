@@ -18,7 +18,7 @@
 
 import React from 'react'
 import _ from 'lodash'
-import I18n from 'i18n!IndividualStudentMasteryOutcomePopover'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import {Flex} from '@instructure/ui-flex'
 import {View} from '@instructure/ui-view'
 import {Text} from '@instructure/ui-text'
@@ -30,6 +30,8 @@ import {CloseButton, IconButton} from '@instructure/ui-buttons'
 import {Modal} from '@instructure/ui-modal'
 import WithBreakpoints, {breakpointsShape} from 'with-breakpoints'
 import * as shapes from './shapes'
+
+const I18n = useI18nScope('IndividualStudentMasteryOutcomePopover')
 
 class OutcomePopover extends React.Component {
   static propTypes = {
@@ -70,9 +72,9 @@ class OutcomePopover extends React.Component {
   defaultProficiency = _.memoize(mastery_points => ({
     ratings: [
       {points: mastery_points * 1.5, color: '127A1B', description: I18n.t('Exceeds Mastery')},
-      {points: mastery_points, color: '00AC18', description: I18n.t('Meets Mastery')},
+      {points: mastery_points, color: '0B874B', description: I18n.t('Meets Mastery')},
       {points: mastery_points / 2, color: 'FAB901', description: I18n.t('Near Mastery')},
-      {points: 0, color: 'EE0612', description: I18n.t('Well Below Mastery')}
+      {points: 0, color: 'E0061F', description: I18n.t('Well Below Mastery')}
     ]
   }))
 
@@ -109,15 +111,16 @@ class OutcomePopover extends React.Component {
         <CloseButton
           placement="end"
           onClick={() => this.setState({linkHover: false, linkClicked: false})}
-        >
-          {I18n.t('Click to close outcome details popover')}
-        </CloseButton>
+          screenReaderLabel={I18n.t('Click to close outcome details popover')}
+        />
         <Text size="small">
           <Flex alignItems="stretch" direction="row" justifyItems="space-between">
             <Flex.Item grow shrink>
               {/* word-wrap used for IE support */}
               <div style={{wordWrap: 'break-word', overflowWrap: 'break-word'}}>
-                {outcome.title}
+                <Text size="small" weight="bold">
+                  {outcome.title}
+                </Text>
               </div>
               <div>
                 {isVertical && <div>{this.renderSelectedRating()}</div>}
@@ -159,13 +162,12 @@ class OutcomePopover extends React.Component {
     return (
       <span>
         <Popover
-          show={this.state.linkHover || this.state.linkClicked}
-          onDismiss={() => this.setState({linkHover: false, linkClicked: false})}
+          isShowingContent={this.state.linkHover || this.state.linkClicked}
+          onHideContent={() => this.setState({linkHover: false, linkClicked: false})}
           placement="bottom"
           on={['hover', 'click']}
           shouldContainFocus
-        >
-          <Popover.Trigger>
+          renderTrigger={
             <IconButton
               size="small"
               margin="xx-small"
@@ -177,8 +179,9 @@ class OutcomePopover extends React.Component {
               onMouseEnter={() => this.setState({linkHover: true})}
               onMouseLeave={() => this.setState({linkHover: false})}
             />
-          </Popover.Trigger>
-          <Popover.Content>{this.renderPopoverContent()}</Popover.Content>
+          }
+        >
+          {this.renderPopoverContent()}
         </Popover>
       </span>
     )

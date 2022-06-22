@@ -138,25 +138,21 @@ describe('EditEventView', () => {
   })
 
   describe('important dates section', () => {
-    beforeEach(() => {
-      window.ENV.FEATURES = {
-        important_dates: true
-      }
-    })
-
     it('is not shown in non-k5 contexts', () => {
-      render()
-      expect(within(document.body).queryByText('Mark as Important Date')).toBeNull()
-    })
-
-    it('is not shown if important_dates flag is off', () => {
-      window.ENV.FEATURES = {}
       render()
       expect(within(document.body).queryByText('Mark as Important Date')).toBeNull()
     })
 
     it('is shown in a k5 subject', () => {
       window.ENV.K5_SUBJECT_COURSE = true
+      render()
+      expect(
+        within(document.body).getByLabelText('Mark as Important Date', {exact: false})
+      ).toBeInTheDocument()
+    })
+
+    it('is shown in a k5 homeroom', () => {
+      window.ENV.K5_HOMEROOM_COURSE = true
       render()
       expect(
         within(document.body).getByLabelText('Mark as Important Date', {exact: false})

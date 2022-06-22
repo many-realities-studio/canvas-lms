@@ -16,17 +16,27 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import I18n from 'i18n!external_tools'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import React from 'react'
+import PropTypes from 'prop-types'
 import store from '../lib/AppCenterStore'
+import page from 'page'
 import extStore from '../lib/ExternalAppsStore'
 import AppTile from './AppTile'
 import Header from './Header'
 import AppFilters from './AppFilters'
 import ManageAppListButton from './ManageAppListButton'
 import splitAssetString from '@canvas/util/splitAssetString'
+import {Button} from '@instructure/ui-buttons'
+import {View} from '@instructure/ui-view'
+
+const I18n = useI18nScope('external_tools')
 
 export default class AppList extends React.Component {
+  static propTypes = {
+    baseUrl: PropTypes.string.isRequired
+  }
+
   state = store.getState()
 
   onChange = () => {
@@ -42,17 +52,17 @@ export default class AppList extends React.Component {
     store.removeChangeListener(this.onChange)
   }
 
-  get contextType() {
-    return splitAssetString(ENV.context_asset_string, false)[0]
-  }
-
   refreshAppList = () => {
     store.reset()
     store.fetch()
   }
 
+  isAccountContext() {
+    return splitAssetString(ENV.context_asset_string, false)[0] === 'account'
+  }
+
   manageAppListButton = () => {
-    if (this.contextType === 'account') {
+    if (this.isAccountContext()) {
       return (
         <ManageAppListButton onUpdateAccessToken={this.refreshAppList} extAppStore={extStore} />
       )
@@ -61,13 +71,26 @@ export default class AppList extends React.Component {
     }
   }
 
+  viewConfigurationsButton = () => (
+    <View>
+      <Button
+        margin="none x-small"
+        onClick={() => {
+          page.redirect('/configurations')
+        }}
+      >
+        {I18n.t('View App Configurations')}
+      </Button>
+    </View>
+  )
+
   apps = () => {
     if (store.getState().isLoading) {
       return <div ref={this.loadingIndicator} className="loadingIndicator" data-testid="spinner" />
     } else {
       return store
         .filteredApps()
-        .map(app => <AppTile key={app.app_id} app={app} pathname={this.props.pathname} />)
+        .map(app => <AppTile key={app.id} app={app} baseUrl={this.props.baseUrl} />)
     }
   }
 
@@ -78,12 +101,7 @@ export default class AppList extends React.Component {
       <div className="AppList">
         <Header>
           {this.manageAppListButton()}
-          <a
-            href={`${this.props.pathname}/configurations`}
-            className="btn view_tools_link lm pull-right"
-          >
-            {I18n.t('View App Configurations')}
-          </a>
+          {this.viewConfigurationsButton()}
         </Header>
         <AppFilters ref={this.setAppFiltersRef} />
         <div className="app_center">

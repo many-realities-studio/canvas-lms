@@ -23,8 +23,10 @@ import {Button} from '@instructure/ui-buttons'
 import {Menu} from '@instructure/ui-menu'
 import {ScreenReaderContent} from '@instructure/ui-a11y-content'
 import {Text} from '@instructure/ui-text'
-import I18n from 'i18n!gradebook'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import {filterLabels} from '../constants/ViewOptions'
+
+const I18n = useI18nScope('gradebook')
 
 function renderTriggerButton(bindButton) {
   return (
@@ -66,6 +68,9 @@ class ViewOptionsMenu extends React.Component {
     onSelectShowStatusesModal: func.isRequired,
     showUnpublishedAssignments: bool.isRequired,
     onSelectShowUnpublishedAssignments: func.isRequired,
+    allowShowSeparateFirstLastNames: bool.isRequired,
+    showSeparateFirstLastNames: bool.isRequired,
+    onSelectShowSeparateFirstLastNames: func.isRequired,
     onSelectViewUngradedAsZero: func.isRequired,
     viewUngradedAsZero: bool.isRequired,
     allowViewUngradedAsZero: bool.isRequired
@@ -246,6 +251,15 @@ class ViewOptionsMenu extends React.Component {
           >
             {I18n.t('Unpublished Assignments')}
           </Menu.Item>
+
+          {this.props.allowShowSeparateFirstLastNames && (
+            <Menu.Item
+              selected={this.props.showSeparateFirstLastNames}
+              onSelect={this.props.onSelectShowSeparateFirstLastNames}
+            >
+              {I18n.t('Split Student Names')}
+            </Menu.Item>
+          )}
         </Menu.Group>
       </Menu>
     )

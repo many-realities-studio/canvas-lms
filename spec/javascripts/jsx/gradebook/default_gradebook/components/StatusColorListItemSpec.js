@@ -19,8 +19,7 @@
 import React from 'react'
 import {shallow} from 'enzyme'
 import {Text} from '@instructure/ui-text'
-import {IconMoreSolid} from '@instructure/ui-icons'
-import StatusColorListItem from 'ui/features/gradebook/react/default_gradebook/components/StatusColorListItem.js'
+import StatusColorListItem from 'ui/features/gradebook/react/default_gradebook/components/StatusColorListItem'
 
 function defaultProps(props = {}) {
   return {
@@ -59,8 +58,10 @@ test('status is displayed', function () {
   ok(this.wrapper.contains(<Text>Late</Text>))
 })
 
-test('popover trigger is a kabob', function () {
-  ok(this.wrapper.find('PopoverTrigger Button').contains(<IconMoreSolid />))
+test('popover trigger is an edit icon', function () {
+  const iconInside = this.wrapper.find('Popover').prop('renderTrigger').props.children
+    .type.displayName
+  strictEqual(iconInside, 'IconEditSolid')
 })
 
 test('setColor sets the ColorPicker color', function () {

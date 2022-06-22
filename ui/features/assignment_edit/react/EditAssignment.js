@@ -20,14 +20,21 @@ import PropTypes from 'prop-types'
 import React, {Suspense} from 'react'
 import {IconButton} from '@instructure/ui-buttons'
 import {IconTrashLine} from '@instructure/ui-icons'
-import I18n from 'i18n!assignment'
+import {useScope as useI18nScope} from '@canvas/i18n'
 
 import ErrorBoundary from '@canvas/error-boundary'
 import errorShipUrl from '@canvas/images/ErrorShip.svg'
 import GenericErrorPage from '@canvas/generic-error-page'
 import LoadingIndicator from '@canvas/loading-indicator'
 
-const FileBrowser = React.lazy(() => import('@canvas/rce/FileBrowser'))
+const I18n = useI18nScope('assignment')
+
+const FileBrowser = React.lazy(() =>
+  import(
+    /* webpackChunkName: "[request]" */
+    '@canvas/rce/FileBrowser'
+  )
+)
 
 const attachmentNameStyle = {
   display: 'inline-block',

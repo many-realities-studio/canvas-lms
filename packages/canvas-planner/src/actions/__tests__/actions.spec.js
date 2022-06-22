@@ -23,6 +23,7 @@ import * as Actions from '../index'
 import {initialize as alertInitialize} from '../../utilities/alertUtils'
 
 jest.mock('../../utilities/apiUtils', () => ({
+  ...jest.requireActual('../../utilities/apiUtils'),
   transformApiToInternalItem: jest.fn(response => ({...response, transformedToInternal: true})),
   transformInternalToApiItem: jest.fn(internal => ({...internal, transformedToApi: true})),
   transformInternalToApiOverride: jest.fn(internal => ({
@@ -51,7 +52,7 @@ const getBasicState = () => ({
     pastNextUrl: null,
     allOpportunitiesLoaded: true
   },
-  currentUser: {id: '1', displayName: 'Jane', avatarUrl: '/avatar/is/here', color: '#00AC18'},
+  currentUser: {id: '1', displayName: 'Jane', avatarUrl: '/avatar/is/here', color: '#0B874B'},
   opportunities: {
     items: [
       {id: 1, firstName: 'Fred', lastName: 'Flintstone', dismissed: false},
@@ -592,6 +593,70 @@ describe('api actions', () => {
       Actions.cancelEditingPlannerItem()(mockDispatch, getBasicState)
       expect(mockDispatch).toHaveBeenCalledWith({type: 'CLEAR_UPDATE_TODO'})
       expect(mockDispatch).toHaveBeenCalledWith({type: 'CANCELED_EDITING_PLANNER_ITEM'})
+    })
+  })
+
+  describe('clearItems', () => {
+    it('dispatches clearWeeklyItems and clearOpportunities actions', () => {
+      const mockDispatch = jest.fn()
+      Actions.clearItems()(mockDispatch, () => ({
+        weeklyDashboard: {}
+      }))
+      expect(mockDispatch).toHaveBeenCalledTimes(6)
+      expect(mockDispatch).toHaveBeenCalledWith({type: 'CLEAR_WEEKLY_ITEMS'})
+      expect(mockDispatch).toHaveBeenCalledWith({type: 'CLEAR_OPPORTUNITIES'})
+      expect(mockDispatch).toHaveBeenCalledWith({type: 'CLEAR_DAYS'})
+      expect(mockDispatch).toHaveBeenCalledWith({type: 'CLEAR_COURSES'})
+      expect(mockDispatch).toHaveBeenCalledWith({type: 'CLEAR_SIDEBAR'})
+      expect(mockDispatch).toHaveBeenCalledWith({type: 'CLEAR_LOADING'})
+    })
+
+    it('does not dispatch clearWeeklyItems if not a weekly dashboard', () => {
+      const mockDispatch = jest.fn()
+      Actions.clearItems()(mockDispatch, () => ({}))
+      expect(mockDispatch).toHaveBeenCalledTimes(5)
+      expect(mockDispatch).toHaveBeenCalledWith({type: 'CLEAR_OPPORTUNITIES'})
+      expect(mockDispatch).toHaveBeenCalledWith({type: 'CLEAR_DAYS'})
+      expect(mockDispatch).toHaveBeenCalledWith({type: 'CLEAR_COURSES'})
+      expect(mockDispatch).toHaveBeenCalledWith({type: 'CLEAR_SIDEBAR'})
+      expect(mockDispatch).toHaveBeenCalledWith({type: 'CLEAR_LOADING'})
+    })
+  })
+
+  describe('reloadWithObservee', () => {
+    let mockDispatch, store, getState
+    beforeEach(() => {
+      mockDispatch = jest.fn(() => Promise.resolve({data: []}))
+      store = {...getBasicState()}
+      getState = () => store
+    })
+
+    afterEach(() => {
+      jest.resetAllMocks()
+    })
+
+    it('does nothing if no observee id', () => {
+      Actions.reloadWithObservee(undefined)(mockDispatch, getState)
+      expect(mockDispatch).not.toHaveBeenCalled()
+    })
+
+    it('does nothing if the observee id did not change', () => {
+      store.selectedObservee = '5'
+
+      Actions.reloadWithObservee('5')(mockDispatch, getState)
+      expect(mockDispatch).not.toHaveBeenCalled()
+    })
+
+    it('dispatches startLoadingItems if contextCodes are not present but observee id changed', async () => {
+      store.selectedObservee = '5'
+
+      await Actions.reloadWithObservee('6')(mockDispatch, getState)
+      expect(mockDispatch).toHaveBeenCalledTimes(4)
+      expect(mockDispatch).toHaveBeenCalledWith({
+        payload: '6',
+        type: 'SELECTED_OBSERVEE'
+      })
+      expect(mockDispatch).toHaveBeenCalledWith({type: 'START_LOADING_ALL_OPPORTUNITIES'})
     })
   })
 })

@@ -16,18 +16,23 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import {AUTO_MARK_AS_READ_DELAY} from '../../utils/constants'
+import {AUTO_MARK_AS_READ_DELAY, SearchContext} from '../../utils/constants'
 import {AlertManagerContext} from '@canvas/alerts/react/AlertManager'
 import DateHelper from '../../../../../shared/datetime/dateHelper'
 import {Discussion} from '../../../graphql/Discussion'
 import {DiscussionEntry} from '../../../graphql/DiscussionEntry'
 import {Flex} from '@instructure/ui-flex'
 import {Highlight} from '../../components/Highlight/Highlight'
-import I18n from 'i18n!discussion_topics_post'
-import {isTopicAuthor, updateDiscussionTopicEntryCounts, responsiveQuerySizes} from '../../utils'
+import {useScope as useI18nScope} from '@canvas/i18n'
+import {
+  isTopicAuthor,
+  updateDiscussionTopicEntryCounts,
+  responsiveQuerySizes,
+  getDisplayName
+} from '../../utils'
 import {DiscussionEntryContainer} from '../DiscussionEntryContainer/DiscussionEntryContainer'
 import PropTypes from 'prop-types'
-import React, {useContext, useState, useEffect, useRef} from 'react'
+import React, {useContext, useState, useEffect, useCallback} from 'react'
 import {Responsive} from '@instructure/ui-responsive'
 import {ShowMoreRepliesButton} from '../../components/ShowMoreRepliesButton/ShowMoreRepliesButton'
 import {Spinner} from '@instructure/ui-spinner'
@@ -35,10 +40,14 @@ import {ThreadActions} from '../../components/ThreadActions/ThreadActions'
 import {ThreadingToolbar} from '../../components/ThreadingToolbar/ThreadingToolbar'
 import {
   UPDATE_DISCUSSION_ENTRIES_READ_STATE,
-  UPDATE_DISCUSSION_ENTRY
+  UPDATE_DISCUSSION_ENTRY,
+  UPDATE_DISCUSSION_ENTRY_PARTICIPANT
 } from '../../../graphql/Mutations'
 import {useMutation} from 'react-apollo'
 import {View} from '@instructure/ui-view'
+import {ReportReply} from '../../components/ReportReply/ReportReply'
+
+const I18n = useI18nScope('discussion_topics_post')
 
 export const IsolatedThreadsContainer = props => {
   const {setOnFailure, setOnSuccess} = useContext(AlertManagerContext)
@@ -180,33 +189,42 @@ export default IsolatedThreadsContainer
 const IsolatedThreadContainer = props => {
   const threadActions = []
   const [isEditing, setIsEditing] = useState(false)
-  const {setOnFailure, setOnSuccess} = useContext(AlertManagerContext)
+  const [showReportModal, setShowReportModal] = useState(false)
+  const [reportModalIsLoading, setReportModalIsLoading] = useState(false)
+  const [reportingError, setReportingError] = useState(false)
 
-  const threadRef = useRef()
+  const {setOnFailure, setOnSuccess} = useContext(AlertManagerContext)
+  const {filter} = useContext(SearchContext)
+  const [threadRefCurrent, setThreadRefCurrent] = useState(null)
+
+  const onThreadRefCurrentSet = useCallback(refCurrent => {
+    setThreadRefCurrent(refCurrent)
+  }, [])
 
   // Scrolling auto listener to mark messages as read
   useEffect(() => {
     if (
       !ENV.manual_mark_as_read &&
       !props.discussionEntry.entryParticipant?.read &&
-      !props.discussionEntry?.entryParticipant?.forcedReadState
+      !props.discussionEntry?.entryParticipant?.forcedReadState &&
+      filter !== 'drafts'
     ) {
       const observer = new IntersectionObserver(
-        () => props.setToBeMarkedAsRead(props.discussionEntry._id),
+        ([entry]) => entry.isIntersecting && props.setToBeMarkedAsRead(props.discussionEntry._id),
         {
           root: null,
           rootMargin: '0px',
-          threshold: 0.1
+          threshold: 0.4
         }
       )
 
-      if (threadRef.current) observer.observe(threadRef.current)
+      if (threadRefCurrent) observer.observe(threadRefCurrent)
 
       return () => {
-        if (threadRef.current) observer.unobserve(threadRef.current)
+        if (threadRefCurrent) observer.unobserve(threadRefCurrent)
       }
     }
-  }, [threadRef, props.discussionEntry.entryParticipant.read, props])
+  }, [threadRefCurrent, props.discussionEntry.entryParticipant.read, props, filter])
 
   const [updateDiscussionEntry] = useMutation(UPDATE_DISCUSSION_ENTRY, {
     onCompleted: data => {
@@ -222,11 +240,30 @@ const IsolatedThreadContainer = props => {
     }
   })
 
-  const onUpdate = newMessage => {
+  const [updateDiscussionEntryReported] = useMutation(UPDATE_DISCUSSION_ENTRY_PARTICIPANT, {
+    onCompleted: data => {
+      if (!data || !data.updateDiscussionEntryParticipant) {
+        return null
+      }
+      setReportModalIsLoading(false)
+      setShowReportModal(false)
+      setOnSuccess(I18n.t('You have reported this reply.'), false)
+    },
+    onError: () => {
+      setReportModalIsLoading(false)
+      setReportingError(true)
+      setTimeout(() => {
+        setReportingError(false)
+      }, 3000)
+    }
+  })
+
+  const onUpdate = (message, _includeReplyPreview, fileId) => {
     updateDiscussionEntry({
       variables: {
         discussionEntryId: props.discussionEntry._id,
-        message: newMessage
+        message,
+        removeAttachment: !fileId
       }
     })
   }
@@ -235,7 +272,7 @@ const IsolatedThreadContainer = props => {
     threadActions.push(
       <ThreadingToolbar.Reply
         key={`reply-${props.discussionEntry.id}`}
-        authorName={props.discussionEntry.author.displayName}
+        authorName={getDisplayName(props.discussionEntry)}
         delimiterKey={`reply-delimiter-${props.discussionEntry.id}`}
         isIsolatedView
         onClick={() =>
@@ -257,8 +294,8 @@ const IsolatedThreadContainer = props => {
         key={`like-${props.discussionEntry.id}`}
         delimiterKey={`like-delimiter-${props.discussionEntry.id}`}
         onClick={() => props.onToggleRating(props.discussionEntry)}
-        authorName={props.discussionEntry.author.displayName}
-        isLiked={props.discussionEntry.entryParticipant?.rating}
+        authorName={getDisplayName(props.discussionEntry)}
+        isLiked={!!props.discussionEntry.entryParticipant?.rating}
         likeCount={props.discussionEntry.ratingSum || 0}
         interaction={props.discussionEntry.permissions.rate ? 'enabled' : 'disabled'}
       />
@@ -270,6 +307,7 @@ const IsolatedThreadContainer = props => {
       <ThreadingToolbar.Expansion
         key={`expand-${props.discussionEntry.id}`}
         delimiterKey={`expand-delimiter-${props.discussionEntry.id}`}
+        authorName={getDisplayName(props.discussionEntry)}
         expandText={I18n.t('View Replies')}
         isExpanded={false}
         onClick={() => props.onOpenIsolatedView(props.discussionEntry._id, null, false)}
@@ -290,7 +328,7 @@ const IsolatedThreadContainer = props => {
         }
       }}
       render={responsiveProps => (
-        <div ref={threadRef}>
+        <div ref={onThreadRefCurrentSet}>
           <View as="div" padding={responsiveProps.padding}>
             <Highlight isHighlighted={props.isHighlighted}>
               <Flex padding="small">
@@ -330,9 +368,30 @@ const IsolatedThreadContainer = props => {
                           )
                         }}
                         goToTopic={props.goToTopic}
+                        goToQuotedReply={
+                          props.discussionEntry.quotedEntry !== null
+                            ? () => {
+                                props.onOpenIsolatedView(
+                                  props.discussionEntry.rootEntryId,
+                                  props.discussionEntry.rootEntryId,
+                                  false,
+                                  props.discussionEntry.quotedEntry._id
+                                )
+                              }
+                            : null
+                        }
+                        onReport={
+                          props.discussionTopic.permissions?.studentReporting
+                            ? () => {
+                                setShowReportModal(true)
+                              }
+                            : null
+                        }
+                        isReported={props.discussionEntry?.entryParticipant?.reportType != null}
                       />
                     }
                     author={props.discussionEntry.author}
+                    anonymousAuthor={props.discussionEntry.anonymousAuthor}
                     message={props.discussionEntry.message}
                     isEditing={isEditing}
                     onSave={onUpdate}
@@ -357,6 +416,7 @@ const IsolatedThreadContainer = props => {
                     )}
                     updateDraftCache={props.updateDraftCache}
                     quotedEntry={props.discussionEntry.quotedEntry}
+                    attachment={props.discussionEntry.attachment}
                   >
                     <View as="div" padding="x-small none none">
                       <ThreadingToolbar discussionEntry={props.discussionEntry} isIsolatedView>
@@ -364,6 +424,23 @@ const IsolatedThreadContainer = props => {
                       </ThreadingToolbar>
                     </View>
                   </DiscussionEntryContainer>
+                  <ReportReply
+                    onCloseReportModal={() => {
+                      setShowReportModal(false)
+                    }}
+                    onSubmit={reportType => {
+                      updateDiscussionEntryReported({
+                        variables: {
+                          discussionEntryId: props.discussionEntry._id,
+                          reportType
+                        }
+                      })
+                      setReportModalIsLoading(true)
+                    }}
+                    showReportModal={showReportModal}
+                    isLoading={reportModalIsLoading}
+                    errorSubmitting={reportingError}
+                  />
                 </Flex.Item>
               </Flex>
             </Highlight>

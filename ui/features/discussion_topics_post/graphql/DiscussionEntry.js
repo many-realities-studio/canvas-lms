@@ -16,9 +16,11 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+import {AnonymousUser} from './AnonymousUser'
 import {bool, number, shape, string} from 'prop-types'
 import {DiscussionEntryPermissions} from './DiscussionEntryPermissions'
 import gql from 'graphql-tag'
+import {Attachment} from './Attachment'
 import {PageInfo} from './PageInfo'
 import {User} from './User'
 
@@ -34,10 +36,14 @@ export const DiscussionEntry = {
       ratingCount
       ratingSum
       subentriesCount
+      attachment {
+        ...Attachment
+      }
       entryParticipant {
         rating
         read
         forcedReadState
+        reportType
       }
       rootEntryParticipantCounts {
         unreadCount
@@ -53,17 +59,25 @@ export const DiscussionEntry = {
       isolatedEntryId
       parentId
       quotedEntry {
+        _id
         createdAt
         previewMessage
         author {
           shortName
+          id
+        }
+        anonymousAuthor {
+          shortName
+          id
         }
         editor {
           shortName
+          id
         }
         deleted
       }
     }
+    ${Attachment.fragment}
     ${DiscussionEntryPermissions.fragment}
   `,
 
@@ -77,12 +91,15 @@ export const DiscussionEntry = {
     ratingCount: number,
     ratingSum: number,
     subentriesCount: number,
+    attachment: Attachment.shape,
     author: User.shape,
+    anonymousAuthor: AnonymousUser.shape,
     editor: User.shape,
     entryParticipant: shape({
       rating: bool,
       read: bool,
-      forcedReadState: bool
+      forcedReadState: bool,
+      reportType: string
     }),
     rootEntryParticipantCounts: shape({
       unreadCount: number,
@@ -99,7 +116,12 @@ export const DiscussionEntry = {
       createdAt: string,
       previewMessage: string,
       author: shape({
-        shortName: string
+        shortName: string,
+        id: string
+      }),
+      anonymousAuthor: shape({
+        shortName: string,
+        id: string
       }),
       editor: shape({
         shortName: string
@@ -109,8 +131,8 @@ export const DiscussionEntry = {
   }),
 
   mock: ({
-    id = '3',
-    _id = '3',
+    id = 'RGlzY3Vzc2lvbkVudHJ5LTE=',
+    _id = '1',
     createdAt = '2021-02-08T13:35:56-07:00',
     updatedAt = '2021-04-13T10:00:20-06:00',
     deleted = false,
@@ -118,16 +140,19 @@ export const DiscussionEntry = {
     ratingCount = null,
     ratingSum = null,
     subentriesCount = 2,
+    attachment = Attachment.mock(),
     author = User.mock(),
+    anonymousAuthor = null,
     editor = User.mock(),
     entryParticipant = {
       rating: false,
       read: true,
       forcedReadState: false,
+      reportType: null,
       __typename: 'EntryParticipant'
     },
     rootEntryParticipantCounts = {
-      unreadCount: 1,
+      unreadCount: 0,
       repliesCount: 1,
       __typename: 'DiscussionEntryCounts'
     },
@@ -141,9 +166,9 @@ export const DiscussionEntry = {
       pageInfo: PageInfo.mock(),
       __typename: 'DiscussionSubentriesConnection'
     },
-    rootEntryId = '77',
-    isolatedEntryId = '77',
-    parentId = '77',
+    rootEntryId = null,
+    isolatedEntryId = null,
+    parentId = null,
     quotedEntry = null
   } = {}) => ({
     id,
@@ -155,7 +180,9 @@ export const DiscussionEntry = {
     ratingCount,
     ratingSum,
     subentriesCount,
+    attachment,
     author,
+    anonymousAuthor,
     editor,
     entryParticipant,
     rootEntryParticipantCounts,
@@ -167,26 +194,5 @@ export const DiscussionEntry = {
     parentId,
     quotedEntry,
     __typename: 'DiscussionEntry'
-  })
-}
-
-export const DefaultMocks = {
-  DiscussionEntry: () => ({
-    _id: '1',
-    createdAt: '2021-03-25T13:22:24-06:00',
-    updatedAt: '2021-03-25T13:22:24-06:00',
-    deleted: false,
-    message: 'Howdy Partner, this is a message!',
-    ratingCount: 5,
-    ratingSum: 5,
-    entryParticipant: {
-      rating: true,
-      read: true,
-      forcedReadState: false
-    },
-    subentriesCount: 5,
-    lastReply: {
-      createdAt: '2021-03-25T13:22:24-06:00'
-    }
   })
 }

@@ -15,5 +15,21 @@
  * You should have received a copy of the GNU Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
+import {useScope as useI18nScope} from '@canvas/i18n'
+import React from 'react'
+
+const I18n = useI18nScope('conversations_2')
 
 export const PARTICIPANT_EXPANSION_THRESHOLD = 2
+
+const conversationContextDefaultValues = {
+  multiselect: false,
+  setMultiselect: () => {},
+  messageOpenEvent: false,
+  setMessageOpenEvent: () => {},
+  isSubmissionCommentsType: false,
+  setIsSubmissionCommentsType: () => {}
+}
+export const ConversationContext = React.createContext(conversationContextDefaultValues)
+
+export const CONVERSATION_ID_WHERE_CAN_REPLY_IS_FALSE = '129'

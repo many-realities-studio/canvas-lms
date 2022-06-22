@@ -33,25 +33,24 @@ module Turnitin
       save_attachment(tii_client, user, attachment)
     end
 
-    def self.create_attachment(user, assignment, tool, outcomes_response_json)
+    def self.create_attachment(turnitin_client, user, assignment)
       attachment = assignment.attachments.new
-      tii_client = TiiClient.new(user, assignment, tool, outcomes_response_json)
-      save_attachment(tii_client, user, attachment)
+      save_attachment(turnitin_client, user, attachment)
     end
 
     def self.save_attachment(turnitin_client, user, attachment)
       Dir.mktmpdir do |dirname|
         turnitin_client.original_submission do |response|
-          content_disposition = response.headers['content-disposition']
-          fail Errors::ScoreStillPendingError if content_disposition.nil?
+          content_disposition = response.headers["content-disposition"]
+          raise Errors::OriginalSubmissionUnavailableError, response.status if content_disposition.nil?
 
-          filename = content_disposition.match(/filename=(\"?)(.+)\1/)[2]
-          filename.tr!('/', '-')
+          filename = content_disposition.match(/filename=("?)(.+)\1/)[2]
+          filename.tr!("/", "-")
           path = File.join(dirname, filename)
-          File.open(path, 'wb') do |f|
+          File.open(path, "wb") do |f|
             f.write(response.body)
           end
-          attachment.uploaded_data = Rack::Test::UploadedFile.new(path, response.headers['content-type'], true)
+          attachment.uploaded_data = Rack::Test::UploadedFile.new(path, response.headers["content-type"], true)
           attachment.display_name = filename
           attachment.user ||= user
           attachment.save!

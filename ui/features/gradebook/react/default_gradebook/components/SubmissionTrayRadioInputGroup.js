@@ -21,7 +21,9 @@ import {bool, func, number, shape, string} from 'prop-types'
 import {FormFieldGroup} from '@instructure/ui-form-field'
 import SubmissionTrayRadioInput from './SubmissionTrayRadioInput'
 import {statusesTitleMap} from '../constants/statuses'
-import I18n from 'i18n!gradebook'
+import {useScope as useI18nScope} from '@canvas/i18n'
+
+const I18n = useI18nScope('gradebook')
 
 function checkedValue(submission, assignment) {
   // If students are anonymized we don't want to leak any information about the submission
@@ -33,6 +35,8 @@ function checkedValue(submission, assignment) {
     return 'missing'
   } else if (submission.late) {
     return 'late'
+  } else if (submission.latePolicyStatus === 'extended') {
+    return 'extended'
   }
 
   return 'none'
@@ -41,7 +45,7 @@ function checkedValue(submission, assignment) {
 export default class SubmissionTrayRadioInputGroup extends React.Component {
   state = {pendingUpdateData: null}
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     if (
       this.props.submissionUpdating &&
       !nextProps.submissionUpdating &&
@@ -71,7 +75,9 @@ export default class SubmissionTrayRadioInputGroup extends React.Component {
   }
 
   render() {
-    const radioOptions = ['none', 'late', 'missing', 'excused'].map(status => (
+    const optionValues = ['none', 'late', 'missing', 'excused']
+    if (ENV.FEATURES && ENV.FEATURES.extended_submission_state) optionValues.push('extended')
+    const radioOptions = optionValues.map(status => (
       <SubmissionTrayRadioInput
         key={status}
         checked={checkedValue(this.props.submission, this.props.assignment) === status}
@@ -107,7 +113,8 @@ SubmissionTrayRadioInputGroup.propTypes = {
   colors: shape({
     late: string.isRequired,
     missing: string.isRequired,
-    excused: string.isRequired
+    excused: string.isRequired,
+    extended: string.isRequired
   }).isRequired,
   disabled: bool.isRequired,
   latePolicy: shape({
@@ -118,7 +125,8 @@ SubmissionTrayRadioInputGroup.propTypes = {
     excused: bool.isRequired,
     late: bool.isRequired,
     missing: bool.isRequired,
-    secondsLate: number.isRequired
+    secondsLate: number.isRequired,
+    latePolicyStatus: string.isRequired
   }).isRequired,
   submissionUpdating: bool.isRequired,
   updateSubmission: func.isRequired

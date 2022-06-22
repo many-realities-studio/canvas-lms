@@ -20,15 +20,16 @@ import groovy.transform.Field
 
 @Field static final COFFEE_NODE_COUNT = 4
 @Field static final JSG_NODE_COUNT = 3
+@Field static final JEST_NODE_COUNT = 2
 
-def jestNodeRequirementsTemplate() {
+def jestNodeRequirementsTemplate(index) {
   def baseTestContainer = [
     image: env.KARMA_RUNNER_IMAGE,
     command: 'cat'
   ]
 
   return [
-    containers: [baseTestContainer + [name: 'jest']]
+    containers: [baseTestContainer + [name: "jest${index}"]]
   ]
 }
 
@@ -52,10 +53,21 @@ def karmaNodeRequirementsTemplate() {
   def karmaContainers = []
 
   karmaContainers = karmaContainers + (0..JSG_NODE_COUNT).collect { index -> baseTestContainer + [name: "jsg${index}"] }
-  karmaContainers = karmaContainers + ['jsa', 'jsh', 'packages'].collect { group -> baseTestContainer + [name: group] }
+  karmaContainers = karmaContainers + ['jsa', 'jsh'].collect { group -> baseTestContainer + [name: group] }
 
   return [
     containers: karmaContainers,
+  ]
+}
+
+def packagesNodeRequirementsTemplate() {
+  def baseTestContainer = [
+    image: env.KARMA_RUNNER_IMAGE,
+    command: 'cat'
+  ]
+
+  return [
+    containers: [baseTestContainer + [name: "packages"]],
   ]
 }
 
@@ -64,6 +76,26 @@ def tearDownNode() {
     copyToWorkspace srcBaseDir: '/usr/src/app', path: env.TEST_RESULT_OUTPUT_DIR
     archiveArtifacts artifacts: "${env.TEST_RESULT_OUTPUT_DIR}/**/*.xml"
     junit "${env.TEST_RESULT_OUTPUT_DIR}/**/*.xml"
+
+    if (env.COVERAGE == '1') {
+      /* groovylint-disable-next-line GStringExpressionWithinString */
+      sh '''#!/bin/bash
+        rm -vrf ./coverage-report-js
+        mkdir -v coverage-report-js
+        chmod -vvR 777 coverage-report-js
+
+        counter=0
+        for coverage_file in `find . -type d -name node_modules -prune -o -name coverage*.json -print`
+        do
+          stagearray=($STAGE_NAME)
+          new_file="./coverage-report-js/coverage-"${stagearray[0]}"-"$counter".json"
+          cp $coverage_file $new_file
+          ((counter=counter+1))
+        done
+      '''
+      copyToWorkspace srcBaseDir: '/usr/src/app', path: 'coverage-report-js'
+      archiveArtifacts allowEmptyArchive: true, artifacts: 'coverage-report-js/*'
+    }
   }
 }
 
@@ -81,9 +113,15 @@ def queueCoffeeDistribution() {
   }
 }
 
-def queueJestDistribution() {
+def queueJestDistribution(index) {
   { stages ->
-    callableWithDelegate(queueTestStage())(stages, 'jest', [], 'bundle exec rails graphql:schema && yarn test:jest')
+    def jestEnvVars = [
+      "CI_NODE_INDEX=${index}",
+      "CI_NODE_TOTAL=${JEST_NODE_COUNT}",
+      'CI=1',
+    ]
+
+    callableWithDelegate(queueTestStage())(stages, "jest${index}", jestEnvVars, 'bundle exec rails graphql:schema && yarn test:jest:build')
   }
 }
 
@@ -102,8 +140,12 @@ def queueKarmaDistribution() {
     ['jsa', 'jsh'].each { group ->
       callableWithDelegate(queueTestStage())(stages, "${group}", ["JSPEC_GROUP=${group}"], 'yarn test:karma:headless')
     }
+  }
+}
 
-    callableWithDelegate(queueTestStage())(stages, 'packages', [], 'TEST_RESULT_OUTPUT_DIR=/usr/src/app/$TEST_RESULT_OUTPUT_DIR yarn test:packages')
+def queuePackagesDistribution() {
+  { stages ->
+    callableWithDelegate(queueTestStage())(stages, 'packages', ["CANVAS_RCE_PARALLEL=1"], 'TEST_RESULT_OUTPUT_DIR=/usr/src/app/$TEST_RESULT_OUTPUT_DIR yarn test:packages:parallel')
   }
 }
 
@@ -112,13 +154,18 @@ def queueTestStage() {
     def baseEnvVars = [
       "FORCE_FAILURE=${env.FORCE_FAILURE}",
       'RAILS_ENV=test',
-      "RAILS_LOAD_ALL_LOCALES=${env.RAILS_LOAD_ALL_LOCALES}",
       "TEST_RESULT_OUTPUT_DIR=js-results/${containerName}",
+    ]
+
+    def postStageHandler = [
+      onStageEnded: { stageName, stageConfig, result ->
+        buildSummaryReport.setStageTimings(stageName, stageConfig.timingValues())
+      }
     ]
 
     extendedStage(containerName)
       .envVars(baseEnvVars + additionalEnvVars)
-      .hooks([onNodeReleasing: this.tearDownNode()])
+      .hooks(postStageHandler + [onNodeReleasing: this.tearDownNode()])
       .obeysAllowStages(false)
       .nodeRequirements(container: containerName)
       .queue(stages) { sh(scriptName) }

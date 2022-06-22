@@ -24,6 +24,7 @@ const getInitialState = (overrides = {}) => ({
   items: [],
   loading: false,
   loaded: true,
+  loadingError: null,
   nextUrl: null,
   range: {
     firstMoment: moment.tz('2018-01-01', 'UTC'),
@@ -114,6 +115,21 @@ it('sets loading to false on SIDEBAR_ITEMS_LOADING_FAILED', () => {
   })
   const expected = {
     loading: false
+  }
+  expect(actual).toMatchObject(expected)
+})
+
+it('sets the error to the state on SIDEBAR_ITEMS_LOADING_FAILED', () => {
+  const initialState = getInitialState({
+    loadingError: null
+  })
+  const actual = reducer(initialState, {
+    type: 'SIDEBAR_ITEMS_LOADING_FAILED',
+    payload: 'Error loading items'
+  })
+
+  const expected = {
+    loadingError: 'Error loading items'
   }
   expect(actual).toMatchObject(expected)
 })
@@ -240,4 +256,17 @@ it('does not save an item if the sidebar is not loaded yet', () => {
   const nextState = reducer(initialState, savedPlannerItem({item: makeItem({uniqueId: '41'})}))
   expect(initialState).toEqual(getInitialState({loaded: false}))
   expect(nextState).toBe(initialState)
+})
+
+describe('CLEAR_SIDEBAR', () => {
+  const initialState = getInitialState({
+    items: [
+      {uniqueId: '41', title: 'aaa', completed: false, date: moment.tz('2018-01-01', 'UTC')},
+      {uniqueId: '42', title: 'bbb', completed: false, date: moment.tz('2018-01-01', 'UTC')}
+    ]
+  })
+  const newState = reducer(initialState, {type: 'CLEAR_SIDEBAR'})
+  expect(newState.items).toEqual([])
+  expect(newState.range).toEqual({})
+  expect(newState.loaded).toEqual(false)
 })

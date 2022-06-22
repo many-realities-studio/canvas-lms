@@ -23,16 +23,19 @@ import errorShipUrl from '@canvas/images/ErrorShip.svg'
 import GenericErrorPage from '@canvas/generic-error-page'
 import SVGWithTextPlaceholder from '../../SVGWithTextPlaceholder'
 import ClosedDiscussionSVG from '../../../images/ClosedDiscussions.svg'
-import I18n from 'i18n!assignments_2'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import LoadingIndicator from '@canvas/loading-indicator'
 import {Alert} from '@instructure/ui-alerts'
 import {Button} from '@instructure/ui-buttons'
 import {Flex} from '@instructure/ui-flex'
+import {Text} from '@instructure/ui-text'
 import React, {useContext, useState} from 'react'
 import StudentViewContext from '../Context'
 import {SUBMISSION_COMMENT_QUERY} from '@canvas/assignments/graphql/student/Queries'
 import {Submission} from '@canvas/assignments/graphql/student/Submission'
 import {useQuery} from 'react-apollo'
+
+const I18n = useI18nScope('assignments_2')
 
 export default function CommentsTrayBody(props) {
   const [isFetchingMoreComments, setIsFetchingMoreComments] = useState(false)
@@ -69,6 +72,9 @@ export default function CommentsTrayBody(props) {
   }
 
   const {allowChangesToSubmission} = useContext(StudentViewContext)
+
+  const gradeAsGroup =
+    props.assignment.groupCategoryId && !props.assignment.gradeGroupStudentsIndividually
 
   if (loading) return <LoadingIndicator />
   if (error) {
@@ -114,7 +120,7 @@ export default function CommentsTrayBody(props) {
             {isFetchingMoreComments && <LoadingIndicator />}
             {data.submissionComments.commentsConnection.pageInfo.hasPreviousPage &&
               !isFetchingMoreComments && (
-                <Button variant="primary" onClick={loadMoreComments}>
+                <Button color="primary" onClick={loadMoreComments}>
                   {I18n.t('Load Previous Comments')}
                 </Button>
               )}
@@ -124,9 +130,17 @@ export default function CommentsTrayBody(props) {
         </Flex.Item>
 
         {allowChangesToSubmission && (
-          <Flex.Item padding="x-small medium">
-            <CommentTextArea assignment={props.assignment} submission={props.submission} />
-          </Flex.Item>
+          <Flex as="div" direction="column">
+            {gradeAsGroup && (
+              <Flex.Item padding="x-small medium">
+                <Text as="div">{I18n.t('All comments are sent to the whole group.')}</Text>
+              </Flex.Item>
+            )}
+
+            <Flex.Item padding="x-small medium">
+              <CommentTextArea assignment={props.assignment} submission={props.submission} />
+            </Flex.Item>
+          </Flex>
         )}
       </Flex>
     </ErrorBoundary>

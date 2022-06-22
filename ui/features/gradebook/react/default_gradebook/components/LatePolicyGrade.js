@@ -19,8 +19,10 @@
 import React from 'react'
 import {arrayOf, number, oneOf, shape, string} from 'prop-types'
 import {Text} from '@instructure/ui-text'
-import I18n from 'i18n!gradebook'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import GradeFormatHelper from '@canvas/grading/GradeFormatHelper'
+
+const I18n = useI18nScope('gradebook')
 
 export default function LatePolicyGrade(props) {
   const pointsDeducted = I18n.n(-props.submission.pointsDeducted)
@@ -36,7 +38,7 @@ export default function LatePolicyGrade(props) {
     <div style={{display: 'flex', flexDirection: 'row'}}>
       <div style={{paddingRight: '.5rem'}}>
         <div>
-          <Text color="error" as="span">
+          <Text color="danger" as="span">
             {I18n.t('Late Penalty:')}
           </Text>
         </div>
@@ -48,7 +50,7 @@ export default function LatePolicyGrade(props) {
       </div>
       <div style={{flex: 1}}>
         <div id="late-penalty-value">
-          <Text color="error" as="span">
+          <Text color="danger" as="span">
             {pointsDeducted}
           </Text>
         </div>

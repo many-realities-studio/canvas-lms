@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU Affero General Public License along
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 
-require 'anonymity'
+require "anonymity"
 
 class DueDateCacher
   include Moderation
@@ -68,7 +68,7 @@ class DueDateCacher
     self.executing_users.last
   end
 
-  INFER_SUBMISSION_WORKFLOW_STATE_SQL = <<~SQL_FRAGMENT.freeze
+  INFER_SUBMISSION_WORKFLOW_STATE_SQL = <<~SQL_FRAGMENT
     CASE
     WHEN grade IS NOT NULL OR excused IS TRUE THEN
       'graded'
@@ -92,7 +92,7 @@ class DueDateCacher
     opts = {
       assignments: [assignment.id],
       inst_jobs_opts: {
-        strand: "cached_due_date:calculator:Course:Assignments:#{assignment.context.global_id}",
+        singleton: "cached_due_date:calculator:Assignment:#{assignment.global_id}:UpdateGrades:#{update_grades ? 1 : 0}",
         max_attempts: 10
       },
       update_grades: update_grades,
@@ -107,12 +107,13 @@ class DueDateCacher
     Rails.logger.debug "DDC.recompute_course(#{course.inspect}, #{assignments.inspect}, #{inst_jobs_opts.inspect}) - #{original_caller}"
     course = Course.find(course) unless course.is_a?(Course)
     inst_jobs_opts[:max_attempts] ||= 10
-    inst_jobs_opts[:singleton] ||= "cached_due_date:calculator:Course:#{course.global_id}" if assignments.nil? && !inst_jobs_opts[:strand]
+    inst_jobs_opts[:singleton] ||= "cached_due_date:calculator:Course:#{course.global_id}:UpdateGrades:#{update_grades ? 1 : 0}" if assignments.nil?
+    inst_jobs_opts[:strand] ||= "cached_due_date:calculator:Course:#{course.global_id}"
 
     assignments_to_recompute = assignments || Assignment.active.where(context: course).pluck(:id)
     return if assignments_to_recompute.empty?
 
-    executing_user ||= self.current_executing_user
+    executing_user ||= current_executing_user
     due_date_cacher = new(course, assignments_to_recompute, update_grades: update_grades, original_caller: original_caller, executing_user: executing_user)
     if run_immediately
       due_date_cacher.recompute
@@ -122,32 +123,57 @@ class DueDateCacher
   end
 
   def self.recompute_users_for_course(user_ids, course, assignments = nil, inst_jobs_opts = {})
+    opts = inst_jobs_opts.extract!(:update_grades, :executing_user, :sis_import, :require_singleton).reverse_merge(require_singleton: assignments.nil?)
     user_ids = Array(user_ids)
     course = Course.find(course) unless course.is_a?(Course)
+    update_grades = opts[:update_grades] || false
     inst_jobs_opts[:max_attempts] ||= 10
-    if assignments.nil?
-      inst_jobs_opts[:singleton] ||= "cached_due_date:calculator:Users:#{course.global_id}:#{Digest::SHA256.hexdigest(user_ids.sort.join(':'))}"
+    inst_jobs_opts[:strand] ||= "cached_due_date:calculator:Course:#{course.global_id}"
+    if opts[:require_singleton]
+      inst_jobs_opts[:singleton] ||= "cached_due_date:calculator:Course:#{course.global_id}:Users:#{Digest::SHA256.hexdigest(user_ids.sort.join(":"))}:UpdateGrades:#{update_grades ? 1 : 0}"
     end
     assignments ||= Assignment.active.where(context: course).pluck(:id)
     return if assignments.empty?
 
     current_caller = caller(1..1).first
-    update_grades = inst_jobs_opts.delete(:update_grades) || false
-    executing_user = inst_jobs_opts.delete(:executing_user) || self.current_executing_user
-    due_date_cacher = new(course, assignments, user_ids, update_grades: update_grades, original_caller: current_caller, executing_user: executing_user)
+    executing_user = opts[:executing_user] || current_executing_user
 
+    if opts[:sis_import]
+      running_jobs_count = Delayed::Job.running.where(shard_id: course.shard.id, tag: "DueDateCacher#recompute_for_sis_import").count
+      max_jobs = Setting.get("DueDateCacher#recompute_for_sis_import_num_strands", "10").to_i
+
+      if running_jobs_count >= max_jobs
+        # there are too many sis recompute jobs running concurrently now. let's check again in a bit to see if we can run.
+        return delay_if_production(
+          **inst_jobs_opts,
+          run_at: Setting.get("DueDateCacher#recompute_for_sis_import_requeue_delay", "10").to_i.seconds.from_now
+        ).recompute_users_for_course(user_ids, course, assignments, opts)
+      else
+        due_date_cacher = new(course, assignments, user_ids, update_grades: update_grades, original_caller: current_caller, executing_user: executing_user)
+        return due_date_cacher.delay_if_production(**inst_jobs_opts).recompute_for_sis_import
+      end
+    end
+
+    due_date_cacher = new(course, assignments, user_ids, update_grades: update_grades, original_caller: current_caller, executing_user: executing_user)
     due_date_cacher.delay_if_production(**inst_jobs_opts).recompute
   end
 
   def initialize(course, assignments, user_ids = [], update_grades: false, original_caller: caller(1..1).first, executing_user: nil)
     @course = course
-
     @assignment_ids = Array(assignments).map { |a| a.is_a?(Assignment) ? a.id : a }
-    @assignments_auditable_by_id = if @assignment_ids.present?
-                                     Set.new(Assignment.auditable.where(id: @assignment_ids).pluck(:id))
-                                   else
-                                     Set.new
-                                   end
+
+    # ensure we're dealing with local IDs to avoid headaches downstream
+    if @assignment_ids.present?
+      @course.shard.activate do
+        if @assignment_ids.any? { |id| Assignment.global_id?(id) }
+          @assignment_ids = Assignment.where(id: @assignment_ids).pluck(:id)
+        end
+
+        @assignments_auditable_by_id = Set.new(Assignment.auditable.where(id: @assignment_ids).pluck(:id))
+      end
+    else
+      @assignments_auditable_by_id = Set.new
+    end
 
     @user_ids = Array(user_ids)
     @update_grades = update_grades
@@ -156,6 +182,12 @@ class DueDateCacher
     if executing_user.present?
       @executing_user_id = executing_user.is_a?(User) ? executing_user.id : executing_user
     end
+  end
+
+  # exists so that we can identify (and limit) jobs running specifically for sis imports
+  # Delayed::Job.where(tag: "DueDateCacher#recompute_for_sis_import")
+  def recompute_for_sis_import
+    recompute
   end
 
   def recompute
@@ -170,17 +202,16 @@ class DueDateCacher
       assignments_by_id = Assignment.find(@assignment_ids).index_by(&:id)
 
       effective_due_dates.to_hash.each do |assignment_id, student_due_dates|
-        students_without_priors = student_due_dates.keys - enrollment_counts.prior_student_ids
         existing_anonymous_ids = existing_anonymous_ids_by_assignment_id[assignment_id]
 
         create_moderation_selections_for_assignment(assignments_by_id[assignment_id], student_due_dates.keys, @user_ids)
 
         quiz_lti = quiz_lti_assignments.include?(assignment_id)
 
-        students_without_priors.each do |student_id|
+        student_due_dates.each_key do |student_id|
           submission_info = student_due_dates[student_id]
-          due_date = submission_info[:due_at] ? "'#{submission_info[:due_at].iso8601}'::timestamptz" : 'NULL'
-          grading_period_id = submission_info[:grading_period_id] || 'NULL'
+          due_date = submission_info[:due_at] ? "'#{submission_info[:due_at].iso8601}'::timestamptz" : "NULL"
+          grading_period_id = submission_info[:grading_period_id] || "NULL"
 
           anonymous_id = Anonymity.generate_id(existing_ids: existing_anonymous_ids)
           existing_anonymous_ids << anonymous_id
@@ -237,7 +268,7 @@ class DueDateCacher
         end
 
         # prepare values for SQL interpolation
-        batch_values = batch.map { |entry| "(#{entry.join(',')})" }
+        batch_values = batch.map { |entry| "(#{entry.join(",")})" }
 
         perform_submission_upsert(batch_values)
 
@@ -260,7 +291,7 @@ class DueDateCacher
       # of student scores.  No changes to the Course record can trigger such re-calculations so
       # let's ensure this is triggered only when DueDateCacher is called for a Assignment-level
       # changes and not for Course-level changes
-      assignment = Assignment.find(@assignment_ids.first)
+      assignment = @course.shard.activate { Assignment.find(@assignment_ids.first) }
 
       LatePolicyApplicator.for_assignment(assignment)
     end
@@ -277,24 +308,24 @@ class DueDateCacher
         # The various workflow states below try to mimic similarly named scopes off of course
         scope = Enrollment.select(
           :user_id,
-          "count(nullif(workflow_state not in ('rejected', 'deleted', 'completed'), false)) as accepted_count",
+          "count(nullif(workflow_state not in ('rejected', 'deleted'), false)) as accepted_count",
           "count(nullif(workflow_state in ('completed'), false)) as prior_count",
           "count(nullif(workflow_state in ('rejected', 'deleted'), false)) as deleted_count"
         )
-                          .where(course_id: @course, type: ['StudentEnrollment', 'StudentViewEnrollment'])
+                          .where(course_id: @course, type: ["StudentEnrollment", "StudentViewEnrollment"])
                           .group(:user_id)
 
         scope = scope.where(user_id: @user_ids) if @user_ids.present?
 
         scope.find_each do |record|
-          if record.accepted_count == 0 && record.deleted_count > 0
-            counts.deleted_student_ids << record.user_id
-          elsif record.accepted_count == 0 && record.prior_count > 0
-            counts.prior_student_ids << record.user_id
-          elsif record.accepted_count > 0
-            counts.accepted_student_ids << record.user_id
+          if record.accepted_count > 0
+            if record.accepted_count == record.prior_count
+              counts.prior_student_ids << record.user_id
+            else
+              counts.accepted_student_ids << record.user_id
+            end
           else
-            raise "Unknown enrollment state: #{record.accepted_count}, #{record.prior_count}, #{record.deleted_count}"
+            counts.deleted_student_ids << record.user_id
           end
         end
       end
@@ -314,7 +345,7 @@ class DueDateCacher
     return {} if entries.empty?
 
     entries_for_query = assignment_and_student_id_values(entries: entries)
-    submissions_with_due_dates = Submission.where("(assignment_id, user_id) IN (#{entries_for_query.join(',')})")
+    submissions_with_due_dates = Submission.where("(assignment_id, user_id) IN (#{entries_for_query.join(",")})")
                                            .where.not(cached_due_date: nil)
                                            .pluck(:id, :cached_due_date)
 
@@ -325,7 +356,7 @@ class DueDateCacher
 
   def record_due_date_changes_for_auditable_assignments!(entries:, previous_cached_dates:)
     entries_for_query = assignment_and_student_id_values(entries: entries)
-    updated_submissions = Submission.where("(assignment_id, user_id) IN (#{entries_for_query.join(',')})")
+    updated_submissions = Submission.where("(assignment_id, user_id) IN (#{entries_for_query.join(",")})")
                                     .pluck(:id, :assignment_id, :cached_due_date)
 
     timestamp = Time.zone.now
@@ -340,7 +371,7 @@ class DueDateCacher
         assignment_id: assignment_id,
         submission_id: submission_id,
         user_id: @executing_user_id,
-        event_type: 'submission_updated',
+        event_type: "submission_updated",
         payload: payload.to_json,
         created_at: timestamp,
         updated_at: timestamp
@@ -366,12 +397,12 @@ class DueDateCacher
     @quiz_lti_assignments ||=
       ContentTag.joins("INNER JOIN #{ContextExternalTool.quoted_table_name} ON content_tags.content_type='ContextExternalTool' AND context_external_tools.id = content_tags.content_id")
                 .merge(ContextExternalTool.quiz_lti)
-                .where(context_type: 'Assignment'). #
+                .where(context_type: "Assignment"). #
       # We're doing the following direct postgres any() rather than .where(context_id: @assignment_ids) on advice
       # from our DBAs that the any is considerably faster in the postgres planner than the "IN ()" statement that
       # AR would have generated.
       where("content_tags.context_id = any('{?}'::int8[])", @assignment_ids)
-                .where.not(workflow_state: 'deleted').distinct.pluck(:context_id).to_set
+                .where.not(workflow_state: "deleted").distinct.pluck(:context_id).to_set
   end
 
   def existing_anonymous_ids_by_assignment_id
@@ -385,7 +416,7 @@ class DueDateCacher
 
   def perform_submission_upsert(batch_values)
     # Construct upsert statement to update existing Submissions or create them if needed.
-    query = <<~SQL
+    query = <<~SQL.squish
       UPDATE #{Submission.quoted_table_name}
         SET
           cached_due_date = vals.due_date::timestamptz,
@@ -396,7 +427,7 @@ class DueDateCacher
           anonymous_id = COALESCE(submissions.anonymous_id, vals.anonymous_id),
           cached_quiz_lti = vals.cached_quiz_lti,
           updated_at = now() AT TIME ZONE 'UTC'
-        FROM (VALUES #{batch_values.join(',')})
+        FROM (VALUES #{batch_values.join(",")})
           AS vals(assignment_id, student_id, due_date, grading_period_id, anonymous_id, cached_quiz_lti, root_account_id)
         WHERE submissions.user_id = vals.student_id AND
               submissions.assignment_id = vals.assignment_id AND
@@ -419,7 +450,7 @@ class DueDateCacher
           vals.anonymous_id,
           vals.cached_quiz_lti,
           vals.root_account_id
-        FROM (VALUES #{batch_values.join(',')})
+        FROM (VALUES #{batch_values.join(",")})
           AS vals(assignment_id, student_id, due_date, grading_period_id, anonymous_id, cached_quiz_lti, root_account_id)
         INNER JOIN #{Assignment.quoted_table_name} assignments
           ON assignments.id = vals.assignment_id

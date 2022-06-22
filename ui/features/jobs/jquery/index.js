@@ -15,12 +15,13 @@
 // You should have received a copy of the GNU Affero General Public License along
 // with this program. If not, see <http://www.gnu.org/licenses/>.
 
-import I18n from 'i18n!jobs'
+import {useScope as useI18nScope} from '@canvas/i18n'
 
 import $ from 'jquery'
 import Slick from 'slickgrid'
 import '@canvas/jquery/jquery.ajaxJSON'
 import 'jqueryui/dialog'
+const I18n = useI18nScope('jobs')
 /*
 xsslint safeString.identifier klass d out_of runtime_string
 */
@@ -251,6 +252,12 @@ window.Jobs = class Jobs extends FlavorGrid {
         id: 'strand',
         name: I18n.t('columns.strand', 'strand'),
         field: 'strand',
+        width: 100
+      },
+      {
+        id: 'singleton',
+        name: I18n.t('columns.singleton', 'singleton'),
+        field: 'singleton',
         width: 100
       },
       {

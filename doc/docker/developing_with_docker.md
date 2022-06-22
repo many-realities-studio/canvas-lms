@@ -20,6 +20,8 @@ If you would rather do things manually, read on! And be sure to check the [Troub
 
 ## Recommendations
 
+We recommend using [Mutagen](https://mutagen.io/documentation/synchronization) and Mutagen-Compose for file synchronization. The steps listed below assume you are using Mutagen-Compose. If you are not, replace each `mutagen-compose` with `docker-compose`.
+
 By default `docker-compose` will look at 2 files
 - docker-compose.yml
 - docker-compose.override.yml
@@ -29,8 +31,17 @@ the `./script/docker_dev_setup.sh` (as well as the `./script/docker_dev_update.s
 one into the root directory for docker-compose to use.
 The `docker-compose.override.yml` file is ignored by git in the `.gitignore` file, so you must provide one or run the
 setup script before running docker-compose.
+
+### macOS and Linux with Mutagen
+
+You may manually copy the `docker-compose/mutagen/docker-compose.override.yml` to `docker-compose.override.yml` with the following
+command: `cp docker-compose/mutagen/docker-compose.override.yml docker-compose.override.yml`.
+
+### Linux no Mutagen
+
 You may manually copy the `config/docker-compose.override.yml.example` to `docker-compose.override.yml` with the following
 command: `cp config/docker-compose.override.yml.example docker-compose.override.yml`.
+
 Keep in mind copying this manually will overwrite any existing `docker-compose.override.yml` file, whereas the setup
 script will not overwrite an existing configuration.
 If you need more than what the default override provides you should use a `.env` file to set your `COMPOSE_FILE` environment variable.
@@ -59,7 +70,7 @@ After you have [installed the dependencies](getting_docker.md). You'll need to c
 over the required configuration files.
 
 The `docker-compose/config` directory has some config files already set up to use
-the linked containers supplied by config. Only copy yamls, not the contents of new-jenkins folder. 
+the linked containers supplied by config. Only copy yamls, not the contents of new-jenkins folder.
 You can just copy them to
 `config/`:
 
@@ -73,22 +84,30 @@ Now you're ready to build all of the containers. This will take a while as a lot
 - Database is created and initial setup is run
 - Assets are compiled
 
+First let's get our Mutagen sidecar running.
+
 ```bash
-docker-compose build
-docker-compose run --rm web ./script/install_assets.sh
-docker-compose run --rm web bundle exec rake db:create db:initial_setup
-docker-compose run --rm web bundle exec rake db:migrate RAILS_ENV=test
+mutagen-compose build --pull
+mutagen-compose up --no-start web
+```
+
+Now we can install assets, create and migrate databases.
+
+```bash
+mutagen-compose run --rm web ./script/install_assets.sh
+mutagen-compose run --rm web bundle exec rake db:create db:initial_setup
+mutagen-compose run --rm web bundle exec rake db:migrate RAILS_ENV=test
 ```
 
 Now you should be able to start up and access canvas like you would any other container.
 ```bash
-docker-compose up
+mutagen-compose up -d
 open http://canvas.docker/
 ```
 
 ## Normal Usage
 
-Normally you can just start everything with `docker-compose up`, and
+Normally you can just start everything with `mutagen-compose up -d` and
 access Canvas at http://canvas.docker/
 
 After pulling new code, you'll want to update all your local gems, rebuild your
@@ -100,9 +119,39 @@ all be done with one command:
 ```
 
 Changes you're making are not showing up? See the Caveats section below.
-Ctrl-C your `docker-compose up` window and restart.
 
-## Debugging
+
+### With an IDE
+Canvas supports [ruby-debug-ide](https://github.com/ruby-debug/ruby-debug-ide) to establish
+communication between the debugger engine and IDE (RubyMine or VS Code)
+
+For full instructions on setting up RubyMine or VS Code to visually debug Canvas
+Please see [this page](https://instructure.atlassian.net/wiki/spaces/CE/pages/4287561732/Debugging+Dockerized+Canvas+with+RubyMine+or+Visual+Studio+Code).
+
+#### Example VS Code Configuration
+1. Add `docker-compose/rdebug-ide.override.yml` to the `COMPOSE_FILE` variable in the `.env` file. Example:
+```
+COMPOSE_FILE=docker-compose.yml:docker-compose.override.yml:docker-compose/rdebug-ide.override.yml
+```
+2. Install the Ruby extension from [the Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=rebornix.Ruby)
+3. Create a .vscode/launch.json file at the repo root, with the following contents:
+```json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Listen for rdebug-ide",
+      "type": "Ruby",
+      "request": "attach",
+      "remoteHost": "127.0.0.1",
+      "remotePort": "1234",
+      "remoteWorkspaceRoot": "/usr/src/app",
+      "cwd": "${workspaceRoot}"
+    }
+  ]
+}
+```
+4. Press F5, set breakpoints, and start debugging!
 
 ### Byebug
 
@@ -127,13 +176,13 @@ You can attach to the byebug server once the container is started:
 Debugging web:
 
 ```
-docker-compose exec web bin/byebug-remote
+mutagen-compose exec web bin/byebug-remote
 ```
 
 Debugging jobs:
 
 ```
-docker-compose exec jobs bin/byebug-remote
+mutagen-compose exec jobs bin/byebug-remote
 ```
 
 ### Prefer pry?
@@ -142,17 +191,17 @@ Unfortunately, you can't start a pry session in a remote byebug session. What
 you can do instead is use `pry-remote`.
 
 1. Add `pry-remote` to your Gemfile
-2. Run `docker-compose run --rm web bundle install` to install `pry-remote`
+2. Run `mutagen-compose exec web bundle install` to install `pry-remote`
 3. Add `binding.remote_pry` in code where you want execution to yield a pry REPL
 4. Launch pry-remote and have it wait for execution to yield to you:
 ```
-docker-compose exec web pry-remote --wait
+mutagen-compose exec web pry-remote --wait
 ```
 
 ## Running tests
 
 ```
-$ docker-compose run --rm web bundle exec rspec spec
+$ mutagen-compose exec web bundle exec rspec spec
 ```
 
 ## Running javascript tests
@@ -165,15 +214,16 @@ First add `docker-compose/js-tests.override.yml` to your `COMPOSE_FILE` var in
 `.env`. Then prepare that container with:
 
 ```
-docker-compose run --rm js-tests yarn install
+mutagen-compose up -d js-tests
+mutagen-compose exec js-tests yarn install
 ```
 
 If you run into issues with that command, either during initial setup or after
 updating master, try to fix it with a `nuke_node`:
 
 ```
-docker-compose run --rm js-tests ./script/nuke_node.sh
-docker-compose run --rm js-tests yarn install
+mutagen-compose exec js-tests ./script/nuke_node.sh
+mutagen-compose exec js-tests yarn install
 ```
 
 ### QUnit Karma Tests in Headless Chrome
@@ -181,14 +231,14 @@ docker-compose run --rm js-tests yarn install
 Run all QUnit tests in watch mode with:
 
 ```
-docker-compose run --rm js-tests
+mutagen-compose exec js-tests
 ```
 
 Or, if you're iterating on something and want to just run a targeted test file
 in watch mode, set the `JSPEC_PATH` env var, e.g.:
 
 ```
-docker-compose run --rm -e JSPEC_PATH=spec/coffeescripts/util/deparamSpec.js js-tests
+mutagen-compose exex -e JSPEC_PATH=spec/coffeescripts/util/deparamSpec.js js-tests
 ```
 
 ### Jest Tests
@@ -196,14 +246,14 @@ docker-compose run --rm -e JSPEC_PATH=spec/coffeescripts/util/deparamSpec.js js-
 Run all Jest tests with:
 
 ```
-docker-compose run --rm js-tests yarn test:jest
+mutagen-compose exec js-tests yarn test:jest
 ```
 
 Or to run a targeted subset of tests in watch mode, use `test:jest:watch` and
 specify the paths to the test files as one or more arguments, e.g.:
 
 ```
-docker-compose run --rm js-tests yarn test:jest:watch app/jsx/actAs/__tests__/ActAsModal.test.js
+mutagen-compose exec js-tests yarn test:jest:watch app/jsx/actAs/__tests__/ActAsModal.test.js
 ```
 
 ## Selenium
@@ -213,9 +263,11 @@ To enable Selenium: Add `docker-compose/selenium.override.yml` to your `COMPOSE_
 The container used to run the selenium browser is only started when spinning up
 all docker-compose containers, or when specified explicitly. The selenium
 container needs to be started before running any specs that require selenium.
+Select a browser to run in selenium through config/selenium.yml and then ensure
+that only the corresponding browser is configured in selenium.override.yml.
 
 ```sh
-docker-compose up selenium-firefox # or selenium-chrome
+mutagen-compose up -d selenium-hub
 ```
 
 With the container running, you should be able to open a VNC session:
@@ -223,12 +275,13 @@ With the container running, you should be able to open a VNC session:
 ```sh
 open vnc://secret:secret@seleniumff.docker          (firefox)
 open vnc://secret:secret@seleniumch.docker:5901     (chrome)
+open vnc://secret:secret@seleniumedge.docker:5902   (edge)
 ```
 
 Now just run your choice of selenium specs:
 
 ```sh
-docker-compose run --rm web bundle exec rspec spec/selenium/dashboard_spec.rb
+mutagen-compose exec web bundle exec rspec spec/selenium/dashboard_spec.rb
 ```
 
 ### Capturing Rails Logs and Screenshots
@@ -247,7 +300,7 @@ corresponds to each failed spec, plus a screenshot of the page at the time of
 the failure, by running your specs with the `spec/spec.opts` options like:
 
 ```sh
-docker-compose run --rm web bundle exec rspec --options spec/spec.opts spec/selenium/dashboard_spec.rb
+mutagen-compose exec web bundle exec rspec --options spec/spec.opts spec/selenium/dashboard_spec.rb
 ```
 
 This will produce a `log/spec_failures` directory in the container, which you
@@ -299,16 +352,18 @@ rich-content-service:
 
 ## Tips
 
-It will likely be helpful to alias the various docker-compose commands like `docker-compose run --rm web` because that can get tiring to type over and over. Here are some recommended aliases you can add to your `~/.bash_profile` and reload your Terminal.
+It will likely be helpful to alias the various mutagen-compose commands like `mutagen-compose run --rm web` because that can get tiring to type over and over. Here are some recommended aliases you can add to your `~/.bash_profile` and reload your Terminal.
 
 ```
-alias dc='docker-compose'
-alias dcu='docker-compose up'
-alias dcr='docker-compose run --rm web'
-alias dcrx='docker-compose run --rm web bundle exec'
+alias mc='mutagen-compose'
+alias mcu='mutagen-compose up'
+alias mce='mutagen-compose exec'
+alias mcex='mutagen-compose exec web bundle exec'
+alias mcr='mutagen-compose run --rm web'
+alias mcrx='mutagen-compose run --rm web bundle exec'
 ```
 
-Now you can just run commands like `dcrx rake db:migrate` or `dcr bundle install`
+Now you can just run commands like `mcex rake db:migrate` or `mcr bundle install`
 
 ## Troubleshooting
 
@@ -366,12 +421,12 @@ web: &WEB
 
 Sometimes, very poor performance (or not loading at all) can be due to webpack
 problems. Running
-`docker-compose run --rm web bundle exec rake canvas:compile_assets` again, or
-`docker-compose run --rm web bundle exec rake js:webpack_development` again, may help.
+`mutagen-compose exec web bundle exec rake canvas:compile_assets` again, or
+`mutagen-compose exec web bundle exec rake js:webpack_development` again, may help.
 
 
 ### DNS
-If you are getting DNS resolution errors, and you use Docker for Mac or Linux,
+If you are getting DNS resolution errors, and you use Docker Desktop or Linux,
 make sure [dory](https://github.com/FreedomBen/dory) is running:
 
 ```
@@ -384,4 +439,4 @@ If dory is not running, you can start it with:
 dory up
 ```
 
-Alternatively, you can use Dinghy or Traefik to handle DNS resolution.
+Alternatively, you can use Dinghy-http-proxy or Traefik to handle DNS resolution.

@@ -16,10 +16,12 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import I18n from 'i18n!discussion_posts'
+import {AnonymousAvatar} from '@canvas/discussions/react/components/AnonymousAvatar/AnonymousAvatar'
+import {AnonymousUser} from '../../../graphql/AnonymousUser'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import PropTypes from 'prop-types'
 import React, {useContext, useMemo} from 'react'
-import {resolveAuthorRoles, responsiveQuerySizes} from '../../utils'
+import {getDisplayName, isAnonymous, resolveAuthorRoles, responsiveQuerySizes} from '../../utils'
 import {RolePillContainer} from '../RolePillContainer/RolePillContainer'
 import {SearchContext} from '../../utils/constants'
 import {SearchSpan} from '../SearchSpan/SearchSpan'
@@ -33,8 +35,13 @@ import {ScreenReaderContent} from '@instructure/ui-a11y-content'
 import {Text} from '@instructure/ui-text'
 import {Tooltip} from '@instructure/ui-tooltip'
 
+const I18n = useI18nScope('discussion_posts')
+
 export const AuthorInfo = props => {
-  const {searchTerm} = useContext(SearchContext)
+  const {searchTerm, filter} = useContext(SearchContext)
+
+  const hasAuthor = Boolean(props.author || props.anonymousAuthor)
+  const avatarUrl = isAnonymous(props) ? null : props.author?.avatarUrl
 
   return (
     <Responsive
@@ -52,17 +59,23 @@ export const AuthorInfo = props => {
           timestampTextSize: 'small',
           nameAndRoleDirection: 'row',
           badgeMarginLeft: '-24px'
+        },
+        mobile: {
+          authorNameTextSize: 'small',
+          timestampTextSize: 'x-small',
+          nameAndRoleDirection: 'column',
+          badgeMarginLeft: '-16px'
         }
       }}
       render={responsiveProps => (
         <Flex>
           <Flex.Item align="start">
-            {props.isUnread && (
+            {props.isUnread && filter !== 'drafts' && (
               <div
                 style={{
                   float: 'left',
                   marginLeft: responsiveProps.badgeMarginLeft,
-                  marginTop: props.author ? '11px' : '2px'
+                  marginTop: hasAuthor ? '11px' : '2px'
                 }}
                 data-testid="is-unread"
                 data-isforcedread={props.isForcedRead}
@@ -77,18 +90,21 @@ export const AuthorInfo = props => {
                 />
               </div>
             )}
-            {props.author && (
+            {hasAuthor && !isAnonymous(props) && (
               <Avatar
-                name={props.author.displayName}
-                src={props.author.avatarUrl}
+                name={getDisplayName(props)}
+                src={avatarUrl}
                 margin="0"
                 data-testid="author_avatar"
               />
             )}
+            {hasAuthor && isAnonymous(props) && (
+              <AnonymousAvatar seedString={props.anonymousAuthor.shortName} />
+            )}
           </Flex.Item>
           <Flex.Item shouldShrink>
             <Flex direction="column" margin="0 0 0 small">
-              {props.author && (
+              {hasAuthor && (
                 <Flex.Item>
                   <Flex direction={responsiveProps.nameAndRoleDirection}>
                     <Flex.Item padding="0 small 0 0">
@@ -98,18 +114,22 @@ export const AuthorInfo = props => {
                         lineHeight="condensed"
                         data-testid="author_name"
                       >
-                        <SearchSpan
-                          isIsolatedView={props.isIsolatedView}
-                          searchTerm={searchTerm}
-                          text={props.author.displayName}
-                        />
+                        {isAnonymous(props) ? (
+                          getDisplayName(props)
+                        ) : (
+                          <SearchSpan
+                            isIsolatedView={props.isIsolatedView}
+                            searchTerm={searchTerm}
+                            text={getDisplayName(props)}
+                          />
+                        )}
                       </Text>
                     </Flex.Item>
                     <Flex.Item overflowY="hidden">
                       <RolePillContainer
                         discussionRoles={resolveAuthorRoles(
                           props.isTopicAuthor,
-                          props.author.courseRoles
+                          props.author?.courseRoles
                         )}
                         data-testid="pill-container"
                       />
@@ -141,6 +161,10 @@ AuthorInfo.propTypes = {
    * Object containing author information
    */
   author: User.shape,
+  /**
+   * Object containing anonymous author information
+   */
+  anonymousAuthor: AnonymousUser.shape,
   /**
    * Object containing editor information
    */

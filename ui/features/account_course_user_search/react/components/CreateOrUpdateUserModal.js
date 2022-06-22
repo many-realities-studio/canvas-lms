@@ -28,13 +28,19 @@ import update from 'immutability-helper'
 import {get, isEmpty} from 'lodash'
 import axios from '@canvas/axios'
 
-import I18n from 'i18n!account_course_user_search'
-import {firstNameFirst, lastNameFirst, nameParts} from '@canvas/user-sortable-name/jquery/user_utils'
+import {useScope as useI18nScope} from '@canvas/i18n'
+import {
+  firstNameFirst,
+  lastNameFirst,
+  nameParts
+} from '@canvas/user-sortable-name/jquery/user_utils'
 import preventDefault from 'prevent-default'
 import unflatten from 'obj-unflatten'
 import registrationErrors from '@canvas/normalize-registration-errors'
 import Modal from '@canvas/instui-bindings/react/InstuiModal'
 import TimeZoneSelect from './TimeZoneSelect/index'
+
+const I18n = useI18nScope('account_course_user_search')
 
 const trim = (str = '') => str.trim()
 
@@ -76,7 +82,7 @@ export default class CreateOrUpdateUserModal extends React.Component {
 
   state = {...initialState}
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     if (this.props.createOrUpdate === 'update') {
       // only get the attributes from the user that we are actually going to show in the <input>s
       // and send to the server. Because if we send the server extraneous attributes like user[id]
@@ -257,7 +263,7 @@ export default class CreateOrUpdateUserModal extends React.Component {
         </Modal.Body>
         <Modal.Footer>
           <Button onClick={this.close}>{I18n.t('Cancel')}</Button> &nbsp;
-          <Button type="submit" variant="primary">
+          <Button type="submit" color="primary">
             {this.props.createOrUpdate === 'create' ? I18n.t('Add User') : I18n.t('Save')}
           </Button>
         </Modal.Footer>

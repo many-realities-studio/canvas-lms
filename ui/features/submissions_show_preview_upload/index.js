@@ -17,13 +17,15 @@
 
 import $ from 'jquery'
 
-import I18n from 'i18n!submissions.show_preview'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import swfobject from 'swfobject'
 import 'jqueryui/dialog'
 import '@canvas/doc-previews'
 
+const I18n = useI18nScope('submissions.show_preview')
+
 $(document).ready(() => {
-  $('a.flash').click(function() {
+  $('a.flash').click(function () {
     swfobject.embedSWF(
       $(this).attr('href'),
       'main',
@@ -38,7 +40,7 @@ $(document).ready(() => {
     return false
   })
 
-  $('.modal_preview_link').live('click', function() {
+  $('.modal_preview_link').live('click', function () {
     // overflow:hidden is because of some weird thing where the google doc preview gets double scrollbars
     $('<div style="padding:0; overflow:hidden;">')
       .dialog({
@@ -49,6 +51,11 @@ $(document).ready(() => {
         height: $(document).height() * 0.75
       })
       .loadDocPreview($.extend({height: '100%'}, $(this).data()))
+    $('.submission_annotation.unread_indicator').hide()
+    $('.file-upload-submission-attachment .modal_preview_link').attr(
+      'title',
+      I18n.t('Preview your submission and view teacher feedback, if available')
+    )
     return false
   })
 })

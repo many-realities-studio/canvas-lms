@@ -23,9 +23,52 @@ declare global {
 
   interface Window {
     readonly ENV?: any
+    external_tool_redirect: any
+    webkitSpeechRecognition: any
+    jsonData: any
   }
 
   const ENV: any
+
+  declare interface JQuery {
+    confirmDelete: any
+    fillWindowWithMe: (options?: {onResize: () => void}) => void
+    fixDialogButtons: () => void
+    live: any
+    mediaComment: any
+    showIf: (boolean) => void
+  }
+
+  declare interface JQueryStatic {
+    flashError: (any, number?) => void
+    subscribe: any
+    ajaxJSON: (
+      url: string,
+      submit_type?: string,
+      data?: any,
+      success?: any,
+      error?: any,
+      options?: any
+    ) => JQuery.JQueryXHR
+    flashWarning: any
+    flashMessage: any
+    replaceTags: (string, string, string?) => string
+    raw: any
+    getScrollbarWidth: any
+    datetimeString: any
+    ajaxJSONFiles: any
+    isPreviewable: any
+    toSentence: any
+  }
+
+  declare interface Array<T> {
+    flatMap: <Y>(callback: (value: T, index: number, array: T[]) => Y[]) => Y[]
+    flat: <Y>(depth?: number) => Y[]
+  }
+
+  declare interface Object {
+    fromEntries: any
+  }
 }
 
 // Global scope declarations are only allowed in module contexts, so we

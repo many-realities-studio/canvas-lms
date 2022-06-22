@@ -15,9 +15,11 @@
 // You should have received a copy of the GNU Affero General Public License along
 // with this program. If not, see <http://www.gnu.org/licenses/>.
 
-import I18n from 'i18n!sr_gradebook'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import Ember from 'ember'
 import AssignmentMuter from '../../jquery/AssignmentMuter'
+
+const I18n = useI18nScope('sr_gradebook')
 
 // http://emberjs.com/guides/components/
 // http://emberjs.com/api/classes/Ember.Component.html
@@ -66,7 +68,7 @@ const AssignmentMuterComponent = Ember.Component.extend({
     let assignment
     if ((assignment = this.get('assignment'))) {
       const url = `${ENV.GRADEBOOK_OPTIONS.context_url}/assignments/${assignment.id}/mute`
-      this.muter = new AssignmentMuter(null, assignment, url, Em.set)
+      this.muter = new AssignmentMuter(null, assignment, url, Ember.set)
       this.muter.show()
     }
   }

@@ -25,26 +25,31 @@ module Auditors::ActiveRecord
       AuthenticationRecord,
       CourseRecord,
       GradeChangeRecord,
-      FeatureFlagRecord
+      FeatureFlagRecord,
+      PseudonymRecord
     ].freeze
 
     def self.precreate_tables
-      Setting.get('auditors_precreate_tables', 2).to_i
+      Setting.get("auditors_precreate_tables", 2).to_i
     end
 
     def self.process
-      GuardRail.activate(:deploy) do
-        AUDITOR_CLASSES.each do |auditor_cls|
-          log '*' * 80
-          log '-' * 80
-          partman = CanvasPartman::PartitionManager.create(auditor_cls)
-          partman.ensure_partitions(precreate_tables)
-          Shard.current.database_server.unguard do
-            partman.prune_partitions(retention_months)
+      Shard.current.database_server.unguard do
+        GuardRail.activate(:deploy) do
+          AUDITOR_CLASSES.each do |auditor_cls|
+            log "*" * 80
+            log "-" * 80
+            partman = CanvasPartman::PartitionManager.create(auditor_cls)
+            partman.ensure_partitions(precreate_tables)
+            Shard.current.database_server.unguard do
+              partman.prune_partitions(retention_months)
+            end
+            log "*" * 80
           end
-          log '*' * 80
+          unless Rails.env.test?
+            ActiveRecord::Base.connection_pool.disconnect!
+          end
         end
-        ActiveRecord::Base.connection_pool.current_pool.disconnect! unless Rails.env.test?
       end
     end
 

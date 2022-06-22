@@ -17,37 +17,7 @@
  */
 
 import $ from 'jquery'
-import {
-  addDeepLinkingListener,
-  handleDeepLinking,
-  collaborationUrl,
-  onExternalContentReady
-} from '../collaborations'
-
-describe('addDeepLinkingListener', () => {
-  let addEventListener
-  const subject = () => {
-    addDeepLinkingListener()
-  }
-
-  beforeAll(() => {
-    addEventListener = global.addEventListener
-    global.addEventListener = jest.fn()
-  })
-
-  afterAll(() => {
-    global.addEventListener = addEventListener
-  })
-
-  beforeEach(() => {
-    global.addEventListener.mockClear()
-  })
-
-  it('adds the message handler to the window', () => {
-    subject()
-    expect(global.addEventListener).toHaveBeenCalledWith('message', handleDeepLinking)
-  })
-})
+import {handleDeepLinking, collaborationUrl, onExternalContentReady} from '../collaborations'
 
 describe('handleDeepLinking', () => {
   const content_items = [
@@ -60,7 +30,7 @@ describe('handleDeepLinking', () => {
 
   const event = overrides => ({
     origin: 'http://www.test.com',
-    data: {messageType: 'LtiDeepLinkingResponse', content_items},
+    data: {subject: 'LtiDeepLinkingResponse', content_items},
     ...overrides
   })
 
@@ -101,20 +71,9 @@ describe('handleDeepLinking', () => {
     )
   })
 
-  describe('when the event is invalid', () => {
-    const overrides = {
-      origin: 'http://bad.origin.com'
-    }
-
-    it('does not attempt to create a collaboration', async () => {
-      await handleDeepLinking(event(overrides))
-      expect($.ajaxJSON).not.toHaveBeenCalled()
-    })
-  })
-
   describe('when there is a unhandled error parsing the content item', () => {
     const overrides = {
-      data: {messageType: 'LtiDeepLinkingResponse', content_items: 1}
+      data: {subject: 'LtiDeepLinkingResponse', content_items: 1}
     }
 
     it('does not attempt to create a collaboration', async () => {

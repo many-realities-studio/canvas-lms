@@ -50,29 +50,31 @@ class AccountReportRunner < ActiveRecord::Base
   end
 
   def start
+    # remove any account report rows created during a previously failed job
+    AccountReportRow.where(account_report_runner: self).delete_all if account_report.account.root_account.feature_enabled?(:custom_report_experimental)
     @rows ||= []
-    self.update!(workflow_state: 'running', started_at: Time.now.utc)
+    update!(workflow_state: "running", started_at: Time.now.utc)
   end
 
   def complete
     write_rows
-    self.update!(workflow_state: 'completed', ended_at: Time.now.utc)
+    update!(workflow_state: "completed", ended_at: Time.now.utc)
   end
 
   def abort
-    self.update!(workflow_state: 'aborted', ended_at: Time.now.utc)
+    update!(workflow_state: "aborted", ended_at: Time.now.utc)
   end
 
   def fail
-    self.update!(workflow_state: 'error', ended_at: Time.now.utc)
+    update!(workflow_state: "error", ended_at: Time.now.utc)
   end
 
-  scope :in_progress, -> { where(workflow_state: %w(running)) }
-  scope :completed, -> { where(workflow_state: %w(completed)) }
-  scope :incomplete, -> { where(workflow_state: %w(created running)) }
+  scope :in_progress, -> { where(workflow_state: %w[running]) }
+  scope :completed, -> { where(workflow_state: %w[completed]) }
+  scope :incomplete, -> { where(workflow_state: %w[created running]) }
 
   def delete_account_report_rows
-    cleanup = self.account_report_rows.limit(10_000)
+    cleanup = account_report_rows.limit(10_000)
     until cleanup.delete_all < 10_000; end
   end
 end

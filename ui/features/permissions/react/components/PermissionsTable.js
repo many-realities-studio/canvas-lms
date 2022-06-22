@@ -16,7 +16,7 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import I18n from 'i18n!permissions'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import React, {Component, Fragment} from 'react'
 import {arrayOf, func} from 'prop-types'
 import {connect} from 'react-redux'
@@ -32,10 +32,12 @@ import {Tooltip} from '@instructure/ui-tooltip'
 import {View} from '@instructure/ui-view'
 
 import actions from '../actions'
-import {GROUP_PERMISSION_DESCRIPTIONS} from '../templates'
+import {GROUP_PERMISSION_DESCRIPTIONS} from '../templates/groupPermissionDescriptions'
 import {ConnectedPermissionButton} from './PermissionButton'
 import {ConnectedGranularCheckbox} from './GranularCheckbox'
 import propTypes from '@canvas/permissions/react/propTypes'
+
+const I18n = useI18nScope('permissions')
 
 const GRANULAR_PERMISSION_TAG = 'ic-permissions__grp-tag'
 
@@ -139,7 +141,7 @@ export default class PermissionsTable extends Component {
                   className="ic-permissions__header-content ic-permissions__header-content-col"
                   id={`ic-permissions__role-header-for-role-${role.id}`}
                 >
-                  <Tooltip tip={role.label}>
+                  <Tooltip renderTip={role.label}>
                     <Button
                       id={`role_${role.id}`}
                       variant="link"
@@ -194,7 +196,7 @@ export default class PermissionsTable extends Component {
       return [
         <br key="group-description-br" />,
         <Text key="group-description-text" weight="light" size="small">
-          {description()}
+          {description(perm.contextType)}
         </Text>
       ]
     }
@@ -225,7 +227,7 @@ export default class PermissionsTable extends Component {
                 variant="link"
                 onClick={() => this.props.setAndOpenPermissionTray(perm)}
                 id={`permission_${name}`}
-                theme={{mediumPadding: '0', mediumHeight: 'normal'}}
+                theme={{mediumPaddingHorizontal: '0', mediumHeight: 'normal'}}
                 fluidWidth
               >
                 {perm.label}

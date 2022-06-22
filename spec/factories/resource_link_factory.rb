@@ -22,14 +22,15 @@ module Factories
   def resource_link_model(overrides: {})
     return Lti::ResourceLink.find_by!(resource_link_uuid: overrides[:resource_link_uuid]) if overrides.key?(:resource_link_uuid)
 
-    context ||= Course.create!(name: 'Course')
-    assignment = Assignment.create!(course: context, name: 'Assignment')
+    context ||= Course.create!(name: "Course")
+    assignment = Assignment.create!(course: context, name: "Assignment")
 
     params = {
       context: assignment,
       context_external_tool: overrides.fetch(:with_context_external_tool) do |_|
         external_tool_model(context: overrides[:context], opts: overrides.fetch(:context_external_tool, {}))
-      end
+      end,
+      url: overrides.fetch(:url, "http://www.example.com/launch")
     }
 
     Lti::ResourceLink.create!(params)

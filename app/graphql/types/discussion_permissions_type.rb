@@ -37,6 +37,11 @@ module Types
       object[:loader].load(:reply)
     end
 
+    field :student_reporting, Boolean, null: true
+    def student_reporting
+      object[:loader].load(:student_reporting)
+    end
+
     field :update, Boolean, null: true
     def update
       object[:loader].load(:update)
@@ -76,6 +81,33 @@ module Types
         current_user: current_user,
         session: session
       ).load(:manage_content)
+    end
+
+    field :manage_course_content_add, Boolean, null: true
+    def manage_course_content_add
+      Loaders::PermissionsLoader.for(
+        object[:discussion_topic].context,
+        current_user: current_user,
+        session: session
+      ).load(:manage_course_content_add)
+    end
+
+    field :manage_course_content_edit, Boolean, null: true
+    def manage_course_content_edit
+      Loaders::PermissionsLoader.for(
+        object[:discussion_topic].context,
+        current_user: current_user,
+        session: session
+      ).load(:manage_course_content_edit)
+    end
+
+    field :manage_course_content_delete, Boolean, null: true
+    def manage_course_content_delete
+      Loaders::PermissionsLoader.for(
+        object[:discussion_topic].context,
+        current_user: current_user,
+        session: session
+      ).load(:manage_course_content_delete)
     end
 
     field :rate, Boolean, null: true

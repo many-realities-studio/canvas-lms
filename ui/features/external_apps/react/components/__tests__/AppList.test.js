@@ -16,9 +16,12 @@
 
 import $ from 'jquery'
 import React from 'react'
-import {render} from '@testing-library/react'
+import page from 'page'
+import {render, fireEvent} from '@testing-library/react'
 import store from '../../lib/AppCenterStore'
 import AppList from '../AppList'
+
+jest.mock('page')
 
 describe('AppList', () => {
   const originalGetJSON = $.getJSON
@@ -127,35 +130,46 @@ describe('AppList', () => {
     $.ajax = originalAJAX
   })
 
+  function renderAppList() {
+    return render(<AppList baseUrl="/the/base/url" />)
+  }
+
   it('renders loading indicator', () => {
     store.setState({isLoading: true})
-    const {getByTestId} = render(<AppList />)
+    const {getByTestId} = renderAppList()
     expect(getByTestId(/Spinner/i)).toBeVisible()
   })
 
   it('does not apply focus to filter text input on render', () => {
-    const {getByText} = render(<AppList />)
+    const {getByText} = renderAppList()
     expect(getByText('Filter by name')).not.toHaveFocus()
   })
 
   it('renders manage app list button if context type is account', () => {
-    const {getByText} = render(<AppList />)
+    const stuff = renderAppList()
+    const {getByText} = stuff
     expect(getByText('Manage App List')).toBeVisible()
   })
 
   it('does not render manage app list button if context type is not account', () => {
     window.ENV = {context_asset_string: 'course_1'}
-    const {queryByText} = render(<AppList />)
+    const {queryByText} = renderAppList()
     expect(queryByText('Manage App List')).not.toBeInTheDocument()
   })
 
   it('renders view app configurations link', () => {
-    const {getByText} = render(<AppList />)
+    const {getByText} = renderAppList()
     expect(getByText('View App Configurations')).toBeVisible()
   })
 
+  it('follows the app configurations button to the right place', () => {
+    const {getByText} = renderAppList()
+    fireEvent.click(getByText('View App Configurations'))
+    expect(page.redirect).toHaveBeenCalledWith('/configurations')
+  })
+
   it('renders app filters', () => {
-    const {getByText} = render(<AppList />)
+    const {getByText} = renderAppList()
     expect(getByText('All')).toBeVisible()
     expect(getByText('Not Installed')).toBeVisible()
     expect(getByText('Installed')).toBeVisible()

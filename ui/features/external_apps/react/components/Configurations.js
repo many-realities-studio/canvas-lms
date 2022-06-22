@@ -16,20 +16,31 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import I18n from 'i18n!external_tools'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import React from 'react'
 import PropTypes from 'prop-types'
 import Header from './Header'
 import ExternalToolsTable from './ExternalToolsTable'
 import AddExternalToolButton from './AddExternalToolButton'
+import {Button} from '@instructure/ui-buttons'
+import {View} from '@instructure/ui-view'
 import page from 'page'
+
+const I18n = useI18nScope('external_tools')
 
 export default class Configurations extends React.Component {
   static propTypes = {
     env: PropTypes.object.isRequired
   }
 
+  // legacy all-encompassing permission
   canAddEdit = () => this.props.env.PERMISSIONS && this.props.env.PERMISSIONS.create_tool_manually
+
+  canAdd = () => this.props.env.PERMISSIONS && this.props.env.PERMISSIONS.add_tool_manually
+
+  canEdit = () => this.props.env.PERMISSIONS && this.props.env.PERMISSIONS.edit_tool_manually
+
+  canDelete = () => this.props.env.PERMISSIONS && this.props.env.PERMISSIONS.delete_tool_manually
 
   focusHeader = () => {
     this.headerRef.focus()
@@ -46,19 +57,27 @@ export default class Configurations extends React.Component {
       }
       const baseUrl = page.base()
       return (
-        <a ref="appCenterLink" href={baseUrl} className="btn view_tools_link lm">
-          {I18n.t('View App Center')}
-        </a>
+        <View>
+          <Button margin="x-small" href={baseUrl}>
+            {I18n.t('View App Center')}
+          </Button>
+        </View>
       )
     }
 
     return (
       <div className="Configurations">
         <Header ref={this.setHeaderRef}>
-          {this.canAddEdit() && <AddExternalToolButton />}
+          {(this.canAddEdit() || this.canAdd()) && <AddExternalToolButton />}
           {appCenterLink()}
         </Header>
-        <ExternalToolsTable canAddEdit={this.canAddEdit()} setFocusAbove={this.focusHeader} />
+        <ExternalToolsTable
+          canAdd={this.canAdd()}
+          canEdit={this.canEdit()}
+          canDelete={this.canDelete()}
+          canAddEdit={this.canAddEdit()}
+          setFocusAbove={this.focusHeader}
+        />
       </div>
     )
   }

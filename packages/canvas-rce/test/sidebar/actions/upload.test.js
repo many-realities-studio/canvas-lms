@@ -22,11 +22,16 @@ import sinon from 'sinon'
 import * as actions from '../../../src/sidebar/actions/upload'
 import * as filesActions from '../../../src/sidebar/actions/files'
 import * as imagesActions from '../../../src/sidebar/actions/images'
-import {buildSvg} from '../../../src/rce/plugins/instructure_buttons/svg'
-import {DEFAULT_SETTINGS} from '../../../src/rce/plugins/instructure_buttons/svg/constants'
+import {buildSvg} from '../../../src/rce/plugins/instructure_icon_maker/svg'
 import {spiedStore} from './utils'
 import Bridge from '../../../src/bridge'
 import K5Uploader from '@instructure/k5uploader'
+import {
+  DEFAULT_SETTINGS,
+  SVG_TYPE,
+  ICON_MAKER_ICONS,
+  TYPE
+} from '../../../src/rce/plugins/instructure_icon_maker/svg/constants'
 
 const fakeFileReader = {
   readAsDataURL() {
@@ -39,9 +44,9 @@ describe('Upload data actions', () => {
   const results = {id: 47}
   const file = {url: 'http://canvas.test/files/17/download', thumbnail_url: 'thumbnailurl'}
   const successSource = {
-    fetchButtonsAndIconsFolder() {
+    fetchIconMakerFolder() {
       return Promise.resolve({
-        folders: [{id: 2, name: 'Buttons and Icons', parentId: 1}]
+        folders: [{id: 2, name: 'Icon Maker', parentId: 1}]
       })
     },
 
@@ -202,12 +207,19 @@ describe('Upload data actions', () => {
     })
   })
 
-  describe('uploadToButtonsAndIconsFolder', () => {
-    let baseState, svg
+  describe('uploadToIconMakerFolder', () => {
+    let baseState, svg, getContextOriginal
 
     beforeEach(() => {
+      getContextOriginal = HTMLCanvasElement.prototype.getContext
+      HTMLCanvasElement.prototype.getContext = () => ({})
+
       baseState = setupState({contextId: 101, contextType: 'course'})
-      svg = {name: 'button.svg', domElement: buildSvg(DEFAULT_SETTINGS)}
+      svg = {name: 'icon.svg', domElement: buildSvg(DEFAULT_SETTINGS)}
+    })
+
+    afterEach(() => {
+      HTMLCanvasElement.prototype.getContext = getContextOriginal
     })
 
     it('dispatches a preflightUpload with the proper parentFolderId set', () => {
@@ -216,17 +228,18 @@ describe('Upload data actions', () => {
       const fileMetaProps = {
         file: {name: svg.name, type: 'image/svg+xml'},
         name: svg.name,
-        parentFolderId: 2,
-        onDuplicate: undefined
+        parentFolderId: 2
       }
 
       const canvasProps = {
         host: 'http://host:port',
         contextId: 101,
-        contextType: 'course'
+        contextType: 'course',
+        onDuplicate: undefined,
+        category: ICON_MAKER_ICONS
       }
 
-      return store.dispatch(actions.uploadToButtonsAndIconsFolder(svg)).then(() => {
+      return store.dispatch(actions.uploadToIconMakerFolder(svg)).then(() => {
         assert.deepEqual(baseState.source.preflightUpload.firstCall.args, [
           fileMetaProps,
           canvasProps
@@ -237,7 +250,7 @@ describe('Upload data actions', () => {
     it('dispatches uploadFRD with the svg domElement', () => {
       const store = spiedStore(baseState)
 
-      return store.dispatch(actions.uploadToButtonsAndIconsFolder(svg)).then(() => {
+      return store.dispatch(actions.uploadToIconMakerFolder(svg)).then(() => {
         assert.deepEqual(baseState.source.uploadFRD.firstCall.args, [
           new File([svg.domElement.outerHTML], svg.name, {type: 'image/svg+xml'}),
           results
@@ -254,22 +267,23 @@ describe('Upload data actions', () => {
       })
 
       it('includes the specified duplicate strategy setting', async () => {
-        await store.dispatch(actions.uploadToButtonsAndIconsFolder(svg, uploadSettings))
+        await store.dispatch(actions.uploadToIconMakerFolder(svg, uploadSettings))
 
         assert.deepEqual(baseState.source.preflightUpload.lastCall.args, [
           {
             file: {
-              name: 'button.svg',
+              name: 'icon.svg',
               type: 'image/svg+xml'
             },
-            name: 'button.svg',
-            onDuplicate: 'overwrite',
+            name: 'icon.svg',
             parentFolderId: 2
           },
           {
+            category: ICON_MAKER_ICONS,
             contextId: 101,
             contextType: 'course',
-            host: 'http://host:port'
+            host: 'http://host:port',
+            onDuplicate: 'overwrite'
           }
         ])
       })
@@ -435,6 +449,86 @@ describe('Upload data actions', () => {
       if (Bridge.insertLink.restore) {
         Bridge.insertLink.restore()
       }
+    })
+
+    describe('when the file is svg', () => {
+      let fileText
+
+      const file = () => ({
+        slice: () => ({
+          text: async () => fileText
+        }),
+        type: SVG_TYPE
+      })
+
+      const fileProps = () => ({
+        domObject: file()
+      })
+
+      const subject = () => store.dispatch(actions.uploadPreflight('files', fileProps()))
+
+      describe('when the file is an icon maker svg', () => {
+        beforeEach(() => {
+          fileText = 'something something ' + TYPE
+        })
+
+        it('sets the category to "icon_maker_icons"', () => {
+          subject().then(() => {
+            sinon.assert.calledWith(
+              successSource.preflightUpload,
+              sinon.match.object,
+              sinon.match({
+                category: ICON_MAKER_ICONS
+              })
+            )
+          })
+        })
+      })
+
+      describe('when the file is not an icon maker svg', () => {
+        beforeEach(() => {
+          fileText = 'something something not icon maker'
+        })
+
+        it('sets the category to undefined', () => {
+          subject().then(() => {
+            sinon.assert.calledWith(
+              successSource.preflightUpload,
+              sinon.match.object,
+              sinon.match({
+                category: undefined
+              })
+            )
+          })
+        })
+      })
+    })
+
+    describe('when the file is not an svg', () => {
+      let fileText
+
+      const file = () => ({
+        slice: () => ({
+          text: async () => fileText
+        }),
+        type: 'image/png'
+      })
+
+      const fileProps = () => ({
+        domObject: file()
+      })
+
+      const subject = () => store.dispatch(actions.uploadPreflight('files', fileProps()))
+
+      it('sets the category to undefined', () => {
+        subject().then(() => {
+          sinon.assert.calledWith(
+            successSource.preflightUpload,
+            sinon.match.object,
+            sinon.match({category: undefined})
+          )
+        })
+      })
     })
 
     it('follows chain preflight -> upload -> complete', () => {

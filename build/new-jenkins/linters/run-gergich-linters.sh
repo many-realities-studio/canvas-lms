@@ -12,14 +12,22 @@ if [ "$GERRIT_PROJECT" == "canvas-lms" ]; then
   ruby build/dockerfile_writer.rb --env development --compose-file docker-compose.yml,docker-compose.override.yml --in build/Dockerfile.template --out Dockerfile
   ruby build/dockerfile_writer.rb --env jenkins --compose-file docker-compose.yml,docker-compose.override.yml --in build/Dockerfile.template --out Dockerfile.jenkins
   if ! git diff --exit-code Dockerfile; then
-    message="This commit makes changes to Dockerfile but does not update the Dockerfile.template. Ensure your changes are included in build/Dockerfile.template.\\n"
+    message="Dockerfile and build/Dockerfile.template need to be kept in sync. Update Dockerfile by running the command given at the top.\\n"
     gergich comment "{\"path\":\"\Dockerfile\",\"position\":1,\"severity\":\"error\",\"message\":\"$message\"}"
   fi
   if ! git diff --exit-code Dockerfile.jenkins; then
-    message="This commit makes changes to Dockerfile.jenkins but does not update the Dockerfile.template. Ensure your changes are included in build/Dockerfile.template.\\n"
+    message="Dockerfile.jenkins and build/Dockerfile.template need to be kept in sync. Update Dockerfile.jenkins by running the command given at the top.\\n"
     gergich comment "{\"path\":\"\Dockerfile.jenkins\",\"position\":1,\"severity\":\"error\",\"message\":\"$message\"}"
   fi
 fi
+
+# always keep the graphQL schema up-to-date
+rake graphql:schema RAILS_ENV=test
+
+if ! git diff --exit-code ui/shared/apollo/fragmentTypes.json; then
+    message="ui/shared/apollo/fragmentTypes.json needs to be kept up-to-date. Run bundle exec rake graphql:schema and push the changes.\\n"
+    gergich comment "{\"path\":\"ui/shared/apollo/fragmentTypes.json\",\"position\":1,\"severity\":\"error\",\"message\":\"$message\"}"
+  fi
 
 gergich capture custom:./build/gergich/xsslint:Gergich::XSSLint 'node script/xsslint.js'
 gergich capture i18nliner 'rake i18n:check'
@@ -27,10 +35,13 @@ gergich capture i18nliner 'rake i18n:check'
 ruby script/brakeman
 ruby script/tatl_tael
 ruby script/stylelint
-ruby script/rlint --optional --no-fail-on-offense
-ruby script/rlint --boy-scout --heavy --no-fail-on-offense
+ruby script/rlint --no-fail-on-offense
 [ "${SKIP_ESLINT-}" != "true" ] && ruby script/eslint
 ruby script/lint_commit_message
+node script/yarn-validate-workspace-deps.js 2>/dev/null < <(yarn --silent workspaces info --json)
+node ui-build/tools/component-info.mjs -i -v -g
+
+rake css:styleguide doc:api
 
 gergich status
 echo "LINTER OK!"

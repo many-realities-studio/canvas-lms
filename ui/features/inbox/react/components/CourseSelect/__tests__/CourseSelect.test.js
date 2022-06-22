@@ -17,14 +17,15 @@
  */
 
 import {AlertManagerContext} from '@canvas/alerts/react/AlertManager'
-import {fireEvent, render} from '@testing-library/react'
+import {fireEvent, render, within} from '@testing-library/react'
 import React from 'react'
-import {CourseSelect} from '../CourseSelect'
+import {CourseSelect, ALL_COURSES_ID} from '../CourseSelect'
 
 const createProps = overrides => {
   return {
     mainPage: true,
     options: {
+      allCourses: [{_id: ALL_COURSES_ID, contextName: 'All Courses', assetString: 'all_courses'}],
       favoriteCourses: [
         {_id: '1', contextName: 'Charms', assetString: 'course_1'},
         {_id: '2', contextName: 'Transfiguration', assetString: 'course_2'}
@@ -70,6 +71,8 @@ describe('CourseSelect', () => {
 
   it('opens the select and allows selecting an option', () => {
     const props = createProps()
+    const mockCourseFilterSet = jest.fn()
+    props.onCourseFilterSelect = mockCourseFilterSet
     const {getByTestId, getByText} = render(
       <AlertManagerContext.Provider value={{setOnFailure: jest.fn(), setOnSuccess: jest.fn()}}>
         <CourseSelect {...props} />
@@ -78,7 +81,32 @@ describe('CourseSelect', () => {
     const select = getByTestId('course-select')
     fireEvent.click(select)
     fireEvent.click(getByText('Potions'))
-    expect(select.value).toBe('Potions')
+    expect(mockCourseFilterSet.mock.calls[0][0].contextID).toBe('course_3')
+  })
+
+  it('reset icon shows and calls onCourseFilterSelect when clicked', () => {
+    const mockOnCourseFilterSelect = jest.fn()
+    const props = createProps({
+      onCourseFilterSelect: mockOnCourseFilterSelect
+    })
+
+    const {getByTestId, getByText} = render(
+      <AlertManagerContext.Provider value={{setOnFailure: jest.fn(), setOnSuccess: jest.fn()}}>
+        <CourseSelect {...props} />
+      </AlertManagerContext.Provider>
+    )
+
+    const select = getByTestId('course-select')
+    fireEvent.click(select)
+    fireEvent.click(getByText('Potions'))
+
+    const deleteCourseButton = getByTestId('delete-course-button')
+    expect(deleteCourseButton).toBeInTheDocument()
+    fireEvent.click(within(deleteCourseButton).getByRole('button'))
+
+    expect(mockOnCourseFilterSelect.mock.calls[1][0].contextID).toBe(null)
+    expect(mockOnCourseFilterSelect.mock.calls[1][0].contextName).toBe(null)
+    expect(select.value).toBe('')
   })
 
   it('filters the options when typing', () => {
@@ -93,5 +121,39 @@ describe('CourseSelect', () => {
     fireEvent.change(select, {target: {value: 'Gryff'}})
     expect(queryByText('Potions')).toBe(null)
     expect(queryByText('Gryffindor Bros')).toBeInTheDocument()
+  })
+
+  describe('all_courses option', () => {
+    it('is present regardless of the current filter', () => {
+      const props = createProps()
+      const {getByTestId, queryByText} = render(
+        <AlertManagerContext.Provider value={{setOnFailure: jest.fn(), setOnSuccess: jest.fn()}}>
+          <CourseSelect {...props} />
+        </AlertManagerContext.Provider>
+      )
+      const select = getByTestId('course-select')
+      fireEvent.click(select)
+      fireEvent.change(select, {target: {value: 'Gryff'}})
+      expect(queryByText('All Courses')).toBeInTheDocument()
+    })
+
+    it('resets mailbox selections when selected', () => {
+      const filterMock = jest.fn()
+      const props = createProps({
+        onCourseFilterSelect: filterMock
+      })
+      const {getByTestId, getByText} = render(
+        <AlertManagerContext.Provider value={{setOnFailure: jest.fn(), setOnSuccess: jest.fn()}}>
+          <CourseSelect {...props} />
+        </AlertManagerContext.Provider>
+      )
+      const select = getByTestId('course-select')
+      fireEvent.click(select)
+      fireEvent.click(getByText('All Courses'))
+      expect(select.value).toBe('')
+      // assert filter id is updated to null for network request
+      expect(filterMock.mock.calls.length).toBe(1)
+      expect(filterMock.mock.calls[0][0].contextID).toBe(null)
+    })
   })
 })

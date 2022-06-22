@@ -18,13 +18,15 @@
 
 import React from 'react'
 import {bool, func, oneOf, string} from 'prop-types'
-import I18n from 'i18n!assignments_2'
+import {useScope as useI18nScope} from '@canvas/i18n'
 
 import {showFlashAlert} from '@canvas/alerts/react/FlashAlert'
 
 import {Text} from '@instructure/ui-text'
 
 import EditableHeading from './EditableHeading'
+
+const I18n = useI18nScope('assignments_2')
 
 const nameLabel = I18n.t('Edit assignment name')
 const namePlaceholder = I18n.t('Assignment name')
@@ -74,7 +76,7 @@ export default class AssignmentName extends React.Component {
   render() {
     const msg = this.state.isValid ? null : (
       <div>
-        <Text color="error">{this.props.invalidMessage('name')}</Text>
+        <Text color="danger">{this.props.invalidMessage('name')}</Text>
       </div>
     )
     return (

@@ -17,11 +17,14 @@
 
 import $ from 'jquery'
 import _ from 'underscore'
-import I18n from 'i18n!observees'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import pairingCodeTemplate from '../../jst/PairingCodeUserObservees.handlebars'
 import itemView from './UserObserveeView.coffee'
 import PaginatedCollectionView from '@canvas/pagination/backbone/views/PaginatedCollectionView.coffee'
 import '@canvas/jquery/jquery.disableWhileLoading'
+import {clearObservedId, savedObservedId} from '@canvas/observer-picker/ObserverGetObservee'
+
+I18n = useI18nScope('observees')
 
 export default class UserObserveesView extends PaginatedCollectionView
   autoFetch: true
@@ -75,9 +78,11 @@ export default class UserObserveesView extends PaginatedCollectionView
 
   removeObservee: (ev) ->
     ev.preventDefault()
-    id = $(ev.target).data('user-id')
+    id = "#{$(ev.target).data('user-id')}"
     user_name = $(ev.target).data('user-name')
     if confirm I18n.t("Are you sure you want to stop observing %{name}?", name: user_name)
+      current_observed_id = savedObservedId(ENV.current_user_id)
+      clearObservedId(ENV.current_user_id) if current_observed_id == id
       @$form.disableWhileLoading $.ajaxJSON("/api/v1/users/self/observees/#{id}", 'DELETE', {}, () => @removedObservee(id, user_name))
 
   removedObservee: (id, name) ->

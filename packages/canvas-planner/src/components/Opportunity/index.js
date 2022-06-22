@@ -18,11 +18,12 @@
 import React, {Component} from 'react'
 import {themeable} from '@instructure/ui-themeable'
 import moment from 'moment-timezone'
-import {Button} from '@instructure/ui-buttons'
+import {IconButton} from '@instructure/ui-buttons'
 import {Pill} from '@instructure/ui-pill'
+import {Link} from '@instructure/ui-link'
 import {PresentationContent, ScreenReaderContent} from '@instructure/ui-a11y-content'
 import {IconXLine} from '@instructure/ui-icons'
-import {bool, string, number, func, object} from 'prop-types'
+import {string, bool, number, func, object} from 'prop-types'
 import {getFullDateAndTime} from '../../utilities/dateUtils'
 import formatMessage from '../../format-message'
 import {animatable} from '../../dynamic-ui'
@@ -42,7 +43,8 @@ export class Opportunity extends Component {
     plannerOverride: object,
     registerAnimatable: func,
     deregisterAnimatable: func,
-    animatableIndex: number
+    animatableIndex: number,
+    isObserving: bool
   }
 
   constructor(props) {
@@ -89,22 +91,17 @@ export class Opportunity extends Component {
     const isDismissed = this.props.plannerOverride && this.props.plannerOverride.dismissed
     return (
       <div className={styles.close}>
-        {isDismissed ? null : (
-          <Button
+        {isDismissed || this.props.isObserving ? null : (
+          <IconButton
             onClick={this.dismiss}
-            variant="icon"
-            icon={IconXLine}
+            renderIcon={IconXLine}
+            withBorder={false}
+            withBackground={false}
             size="small"
-            title={formatMessage('Dismiss {opportunityName}', {
+            screenReaderLabel={formatMessage('Dismiss {opportunityName}', {
               opportunityName: this.props.opportunityTitle
             })}
-          >
-            <ScreenReaderContent>
-              {formatMessage('Dismiss {opportunityName}', {
-                opportunityName: this.props.opportunityTitle
-              })}
-            </ScreenReaderContent>
-          </Button>
+          />
         )}
       </div>
     )
@@ -137,19 +134,19 @@ export class Opportunity extends Component {
         <div className={styles.oppNameAndTitle}>
           <div className={styles.oppName}>{this.props.courseName}</div>
           <div className={styles.title}>
-            <Button
-              variant="link"
-              theme={{mediumPadding: '0', mediumHeight: 'normal'}}
+            <Link
+              isWithinText={false}
+              theme={{mediumPaddingHorizontal: '0', mediumHeight: 'normal'}}
               href={this.props.url}
-              buttonRef={this.linkRef}
+              elementRef={this.linkRef}
             >
               {this.props.opportunityTitle}
-            </Button>
+            </Link>
           </div>
         </div>
         <div className={styles.footer}>
           <div className={styles.status}>
-            <Pill text={formatMessage('Missing')} variant="danger" />
+            <Pill color="danger">{formatMessage('Missing')}</Pill>
             <div className={styles.due}>
               <span className={styles.dueText}>{formatMessage('Due:')}</span> {this.fullDate}
             </div>

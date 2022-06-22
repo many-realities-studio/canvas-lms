@@ -16,16 +16,18 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import I18n from 'i18n!instructure_date_and_time'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import $ from 'jquery'
 import tz from '@canvas/timezone'
 import htmlEscape from 'html-escape'
 import * as dateFunctions from '../date-functions'
+import {changeTimezone} from '../changeTimezone'
 import DatetimeField from './InstrumentedDatetimeField'
 import renderDatepickerTime from '../react/components/render-datepicker-time'
 import '@canvas/keycodes'
-import 'date' /* Date.parse, Date.UTC, Date.today */
 import 'jqueryui/datepicker'
+
+const I18n = useI18nScope('instructure_date_and_time')
 
 // these functions were extracted to @canvas/datetime/date-functions so they
 // could more easily be reused by non-jQuery-reliant code. See their
@@ -82,30 +84,78 @@ $.datepicker._selectDay = function (id, month, year, td) {
   }
 }
 $.fn.datepicker = function (options) {
-  options = $.extend({}, options)
+  options = {...options}
   options.prevOnSelect = options.onSelect
   options.onSelect = function (text, picker) {
     if (options.prevOnSelect) {
       options.prevOnSelect.call(this, text, picker)
     }
     const $div = picker.dpDiv
-    const hr = $div.find('.ui-datepicker-time-hour').val() || $(this).data('time-hour')
-    const min = $div.find('.ui-datepicker-time-minute').val() || $(this).data('time-minute')
-    const ampm = $div.find('.ui-datepicker-time-ampm').val() || $(this).data('time-ampm')
+    const $input = picker.input
+    // We want to pass the inputdate metadata back into our target because
+    // if there has been a change via the datepicker, there's no guarantee
+    // that the formatted value we are about to jam into the input field
+    // itself is in fact parsable by tz. This is already true in momentjs
+    // for many of our locales, and will only continue to diverge as we
+    // increase adoption of the Intl.DateTimeFormat stuff. DatetimeField
+    // is smart enough to always use the inputdate metadata if it's there
+    // preferentially to trying to use tz.parse.
+    const inputdate = new Date(
+      picker.selectedYear,
+      picker.selectedMonth,
+      parseInt(picker.selectedDay, 10)
+    )
+    const format = {month: 'short', day: 'numeric', year: 'numeric'}
+
+    const hr =
+      $div.find('.ui-datepicker-time-hour').val() ||
+      $input.data('time-hour') ||
+      $input.data('timeHour')
+    const min =
+      $div.find('.ui-datepicker-time-minute').val() ||
+      $input.data('time-minute') ||
+      $input.data('timeMinute')
+    const ampm =
+      $div.find('.ui-datepicker-time-ampm').val() ||
+      $input.data('time-ampm') ||
+      $input.data('timeAmpm')
     if (hr || min) {
-      text += ' ' + hr + ':' + (min || '00')
-      if (tz.useMeridian()) {
-        text += ' ' + (ampm || I18n.t('#time.pm'))
+      let numericHr = parseInt(hr || '0', 10)
+      const numericMin = parseInt(min || '0', 10)
+
+      if (tz.hasMeridian()) {
+        let isPM = numericHr > 12 // definitely PM if the hour value is past noon
+        numericHr %= 12
+
+        // Check for the "post meridian" marker in this locale (ignoring
+        // any punctuation) to see if need to add 12 to the hour to get
+        // the final 24-hour value. Note that hours past 12 are always
+        // considered PM no matter what the am/pm selection is.
+        if (!isPM && ampm) {
+          const pmMatch = new RegExp(I18n.t('#time.pm').replace(/[-/:. ]/g, ''), 'i')
+          isPM = pmMatch.test(ampm.replace(/[-/:. ]/g, ''))
+        }
+
+        if (isPM) numericHr = (numericHr + 12) % 24
       }
+
+      inputdate.setHours(numericHr)
+      inputdate.setMinutes(numericMin)
+      format.hour = 'numeric'
+      format.minute = 'numeric'
     }
-    picker.input.val(text).change()
+    // We have to be careful because Date objects are always in the browser's
+    // timezone, not necessarily what's reflected by ENV.TIMEZONE.
+    $input.data('inputdate', changeTimezone(inputdate, {desiredTZ: ENV.TIMEZONE}))
+    const formatter = new Intl.DateTimeFormat(ENV.LOCALE || navigator.language, format)
+    $input.val(formatter.format(inputdate)).change()
   }
   if (!$.fn.datepicker.timepicker_initialized) {
-    $(document).delegate('.ui-datepicker-ok', 'click', event => {
+    $(document).delegate('.ui-datepicker-ok', 'click', () => {
       const cur = $.datepicker._curInst
       const inst = cur
       const sel = $(
-        'td.' + $.datepicker._dayOverClass + ', td.' + $.datepicker._currentClass,
+        `td.${$.datepicker._dayOverClass}, td.${$.datepicker._currentClass}`,
         inst.dpDiv
       )
       if (sel[0]) {
@@ -138,14 +188,14 @@ $.fn.datepicker = function (options) {
           cur.input.data('time-hour', val)
         }
       })
-      .delegate('.ui-datepicker-time-minute', 'change keypress focus blur', function (event) {
+      .delegate('.ui-datepicker-time-minute', 'change keypress focus blur', function () {
         const cur = $.datepicker._curInst
         if (cur) {
           const val = $(this).val()
           cur.input.data('time-minute', val)
         }
       })
-      .delegate('.ui-datepicker-time-ampm', 'change keypress focus blur', function (event) {
+      .delegate('.ui-datepicker-time-ampm', 'change keypress focus blur', function () {
         const cur = $.datepicker._curInst
         if (cur) {
           const val = $(this).val()
@@ -155,7 +205,7 @@ $.fn.datepicker = function (options) {
     $(document).delegate(
       '.ui-datepicker-time-hour,.ui-datepicker-time-minute,.ui-datepicker-time-ampm',
       'mousedown',
-      function (event) {
+      function () {
         $(this).focus()
       }
     )
@@ -163,7 +213,7 @@ $.fn.datepicker = function (options) {
       '.ui-datepicker-time-hour,.ui-datepicker-time-minute,.ui-datepicker-time-ampm',
       'change keypress focus blur',
       event => {
-        if (event.keyCode && event.keyCode == 13) {
+        if (event.keyCode && event.keyCode === 13) {
           const cur = $.datepicker._curInst
           const inst = cur
           const sel = $(
@@ -177,7 +227,7 @@ $.fn.datepicker = function (options) {
           } else {
             $.datepicker._hideDatepicker(null, $.datepicker._get(inst, 'duration'))
           }
-        } else if (event.keyCode && event.keyCode == 27) {
+        } else if (event.keyCode && event.keyCode === 27) {
           $.datepicker._hideDatepicker(null, '')
         }
       }
@@ -189,23 +239,23 @@ $.fn.datepicker = function (options) {
   return this
 }
 $.fn.date_field = function (options) {
-  options = $.extend({}, options)
+  options = {...options}
   options.dateOnly = true
   this.datetime_field(options)
   return this
 }
 $.fn.time_field = function (options) {
-  options = $.extend({}, options)
+  options = {...options}
   options.timeOnly = true
   this.datetime_field(options)
   return this
 }
 
 // add bootstrap's .btn class to the button that opens a datepicker
-$.datepicker._triggerClass = $.datepicker._triggerClass + ' btn'
+$.datepicker._triggerClass += ' btn'
 
 $.fn.datetime_field = function (options) {
-  options = $.extend({}, options)
+  options = {...options}
   this.each(function () {
     const $field = $(this)
     if (!$field.hasClass('datetime_field_enabled')) {
@@ -272,7 +322,7 @@ $.fn.timepicker = function () {
         $('#time_picker').hide().slideDown()
       })
       .blur(function () {
-        if ($('#time_picker').data('attached_to') == $(this)[0]) {
+        if ($('#time_picker').data('attached_to') === $(this)[0]) {
           $('#time_picker').data('attached_to', null)
           $('#time_picker')
             .hide()
@@ -280,11 +330,11 @@ $.fn.timepicker = function () {
             .removeClass('ui-state-highlight')
         }
       })
-      .keycodes('esc return', function (event) {
+      .keycodes('esc return', function () {
         $(this).triggerHandler('blur')
       })
       .keycodes('ctrl+up ctrl+right ctrl+left ctrl+down', function (event) {
-        if ($('#time_picker').data('attached_to') != $(this)[0]) {
+        if ($('#time_picker').data('attached_to') !== $(this)[0]) {
           return
         }
         event.preventDefault()
@@ -395,7 +445,7 @@ $._initializeTimepicker = function () {
       const val = $(this).text()
       if (val > 0 && val <= 12) {
         hr = val
-      } else if (val == 'am' || val == 'pm') {
+      } else if (val === 'am' || val === 'pm') {
         ampm = val
       } else {
         min = val

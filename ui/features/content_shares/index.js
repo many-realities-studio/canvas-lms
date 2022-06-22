@@ -18,23 +18,28 @@
 
 import React from 'react'
 import ReactDOM from 'react-dom'
-import I18n from 'i18n!content_share'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import ReceivedContentView from './react/ReceivedContentView'
 import ErrorBoundary from '@canvas/error-boundary'
 import GenericErrorPage from '@canvas/generic-error-page'
 import errorShipUrl from '@canvas/images/ErrorShip.svg'
+import ready from '@instructure/ready'
 
-const container = document.getElementById('content')
-ReactDOM.render(
-  <ErrorBoundary
-    errorComponent={
-      <GenericErrorPage
-        imageUrl={errorShipUrl}
-        errorCategory={I18n.t('Content Shares Received View Error Page')}
-      />
-    }
-  >
-    <ReceivedContentView />
-  </ErrorBoundary>,
-  container
-)
+const I18n = useI18nScope('content_share')
+
+ready(() => {
+  const container = document.getElementById('content')
+  ReactDOM.render(
+    <ErrorBoundary
+      errorComponent={
+        <GenericErrorPage
+          imageUrl={errorShipUrl}
+          errorCategory={I18n.t('Content Shares Received View Error Page')}
+        />
+      }
+    >
+      <ReceivedContentView />
+    </ErrorBoundary>,
+    container
+  )
+})

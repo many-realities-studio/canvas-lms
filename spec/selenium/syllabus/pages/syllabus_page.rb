@@ -17,38 +17,46 @@
 # You should have received a copy of the GNU Affero General Public License along
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 
-require_relative '../../common'
+require_relative "../../common"
 
 module CourseSyllabusPage
   #------------------------------ Selectors -----------------------------
 
   def show_summary_chkbox_css
-    '#course_syllabus_course_summary'
+    "#course_syllabus_course_summary"
   end
 
   def syllabus_container_css
-    '#syllabusContainer'
+    "#syllabusContainer"
   end
 
   def mini_calendar_css
-    'div.mini_month'
+    "div.mini_month"
   end
 
   def mini_calendar_first_day_of_month_number_selector
-    'div.mini_month table tbody tr:first-child td:first-child .day_number'
+    "div.mini_month table tbody tr:first-child td:first-child .day_number"
   end
 
   def mini_calendar_first_day_of_month_label_selector
-    'div.mini_month table tbody tr:first-child td:first-child span.screenreader-only:first-child'
+    "div.mini_month table tbody tr:first-child td:first-child span.screenreader-only:first-child"
   end
 
   def mini_calendar_next_month_button_selector
-    'div.mini_month .next_month_link'
+    "div.mini_month .next_month_link"
+  end
+
+  def course_pacing_notice_selector
+    "[data-testid='CoursePacingNotice']"
+  end
+
+  def immersive_reader_css
+    "#immersive_reader_mount_point [type='button']"
   end
 
   #------------------------------ Elements ------------------------------
   def edit_syllabus_button
-    f('a.edit_syllabus_link')
+    f("a.edit_syllabus_link")
   end
 
   def show_course_summary_input
@@ -68,7 +76,7 @@ module CourseSyllabusPage
   end
 
   def page_main_content
-    f('#not_right_side')
+    f("#not_right_side")
   end
 
   def update_syllabus_button
@@ -76,7 +84,7 @@ module CourseSyllabusPage
   end
 
   def show_course_summary_checkbox
-    f('#course_syllabus_course_summary')
+    f("#course_syllabus_course_summary")
   end
 
   def mini_calendar_first_day_of_month_number
@@ -89,6 +97,14 @@ module CourseSyllabusPage
 
   def mini_calendar_first_day_of_month_label
     f(mini_calendar_first_day_of_month_label_selector)
+  end
+
+  def course_pacing_notice
+    f(course_pacing_notice_selector)
+  end
+
+  def immersive_reader_btn
+    fj(immersive_reader_css)
   end
 
   #------------------------------ Actions -------------------------------

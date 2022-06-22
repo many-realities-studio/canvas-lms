@@ -44,6 +44,9 @@
     "are_you_sure_you_want_to_delete_this_planner_item_b71e330c": {
         "message": "האם אתם בטוחים שברצונכם למחוק את פריט המתכנן הזה?"
     },
+    "arrows_464a3e54": {
+        "message": "חצים"
+    },
     "aspect_ratio_will_be_preserved_cb5fdfb8": {
         "message": "יחס הממדים יישמר"
     },
@@ -83,8 +86,14 @@
     "attributes_963ba262": {
         "message": "מאפיינים"
     },
+    "basic_554cdc0a": {
+        "message": "בסיסי"
+    },
     "beginning_of_your_to_do_history_61ef2dce": {
         "message": "התחלת ההיסטוריה של המטלות לביצוע שלך"
+    },
+    "blue_daf8fea9": {
+        "message": "כחול"
     },
     "c_2001_acme_inc_283f7f80": {
         "message": "(c) 2001 Acme Inc."
@@ -167,6 +176,9 @@
     "custom_6979cd81": {
         "message": "ידני"
     },
+    "cyan_c1d5f68a": {
+        "message": "ירקרק-כחול"
+    },
     "date_at_time_dbdb1b99": {
         "message": "בתאריך { date } בשעה { time }"
     },
@@ -185,8 +197,14 @@
     "decrease_indent_de6343ab": {
         "message": "הצרת עימוד"
     },
+    "deep_purple_bb3e2907": {
+        "message": "סגול כהה"
+    },
     "delete_a6efa79d": {
         "message": "ביטול"
+    },
+    "delimiters_4db4840d": {
+        "message": "מפסקים"
     },
     "details_98a31b68": {
         "message": "פרטים"
@@ -296,6 +314,12 @@
     "grades_loaded_5056277c": {
         "message": "הציונים נטענו"
     },
+    "greek_65c5b3f7": {
+        "message": "יוונית"
+    },
+    "green_15af4778": {
+        "message": "ירוק"
+    },
     "group_files_82e5dcdb": {
         "message": "קבצי קבוצה"
     },
@@ -325,6 +349,9 @@
     },
     "increase_indent_6d550a4a": {
         "message": "הרחבת עימוד"
+    },
+    "indigo_2035fc55": {
+        "message": "אינדיגו"
     },
     "insert_593145ef": {
         "message": "הוספה"
@@ -358,6 +385,9 @@
     },
     "late_2be42b88": {
         "message": "איחור"
+    },
+    "light_blue_5374f600": {
+        "message": "כחול בהיר"
     },
     "link_7262adec": {
         "message": "קישור"
@@ -409,6 +439,9 @@
     },
     "media_af190855": {
         "message": "מדיה"
+    },
+    "misc_3b692ea7": {
+        "message": "אחר"
     },
     "missing_1a256b3b": {
         "message": "חסר"
@@ -491,11 +524,14 @@
     "open_this_keyboard_shortcuts_dialog_9658b83a": {
         "message": "פתיחת חלון דיאלוג של מקשי קיצור"
     },
+    "operators_a2ef9a93": {
+        "message": "מפעילים"
+    },
     "optional_add_course_ef0d70fc": {
         "message": "אופציונלי: הוספת קורס"
     },
-    "options_3ab0ea65": {
-        "message": "אפשרויות"
+    "orange_81386a62": {
+        "message": "כתום"
     },
     "page_50c4823d": {
         "message": "דף"
@@ -511,6 +547,12 @@
     },
     "people_b4ebb13c": {
         "message": "אנשים "
+    },
+    "percentage_34ab7c2c": {
+        "message": "אחוז"
+    },
+    "pink_68ad45cb": {
+        "message": "ורוד"
     },
     "points_bceb5005": {
         "message": "נקודות"
@@ -530,6 +572,9 @@
     "published_c944a23d": {
         "message": "פורסם"
     },
+    "purple_7678a9fc": {
+        "message": "סגול"
+    },
     "quiz_e0dcce8f": {
         "message": "בוחן"
     },
@@ -538,6 +583,12 @@
     },
     "record_7c9448b": {
         "message": "הקלטה"
+    },
+    "red_8258edf3": {
+        "message": "אדום"
+    },
+    "relationships_6602af70": {
+        "message": "יחסים"
     },
     "reminder_date_4564d12d": {
         "message": "תזכורת: { date }"
@@ -602,6 +653,9 @@
     "task_16b0ef38": {
         "message": "מטלה"
     },
+    "teal_f729a294": {
+        "message": "ירוק-כחלחל"
+    },
     "the_date_and_time_this_to_do_is_due_74c823d4": {
         "message": "התאריך והשעה של פריט משימה זו הגיע"
     },
@@ -613,6 +667,9 @@
     },
     "there_are_no_points_associated_with_this_item_449c712a": {
         "message": "אין נקודות המשויכות לפריט זה"
+    },
+    "this_equation_cannot_be_rendered_in_basic_view_9b6c07ae": {
+        "message": "נוסחה זו לא ניתנת להצגה בתצוגה בסיסית"
     },
     "time_2b5aac58": {
         "message": "זמן "
@@ -667,6 +724,9 @@
     },
     "view_ba339f93": {
         "message": "תצוגה"
+    },
+    "white_87fa64fd": {
+        "message": "לבן"
     },
     "wiki_home_9cd54d0": {
         "message": "דף הבית של וויקי"

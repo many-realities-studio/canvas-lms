@@ -17,19 +17,22 @@
  */
 
 import React from 'react'
-import PropTypes from 'prop-types'
+import {bool, func, object, string} from 'prop-types'
 import DueDateCalendarPicker from './DueDateCalendarPicker'
-import I18n from 'i18n!DueDateCalendars'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import cx from 'classnames'
+
+const I18n = useI18nScope('DueDateCalendars')
 
 class DueDateCalendars extends React.Component {
   static propTypes = {
-    dates: PropTypes.object.isRequired,
-    rowKey: PropTypes.string.isRequired,
-    overrides: PropTypes.array.isRequired,
-    replaceDate: PropTypes.func.isRequired,
-    sections: PropTypes.object.isRequired,
-    disabled: PropTypes.bool.isRequired
+    dates: object.isRequired,
+    rowKey: string.isRequired,
+    replaceDate: func.isRequired,
+    disabled: bool.isRequired,
+    dueDatesReadonly: bool.isRequired,
+    availabilityDatesReadonly: bool.isRequired,
+    defaultDueTime: string
   }
 
   // -------------------
@@ -53,6 +56,7 @@ class DueDateCalendars extends React.Component {
         labelText={labelText}
         isFancyMidnight={isNotUnlockAt}
         readonly={readonly}
+        defaultTime={dateType === 'due_at' ? this.props.defaultDueTime : null}
       />
     )
   }

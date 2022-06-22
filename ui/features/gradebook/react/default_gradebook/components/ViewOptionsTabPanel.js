@@ -25,7 +25,9 @@ import {SimpleSelect} from '@instructure/ui-simple-select'
 import {View} from '@instructure/ui-view'
 import StatusColorPanel from './StatusColorPanel'
 
-import I18n from 'i18n!gradebook'
+import {useScope as useI18nScope} from '@canvas/i18n'
+
+const I18n = useI18nScope('gradebook')
 
 function buildAssignmentSortOptions(includeModules) {
   const options = [
@@ -73,8 +75,11 @@ function renderCheckbox(setting, label, key) {
 
 export default function ViewOptionsTabPanel({
   columnSort,
+  hideAssignmentGroupTotals,
+  hideTotal,
   showNotes,
   showUnpublishedAssignments,
+  showSeparateFirstLastNames,
   statusColors,
   viewUngradedAsZero
 }) {
@@ -122,10 +127,22 @@ export default function ViewOptionsTabPanel({
               I18n.t('Unpublished Assignments'),
               'showUnpublishedAssignments'
             )}
+            {showSeparateFirstLastNames.allowed &&
+              renderCheckbox(
+                showSeparateFirstLastNames,
+                I18n.t('Split Student Names'),
+                'showSeparateFirstLastNames'
+              )}
+            {renderCheckbox(
+              hideAssignmentGroupTotals,
+              I18n.t('Hide Assignment Group Totals'),
+              'hideAssignmentGroupTotals'
+            )}
+            {renderCheckbox(hideTotal, I18n.t('Hide Total and Override Columns'), 'hideTotal')}
             {viewUngradedAsZero.allowed &&
               renderCheckbox(
                 viewUngradedAsZero,
-                I18n.t('Preview ungraded as 0'),
+                I18n.t('View ungraded as 0'),
                 'viewUngradedAsZero'
               )}
           </FormFieldGroup>
@@ -151,11 +168,24 @@ ViewOptionsTabPanel.propTypes = {
     modulesEnabled: bool.isRequired,
     onChange: func.isRequired
   }).isRequired,
+  hideAssignmentGroupTotals: shape({
+    checked: bool.isRequired,
+    onChange: func.isRequired
+  }).isRequired,
+  hideTotal: shape({
+    checked: bool.isRequired,
+    onChange: func.isRequired
+  }).isRequired,
   showNotes: shape({
     checked: bool.isRequired,
     onChange: func.isRequired
   }).isRequired,
   showUnpublishedAssignments: shape({
+    checked: bool.isRequired,
+    onChange: func.isRequired
+  }).isRequired,
+  showSeparateFirstLastNames: shape({
+    allowed: bool.isRequired,
     checked: bool.isRequired,
     onChange: func.isRequired
   }).isRequired,

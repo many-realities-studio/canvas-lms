@@ -32,7 +32,9 @@ import CanvasSelect from '@canvas/instui-bindings/react/Select'
 import NumberHelper from '@canvas/i18n/numberHelper'
 
 import Round from 'round'
-import I18n from 'i18n!gradebook'
+import {useScope as useI18nScope} from '@canvas/i18n'
+
+const I18n = useI18nScope('gradebook')
 
 const MIN_PERCENTAGE_INPUT = 0
 const MAX_PERCENTAGE_INPUT = 100
@@ -317,7 +319,7 @@ class LatePoliciesTabPanel extends React.Component {
                       inputRef={m => {
                         this.missingSubmissionDeductionInput = m
                       }}
-                      renderLabel={I18n.t('Grade percentage for missing submissions')}
+                      renderLabel={I18n.t('Grade for missing submissions')}
                       disabled={
                         !this.getLatePolicyAttribute('missingSubmissionDeductionEnabled') ||
                         !this.props.gradebookIsEditable
@@ -352,7 +354,7 @@ class LatePoliciesTabPanel extends React.Component {
         {this.state.showAlert && (
           <Alert
             variant="warning"
-            closeButtonLabel={I18n.t('Close')}
+            renderCloseButtonLabel={I18n.t('Close')}
             onDismiss={this.closeAlert}
             margin="small"
           >
@@ -384,7 +386,7 @@ class LatePoliciesTabPanel extends React.Component {
                       inputRef={l => {
                         this.lateSubmissionDeductionInput = l
                       }}
-                      renderLabel={I18n.t('Late submission deduction percent')}
+                      renderLabel={I18n.t('Late submission deduction')}
                       disabled={
                         !this.getLatePolicyAttribute('lateSubmissionDeductionEnabled') ||
                         !this.props.gradebookIsEditable
@@ -411,7 +413,7 @@ class LatePoliciesTabPanel extends React.Component {
                         !this.props.gradebookIsEditable
                       }
                       id="late-submission-interval"
-                      label={I18n.t('Late submission deduction interval')}
+                      label={I18n.t('Deduction interval')}
                       onChange={this.changeLateSubmissionInterval}
                       value={data.lateSubmissionInterval}
                     >
@@ -432,7 +434,7 @@ class LatePoliciesTabPanel extends React.Component {
                       inputRef={l => {
                         this.lateSubmissionMinimumPercentInput = l
                       }}
-                      renderLabel={I18n.t('Lowest possible grade percent')}
+                      renderLabel={I18n.t('Lowest possible grade')}
                       value={this.currentInputDisplayValue(
                         'lateSubmissionMinimumPercent',
                         MIN_PERCENTAGE_INPUT
@@ -446,7 +448,7 @@ class LatePoliciesTabPanel extends React.Component {
                         this.handleChange('lateSubmissionMinimumPercent', val)
                       }
                       placeholder="0"
-                      inline
+                      display="inline-block"
                       showArrows={false}
                     />
                   </Grid.Col>

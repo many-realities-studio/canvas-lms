@@ -25,10 +25,29 @@ describe "Exporters::ZipExporter" do
     let(:folder) { course.folders.create! }
     let(:student) { course.enroll_student(User.create!).user }
     let(:teacher) { course.enroll_teacher(User.create!).user }
+    let(:settings) { {} }
 
     shared_examples_for "exports for users with file access" do
       it "includes the course attachment" do
         expect(Zip::File.open(subject.open).entries.map(&:to_s)).to eq ["file.txt"]
+      end
+
+      context "when the user's time zone is present in export settings" do
+        let(:settings) { { time_zone: "America/Denver" } }
+
+        it "uses the time zone to calculate the user's local time using TZInfo::Timezone" do
+          expect(TZInfo::Timezone).to receive(:get).with("America/Denver").and_return(double("LocalTime", now: Time.now))
+          subject
+        end
+      end
+
+      context "when the user's time zone is not present in export settings" do
+        let(:settings) { {} }
+
+        it "does not use TZInfo::Timezone to calculate datetime" do
+          expect(TZInfo::Timezone).not_to receive(:get)
+          subject
+        end
       end
     end
 
@@ -39,18 +58,23 @@ describe "Exporters::ZipExporter" do
     end
 
     describe "exporting attachments" do
-      def exporter_for_attachment(attachment, course, user)
+      def exporter_for_attachment(attachment, course, user, opts = {})
         content_export = course.content_exports.create!(
           user: user,
           workflow_state: "created",
           selected_content: { attachments: { "attachment_#{attachment.id}": "1" } }
         )
 
+        content_export.settings[:user_time_zone] = opts[:time_zone]
+        content_export.save!
+
         Exporters::ZipExporter.new(content_export)
       end
 
       context "when exporting a published attachment" do
-        before(:each) do
+        subject { exporter.export }
+
+        before do
           attachment_model(
             context: course,
             folder: folder,
@@ -58,18 +82,16 @@ describe "Exporters::ZipExporter" do
           )
         end
 
-        let(:exporter) { exporter_for_attachment(@attachment, course, @user) }
-
-        subject { exporter.export }
+        let(:exporter) { exporter_for_attachment(@attachment, course, @user, settings) }
 
         context "when the user is an active teacher" do
-          before(:each) { @user = teacher }
+          before { @user = teacher }
 
           it_behaves_like "exports for users with file access"
         end
 
         context "when the user is a concluded teacher" do
-          before(:each) do
+          before do
             teacher.enrollments.find_by(course: course).conclude
             @user = teacher
           end
@@ -78,14 +100,16 @@ describe "Exporters::ZipExporter" do
         end
 
         context "when the user is a student" do
-          before(:each) { @user = student }
+          before { @user = student }
 
           it_behaves_like "exports for users with file access"
         end
       end
 
       context "when exporting an unpublished attachment" do
-        before(:each) do
+        subject { exporter.export }
+
+        before do
           attachment_model(
             context: course,
             folder: folder,
@@ -94,18 +118,16 @@ describe "Exporters::ZipExporter" do
           )
         end
 
-        let(:exporter) { exporter_for_attachment(@attachment, course, @user) }
-
-        subject { exporter.export }
+        let(:exporter) { exporter_for_attachment(@attachment, course, @user, settings) }
 
         context "when the user is an active teacher" do
-          before(:each) { @user = teacher }
+          before { @user = teacher }
 
           it_behaves_like "exports for users with file access"
         end
 
         context "when the user is a concluded teacher" do
-          before(:each) do
+          before do
             teacher.enrollments.find_by(course: course).conclude
             @user = teacher
           end
@@ -114,14 +136,16 @@ describe "Exporters::ZipExporter" do
         end
 
         context "when the user is a student" do
-          before(:each) { @user = student }
+          before { @user = student }
 
           it_behaves_like "exports for users without file access"
         end
       end
 
       context "when exporting an availability locked attachment" do
-        before(:each) do
+        subject { exporter.export }
+
+        before do
           attachment_model(
             context: course,
             folder: folder,
@@ -131,18 +155,16 @@ describe "Exporters::ZipExporter" do
           )
         end
 
-        let(:exporter) { exporter_for_attachment(@attachment, course, @user) }
-
-        subject { exporter.export }
+        let(:exporter) { exporter_for_attachment(@attachment, course, @user, settings) }
 
         context "when the user is an active teacher" do
-          before(:each) { @user = teacher }
+          before { @user = teacher }
 
           it_behaves_like "exports for users with file access"
         end
 
         context "when the user is a concluded teacher" do
-          before(:each) do
+          before do
             teacher.enrollments.find_by(course: course).conclude
             @user = teacher
           end
@@ -151,14 +173,16 @@ describe "Exporters::ZipExporter" do
         end
 
         context "when the user is a student" do
-          before(:each) { @user = student }
+          before { @user = student }
 
           it_behaves_like "exports for users without file access"
         end
       end
 
       context "when exporting a hidden attachment" do
-        before(:each) do
+        subject { exporter.export }
+
+        before do
           attachment_model(
             context: course,
             file_state: "hidden",
@@ -167,18 +191,16 @@ describe "Exporters::ZipExporter" do
           )
         end
 
-        let(:exporter) { exporter_for_attachment(@attachment, course, @user) }
-
-        subject { exporter.export }
+        let(:exporter) { exporter_for_attachment(@attachment, course, @user, settings) }
 
         context "when the user is an active teacher" do
-          before(:each) { @user = teacher }
+          before { @user = teacher }
 
           it_behaves_like "exports for users with file access"
         end
 
         context "when the user is a concluded teacher" do
-          before(:each) do
+          before do
             teacher.enrollments.find_by(course: course).conclude
             @user = teacher
           end
@@ -187,28 +209,34 @@ describe "Exporters::ZipExporter" do
         end
 
         context "when the user is a student" do
-          before(:each) { @user = student }
+          before { @user = student }
           # This is different from the spec in this test file where there is no
           # attachment when exporting a hidden folder, but the UI allows for
           # downloading hidden attachments when the user has a direct link.
+
           it_behaves_like "exports for users with file access"
         end
       end
     end
 
     describe "exporting folders" do
-      def exporter_for_folder(folder, course, user)
+      def exporter_for_folder(folder, course, user, opts = {})
         content_export = course.content_exports.create!(
           user: user,
           workflow_state: "created",
           selected_content: { folders: { "folder_#{folder.id}": "1" } }
         )
 
+        content_export.settings[:user_time_zone] = opts[:time_zone]
+        content_export.save!
+
         Exporters::ZipExporter.new(content_export)
       end
 
       context "when exporting a published folder with published files" do
-        before(:each) do
+        subject { exporter.export }
+
+        before do
           attachment_model(
             context: course,
             folder: folder,
@@ -216,18 +244,16 @@ describe "Exporters::ZipExporter" do
           )
         end
 
-        let(:exporter) { exporter_for_folder(folder, course, @user) }
-
-        subject { exporter.export }
+        let(:exporter) { exporter_for_folder(folder, course, @user, settings) }
 
         context "when the user is an active teacher" do
-          before(:each) { @user = teacher }
+          before { @user = teacher }
 
           it_behaves_like "exports for users with file access"
         end
 
         context "when the user is a concluded teacher" do
-          before(:each) do
+          before do
             teacher.enrollments.find_by(course: course).conclude
             @user = teacher
           end
@@ -236,14 +262,16 @@ describe "Exporters::ZipExporter" do
         end
 
         context "when the user is a student" do
-          before(:each) { @user = student }
+          before { @user = student }
 
           it_behaves_like "exports for users with file access"
         end
       end
 
       context "when exporting an unpublished folder containing unpublished files" do
-        before(:each) do
+        subject { exporter.export }
+
+        before do
           folder.update!(locked: true)
 
           attachment_model(
@@ -254,18 +282,16 @@ describe "Exporters::ZipExporter" do
           )
         end
 
-        let(:exporter) { exporter_for_folder(folder, course, @user) }
-
-        subject { exporter.export }
+        let(:exporter) { exporter_for_folder(folder, course, @user, settings) }
 
         context "when the user is an active teacher" do
-          before(:each) { @user = teacher }
+          before { @user = teacher }
 
           it_behaves_like "exports for users with file access"
         end
 
         context "when the user is a concluded teacher" do
-          before(:each) do
+          before do
             teacher.enrollments.find_by(course: course).conclude
             @user = teacher
           end
@@ -274,14 +300,16 @@ describe "Exporters::ZipExporter" do
         end
 
         context "when the user is a student" do
-          before(:each) { @user = student }
+          before { @user = student }
 
           it_behaves_like "exports for users without file access"
         end
       end
 
       context "when exporting an availability locked folder with availability locked files" do
-        before(:each) do
+        subject { exporter.export }
+
+        before do
           folder.update!(lock_at: 1.day.ago, unlock_at: 3.days.ago)
 
           attachment_model(
@@ -293,18 +321,16 @@ describe "Exporters::ZipExporter" do
           )
         end
 
-        let(:exporter) { exporter_for_folder(folder, course, @user) }
-
-        subject { exporter.export }
+        let(:exporter) { exporter_for_folder(folder, course, @user, settings) }
 
         context "when the user is an active teacher" do
-          before(:each) { @user = teacher }
+          before { @user = teacher }
 
           it_behaves_like "exports for users with file access"
         end
 
         context "when the user is a concluded teacher" do
-          before(:each) do
+          before do
             teacher.enrollments.find_by(course: course).conclude
             @user = teacher
           end
@@ -313,36 +339,36 @@ describe "Exporters::ZipExporter" do
         end
 
         context "when the user is a student" do
-          before(:each) { @user = student }
+          before { @user = student }
 
           it_behaves_like "exports for users without file access"
         end
       end
 
       context "when exporting a hidden folder with hidden files" do
-        before(:each) do
+        subject { exporter.export }
+
+        before do
           folder.update!(workflow_state: "hidden")
 
           attachment_model(
             context: course,
             file_state: "hidden",
             folder: folder,
-            uploaded_data: stub_file_data("file.txt", "some text", "text/plain"),
+            uploaded_data: stub_file_data("file.txt", "some text", "text/plain")
           )
         end
 
-        let(:exporter) { exporter_for_folder(folder, course, @user) }
-
-        subject { exporter.export }
+        let(:exporter) { exporter_for_folder(folder, course, @user, settings) }
 
         context "when the user is an active teacher" do
-          before(:each) { @user = teacher }
+          before { @user = teacher }
 
           it_behaves_like "exports for users with file access"
         end
 
         context "when the user is a concluded teacher" do
-          before(:each) do
+          before do
             teacher.enrollments.find_by(course: course).conclude
             @user = teacher
           end
@@ -351,7 +377,7 @@ describe "Exporters::ZipExporter" do
         end
 
         context "when the user is a student" do
-          before(:each) { @user = student }
+          before { @user = student }
 
           it_behaves_like "exports for users without file access"
         end

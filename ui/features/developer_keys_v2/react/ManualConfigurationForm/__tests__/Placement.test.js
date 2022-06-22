@@ -87,6 +87,20 @@ it('changes the output when message_type changes', () => {
   ])
 })
 
+it('removes target_link_uri from the placement if it is empty', () => {
+  const wrapper = mount(<Placement {...props()} />)
+  wrapper.instance().handleTargetLinkUriChange({target: {value: ''}})
+  const placement = wrapper.instance().generateToolConfigurationPart()
+  expect(Object.keys(placement)).not.toContain('target_link_uri')
+})
+
+it('removes selection_width from the placement if it is empty', () => {
+  const wrapper = mount(<Placement {...props()} />)
+  wrapper.instance().handleSelectionWidthChange({target: {value: ''}})
+  const placement = wrapper.instance().generateToolConfigurationPart()
+  expect(Object.keys(placement)).not.toContain('selection_width')
+})
+
 it('cleans up invalid inputs', () => {
   const wrapper = mount(<Placement {...props({placementOverrides: {message_type: undefined}})} />)
   expect(wrapper.instance().valid()).toEqual(true)
@@ -97,14 +111,15 @@ it('is valid when valid', () => {
   expect(wrapper.instance().valid()).toEqual(true)
 })
 
-const placements = [
+const alwaysDeeplinkingPlacements = [
   'editor_button',
   'migration_selection',
   'homework_submission',
-  'conference_selection'
+  'conference_selection',
+  'submission_type_selection'
 ]
 
-placements.forEach(placementName => {
+alwaysDeeplinkingPlacements.forEach(placementName => {
   it('displays alert when placement only supports deep linking', () => {
     const wrapper = mount(<Placement {...props({placementName})} />)
     wrapper.find('button').simulate('click')
@@ -112,10 +127,39 @@ placements.forEach(placementName => {
   })
 })
 
-const couldBeEither = ['assignment_selection', 'link_selection']
+const couldBeEither = [
+  'assignment_selection',
+  'link_selection',
+  'course_assignments_menu',
+  'collaboration',
+  'module_index_menu_modal',
+  'module_menu_modal'
+]
 
 couldBeEither.forEach(placementName => {
-  it('displays alert when placement supports deep linking and resource link and deep linking chosen', () => {
+  if (['course_assignments_menu', 'module_menu_modal'].includes(placementName)) {
+    beforeAll(() => {
+      global.ENV.FEATURES ||= {}
+      global.ENV.FEATURES.lti_multiple_assignment_deep_linking = true
+    })
+
+    afterAll(() => {
+      global.ENV.FEATURES.lti_multiple_assignment_deep_linking = false
+    })
+  }
+
+  if (placementName === 'module_index_menu_modal') {
+    beforeAll(() => {
+      global.ENV.FEATURES ||= {}
+      global.ENV.FEATURES.lti_deep_linking_module_index_menu_modal = true
+    })
+
+    afterAll(() => {
+      global.ENV.FEATURES.lti_deep_linking_module_index_menu_modal = false
+    })
+  }
+
+  it(`${placementName}: displays alert when placement supports deep linking and resource link and deep linking chosen`, () => {
     const wrapper = mount(
       <Placement {...props({placementName}, {message_type: 'LtiDeepLinkingRequest'})} />
     )
@@ -123,7 +167,7 @@ couldBeEither.forEach(placementName => {
     expect(wrapper.exists('Alert')).toBeTruthy()
   })
 
-  it('does not display alert when placement supports deep linking and resource link and deep linking chosen', () => {
+  it(`${placementName}: does not display alert when placement supports deep linking and resource link and deep linking chosen`, () => {
     const wrapper = mount(<Placement {...props({placementName})} />)
     wrapper.find('ToggleDetails').simulate('click')
     expect(wrapper.exists('Alert')).toBeFalsy()

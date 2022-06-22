@@ -27,7 +27,7 @@ class CanvasSchema < GraphQL::Schema
   connections.add(Array, PatchedArrayConnection)
   connections.add(DynamoQuery, DynamoConnection)
 
-  def self.id_from_object(obj, type_def, ctx)
+  def self.id_from_object(obj, type_def, _ctx)
     case obj
     when MediaObject
       GraphQL::Schema::UniqueWithinType.encode(type_def.graphql_name, obj.media_id)
@@ -86,6 +86,7 @@ class CanvasSchema < GraphQL::Schema
         Types::ModuleItemType
       end
     when ContextExternalTool then Types::ExternalToolType
+    when Setting then Types::InternalSettingType
     end
   end
 
@@ -97,7 +98,8 @@ class CanvasSchema < GraphQL::Schema
 
   orphan_types [Types::PageType, Types::FileType, Types::ExternalUrlType,
                 Types::ExternalToolType, Types::ModuleExternalToolType,
-                Types::ProgressType, Types::ModuleSubHeaderType]
+                Types::ProgressType, Types::ModuleSubHeaderType,
+                Types::InternalSettingType]
 
   def self.for_federation
     @federatable_schema ||= Class.new(CanvasSchema) do

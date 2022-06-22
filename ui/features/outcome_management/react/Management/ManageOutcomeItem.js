@@ -25,26 +25,40 @@ import {Checkbox} from '@instructure/ui-checkbox'
 import {IconButton} from '@instructure/ui-buttons'
 import {IconArrowOpenEndLine, IconArrowOpenDownLine} from '@instructure/ui-icons'
 import {ScreenReaderContent} from '@instructure/ui-a11y-content'
-import I18n from 'i18n!OutcomeManagement'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import OutcomeKebabMenu from './OutcomeKebabMenu'
 import OutcomeDescription from './OutcomeDescription'
 import {addZeroWidthSpace} from '@canvas/outcomes/addZeroWidthSpace'
 import useCanvasContext from '@canvas/outcomes/react/hooks/useCanvasContext'
+import {ratingsShape} from './shapes'
+
+const I18n = useI18nScope('OutcomeManagement')
 
 const ManageOutcomeItem = ({
   linkId,
   title,
   description,
+  calculationMethod,
+  calculationInt,
+  masteryPoints,
+  ratings,
   friendlyDescription,
   outcomeContextType,
   outcomeContextId,
-  canManageOutcome,
   isChecked,
   onMenuHandler,
   onCheckboxHandler,
   canUnlink
 }) => {
-  const {contextType, contextId, friendlyDescriptionFF} = useCanvasContext()
+  const {
+    contextType,
+    contextId,
+    friendlyDescriptionFF,
+    accountLevelMasteryScalesFF,
+    canManage,
+    isAdmin,
+    isCourse
+  } = useCanvasContext()
   const [truncated, setTruncated] = useState(true)
   const onClickHandler = () => setTruncated(prevState => !prevState)
   const onChangeHandler = () => onCheckboxHandler({linkId})
@@ -52,10 +66,12 @@ const ManageOutcomeItem = ({
 
   // This allows account admins to edit global outcomes
   // within a course. See OUT-1415, OUT-1511
-  const {canManage, isAdmin, isCourse} = useCanvasContext()
   const allowAdminEdit = isCourse && canManage && isAdmin
   const canEdit =
-    friendlyDescriptionFF || (outcomeContextType === contextType && outcomeContextId === contextId)
+    friendlyDescriptionFF ||
+    (outcomeContextType === contextType && outcomeContextId === contextId) ||
+    allowAdminEdit
+  const shouldShowDescription = description || friendlyDescription || !accountLevelMasteryScalesFF
 
   if (!title) return null
 
@@ -70,10 +86,14 @@ const ManageOutcomeItem = ({
         <Flex.Item as="div" size="4.125rem">
           <div style={{padding: '0.3125rem 0'}}>
             <Flex alignItems="center">
-              {canManageOutcome && (
+              {canManage && (
                 <Flex.Item>
                   <Checkbox
-                    label={<ScreenReaderContent>{I18n.t('Select outcome')}</ScreenReaderContent>}
+                    label={
+                      <ScreenReaderContent>
+                        {I18n.t('Select outcome %{title}', {title})}
+                      </ScreenReaderContent>
+                    }
                     value="medium"
                     checked={isChecked}
                     onChange={onChangeHandler}
@@ -85,13 +105,14 @@ const ManageOutcomeItem = ({
                   size="small"
                   screenReaderLabel={
                     truncated
-                      ? I18n.t('Expand outcome description')
-                      : I18n.t('Collapse outcome description')
+                      ? I18n.t('Expand description for outcome %{title}', {title})
+                      : I18n.t('Collapse description for outcome %{title}', {title})
                   }
                   withBackground={false}
                   withBorder={false}
-                  interaction={description || friendlyDescription ? 'enabled' : 'disabled'}
+                  interaction={shouldShowDescription ? 'enabled' : 'disabled'}
                   onClick={onClickHandler}
+                  data-testid="manage-outcome-item-expand-toggle"
                 >
                   <div style={{display: 'flex', alignSelf: 'center', fontSize: '0.875rem'}}>
                     {truncated ? (
@@ -112,12 +133,12 @@ const ManageOutcomeItem = ({
             </Heading>
           </div>
         </Flex.Item>
-        {(canManageOutcome || allowAdminEdit) && (
+        {canManage && (
           <Flex.Item>
             <OutcomeKebabMenu
               canDestroy={canUnlink}
               canEdit={canEdit}
-              menuTitle={I18n.t('Outcome Menu')}
+              menuTitle={I18n.t('Menu for outcome %{title}', {title})}
               onMenuHandler={onMenuHandlerWrapper}
             />
           </Flex.Item>
@@ -126,11 +147,15 @@ const ManageOutcomeItem = ({
       <Flex as="div" alignItems="start">
         <Flex.Item size="4.125rem" />
         <Flex.Item size="50%" shouldGrow>
-          {(description || friendlyDescription) && (
+          {shouldShowDescription && (
             <View as="div" padding="0 0 x-small">
               <OutcomeDescription
                 description={description}
                 friendlyDescription={friendlyDescription}
+                calculationMethod={calculationMethod}
+                calculationInt={calculationInt}
+                masteryPoints={masteryPoints}
+                ratings={ratings}
                 truncated={truncated}
               />
             </View>
@@ -145,14 +170,17 @@ ManageOutcomeItem.propTypes = {
   linkId: PropTypes.string.isRequired,
   title: PropTypes.string.isRequired,
   description: PropTypes.string,
+  calculationMethod: PropTypes.string,
+  calculationInt: PropTypes.number,
+  masteryPoints: PropTypes.number,
+  ratings: ratingsShape,
   friendlyDescription: PropTypes.string,
   outcomeContextType: PropTypes.string,
   outcomeContextId: PropTypes.string,
   isChecked: PropTypes.bool.isRequired,
   onMenuHandler: PropTypes.func.isRequired,
   onCheckboxHandler: PropTypes.func.isRequired,
-  canUnlink: PropTypes.bool.isRequired,
-  canManageOutcome: PropTypes.bool.isRequired
+  canUnlink: PropTypes.bool.isRequired
 }
 
 export default memo(ManageOutcomeItem)

@@ -18,7 +18,7 @@
 
 import React from 'react'
 import {bool, func, number, oneOf, oneOfType, string} from 'prop-types'
-import I18n from 'i18n!assignments_2'
+import {useScope as useI18nScope} from '@canvas/i18n'
 
 import {showFlashAlert} from '@canvas/alerts/react/FlashAlert'
 
@@ -27,6 +27,8 @@ import {Flex} from '@instructure/ui-flex'
 import {Text} from '@instructure/ui-text'
 
 import EditableNumber from './EditableNumber'
+
+const I18n = useI18nScope('assignments_2')
 
 const editLabel = I18n.t('Edit Points')
 const label = I18n.t('Points')
@@ -94,7 +96,7 @@ export default class AssignmentPoints extends React.Component {
     const msg = this.state.isValid ? null : (
       <View as="div" textAlign="end" margin="xx-small 0 0 0">
         <span style={{whiteSpace: 'nowrap'}}>
-          <Text color="error">{this.props.invalidMessage('pointsPossible')}</Text>
+          <Text color="danger">{this.props.invalidMessage('pointsPossible')}</Text>
         </span>
       </View>
     )

@@ -18,10 +18,8 @@
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-require File.expand_path(File.dirname(__FILE__) + '/../spec_helper')
-
 describe TermsController do
-  it "onlies touch courses once when setting overrides" do
+  it "only touches courses once when setting overrides" do
     a = Account.default
     u = user_factory(active_all: true)
     a.account_users.create!(user: u)
@@ -30,20 +28,20 @@ describe TermsController do
     term = a.default_enrollment_term
     expect_any_instantiation_of(term).to receive(:touch_all_courses).once
 
-    put 'update', params: { :account_id => a.id, :id => term.id, :enrollment_term => { :start_at => 1.day.ago, :end_at => 1.day.from_now,
-                                                                                       :overrides => {
-                                                                                         :student_enrollment => { :start_at => 1.day.ago, :end_at => 1.day.from_now },
-                                                                                         :teacher_enrollment => { :start_at => 1.day.ago, :end_at => 1.day.from_now },
-                                                                                         :ta_enrollment => { :start_at => 1.day.ago, :end_at => 1.day.from_now },
-                                                                                       } } }
+    put "update", params: { account_id: a.id, id: term.id, enrollment_term: { start_at: 1.day.ago, end_at: 1.day.from_now,
+                                                                              overrides: {
+                                                                                student_enrollment: { start_at: 1.day.ago, end_at: 1.day.from_now },
+                                                                                teacher_enrollment: { start_at: 1.day.ago, end_at: 1.day.from_now },
+                                                                                ta_enrollment: { start_at: 1.day.ago, end_at: 1.day.from_now },
+                                                                              } } }
   end
 
   it "is not able to change the name for a default term" do
     account_model
-    account_admin_user(:account => @account)
+    account_admin_user(account: @account)
     user_session(@user)
 
-    put 'update', params: { :account_id => @account.id, :id => @account.default_enrollment_term.id, :enrollment_term => { :name => "new name lol" } }
+    put "update", params: { account_id: @account.id, id: @account.default_enrollment_term.id, enrollment_term: { name: "new name lol" } }
 
     expect(response).to_not be_successful
     error = json_parse(response.body)["errors"]["name"].first["message"]
@@ -52,10 +50,10 @@ describe TermsController do
 
   it "is not able to delete a default term" do
     account_model
-    account_admin_user(:account => @account)
+    account_admin_user(account: @account)
     user_session(@user)
 
-    delete 'destroy', params: { :account_id => @account.id, :id => @account.default_enrollment_term.id }
+    delete "destroy", params: { account_id: @account.id, id: @account.default_enrollment_term.id }
 
     expect(response).to_not be_successful
     error = json_parse(response.body)["errors"]["workflow_state"].first["message"]
@@ -64,7 +62,7 @@ describe TermsController do
 
   it "is not able to delete an enrollment term with active courses" do
     account_model
-    account_admin_user(:account => @account)
+    account_admin_user(account: @account)
     user_session(@user)
 
     @term = @account.enrollment_terms.create!
@@ -72,7 +70,7 @@ describe TermsController do
     @course.enrollment_term = @term
     @course.save!
 
-    delete 'destroy', params: { :account_id => @account.id, :id => @term.id }
+    delete "destroy", params: { account_id: @account.id, id: @term.id }
 
     expect(response).to_not be_successful
     error = json_parse(response.body)["errors"]["workflow_state"].first["message"]
@@ -80,11 +78,31 @@ describe TermsController do
 
     @course.destroy
 
-    delete 'destroy', params: { :account_id => @account.id, :id => @term.id }
+    delete "destroy", params: { account_id: @account.id, id: @term.id }
 
     expect(response).to be_successful
 
     @term.reload
     expect(@term).to be_deleted
+  end
+
+  context "course paces" do
+    before do
+      account_model
+      course_model(account: @account)
+      account_admin_user(account: @account)
+      @course.account.enable_feature!(:course_paces)
+      @course.restrict_enrollments_to_course_dates = false
+      @course.enable_course_paces = true
+      @course.save!
+      @course_pace = course_pace_model(course: @course)
+    end
+
+    it "republishes course paces when the term is updated" do
+      user_session(@user)
+
+      put "update", params: { account_id: @account.id, id: @account.default_enrollment_term.id, enrollment_term: { start_at: 1.day.from_now } }
+      expect(Progress.find_by(context: @course_pace)).to be_queued
+    end
   end
 end

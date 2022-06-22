@@ -18,7 +18,7 @@
 
 import {AssignmentOverride} from '../../../graphql/AssignmentOverride'
 import DateHelper from '../../../../../shared/datetime/dateHelper'
-import I18n from 'i18n!discussion_posts'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import PropTypes from 'prop-types'
 import React from 'react'
 import {responsiveQuerySizes} from '../../utils'
@@ -27,6 +27,8 @@ import {DueDatesForParticipantList} from '../DueDatesForParticipantList/DueDates
 import {Responsive} from '@instructure/ui-responsive'
 import {Table} from '@instructure/ui-table'
 import {Text} from '@instructure/ui-text'
+
+const I18n = useI18nScope('discussion_posts')
 
 export function DueDateTray({...props}) {
   return (
@@ -44,7 +46,11 @@ export function DueDateTray({...props}) {
         }
       }}
       render={responsiveProps => (
-        <Table layout={responsiveProps.layout} caption={I18n.t('Due Dates')}>
+        <Table
+          layout={responsiveProps.layout}
+          caption={I18n.t('Due Dates')}
+          data-testid="due-date-table"
+        >
           <Table.Head>
             <Table.Row>
               <Table.ColHeader id="due_date_tray_header_due_at">

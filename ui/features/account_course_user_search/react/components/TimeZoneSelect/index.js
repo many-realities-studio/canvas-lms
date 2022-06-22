@@ -19,7 +19,9 @@
 import React from 'react'
 import {arrayOf, shape, string} from 'prop-types'
 import CanvasSelect from '@canvas/instui-bindings/react/Select'
-import I18n from 'i18n!edit_timezone'
+import {useScope as useI18nScope} from '@canvas/i18n'
+
+const I18n = useI18nScope('edit_timezone')
 
 export default function TimeZoneSelect({
   label,
@@ -67,7 +69,10 @@ TimeZoneSelect.propTypes = {
   priority_zones: arrayOf(timezoneShape)
 }
 
-import(`./localized-timezone-lists/${ENV.LOCALE || 'en'}.json`)
+import(
+  /* webpackChunkName: "[request]" */
+  `./localized-timezone-lists/${ENV.LOCALE || 'en'}.json`
+)
   .catch(() => import(`./localized-timezone-lists/en.json`)) // fall back to english if a user has a locale set that we don't have a list for
   .then(defaultsJSON => {
     TimeZoneSelect.defaultProps = {

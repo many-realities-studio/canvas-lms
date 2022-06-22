@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU Affero General Public License along
 // with this program. If not, see <http://www.gnu.org/licenses/>.
 
-import I18n from 'i18n!EquationEditorView'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import $ from 'jquery'
 import _ from 'underscore'
 import Backbone from '@canvas/backbone'
@@ -26,6 +26,8 @@ import preventDefault from 'prevent-default'
 import * as RceCommandShim from '../../RceCommandShim'
 import 'jqueryui/dialog'
 import '@canvas/mathquill'
+
+const I18n = useI18nScope('EquationEditorView')
 
 export default class EquationEditorView extends Backbone.View {
   static initClass() {
@@ -64,7 +66,7 @@ export default class EquationEditorView extends Backbone.View {
         } else {
           // if we're editing inline LaTex, strip the delimiters
           // if the selection included them
-          return elem.nodeValue.trim().replace(/^(?:\\\(|\$\$)(.*)*(?:\\\)|\$\$)$/g, '$1')
+          return elem.nodeValue.trim().replace(/^(?:\\\(|\$\$)(.*)*(?:\\\)|\$\$)$/g, '$1');
         }
 
         // Get alt attributes from IMG nodes
@@ -81,7 +83,7 @@ export default class EquationEditorView extends Backbone.View {
       }
     })
       .join('')
-      .trim()
+      .trim();
   }
 
   getEquationText(elems) {
@@ -245,16 +247,6 @@ export default class EquationEditorView extends Backbone.View {
     this.$el.dialog('close')
   }
 
-  // the following is here to make it easier to unit test
-  static doubleEncodeEquationForUrl(text) {
-    return encodeURIComponent(encodeURIComponent(text))
-  }
-
-  // the following will be called by onSubmit below
-  doubleEncodeEquationForUrl(text) {
-    return this.constructor.doubleEncodeEquationForUrl(text)
-  }
-
   onSubmit(event) {
     event.preventDefault()
 
@@ -265,56 +257,9 @@ export default class EquationEditorView extends Backbone.View {
       return
     }
 
-    // get the equation image to check that it succeeds
-    // if it does, we'll send its html to the RCE, where
-    // the image will get pulled from the cache, so the 2nd
-    // request won't cost much
-    // NOTE: commented out because the service used in prod
-    //       will not accept a CORS request
-    const url = `/equation_images/${this.doubleEncodeEquationForUrl(text)}`
-    // fetch(url, {
-    //   method: 'GET',
-    //   mode: 'cors',
-    //   redirect: 'follow'
-    // })
-    //   .then(response => {
     this.restoreCaret()
-    // if (response.ok) {
-    const code = this.loadImage(text, url)
-    RceCommandShim.send(this.$editor, 'insert_code', code)
-    //   } else {
-    //     const code = this.loadAltMath(text)
-    //     this.editor.selection.setContent(code)
-    //   }
+    RceCommandShim.send(this.$editor, 'insertMathEquation', text)
     this.close()
-    // })
-    // .catch(() => {
-    //   const code = this.loadAltMath(text)
-    //   this.editor.selection.setContent(code)
-    //   this.close()
-    // })
-  }
-
-  // the image generator was successful
-  loadImage(text, url) {
-    // if I simple create the html string, xsslint fails jenkins
-    const img = document.createElement('img')
-    img.setAttribute('alt', `LaTeX: ${text}`)
-    img.setAttribute('title', text)
-    img.setAttribute('class', 'equation_image')
-    img.setAttribute('data-equation-content', text)
-    img.setAttribute('src', url)
-    return img.outerHTML
-  }
-
-  // there are LaTex equations the the image generator can't deal with
-  // that MathJax can. If the image failed, let's inject the LaTex
-  // as inline math for MathJax to process later.
-  loadAltMath(text) {
-    const span = document.createElement('span')
-    span.setAttribute('class', 'math_equation_latex')
-    span.textContent = `\\(${text}\\)`
-    return span.outerHTML
   }
 }
 EquationEditorView.initClass()

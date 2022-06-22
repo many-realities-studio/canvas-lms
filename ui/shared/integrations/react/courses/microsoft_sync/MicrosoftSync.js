@@ -18,13 +18,15 @@
 
 import $ from 'jquery'
 import '@canvas/datetime'
-import I18n from 'i18n!course_settings'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import React from 'react'
 import {Flex} from '@instructure/ui-flex'
 import {Spinner} from '@instructure/ui-spinner'
 import {Text} from '@instructure/ui-text'
 import {View} from '@instructure/ui-view'
 import {InlineList} from '@instructure/ui-list'
+
+const I18n = useI18nScope('course_settings')
 
 const stateMap = {
   pending: I18n.t('Ready for sync'),
@@ -53,6 +55,16 @@ const MicrosoftSync = ({group, loading, children}) => {
       <Text>
         {I18n.t(
           'Note: Syncing is triggered by changes to course enrollments. The first time you enable Microsoft Sync, you may have to trigger a sync manually with the button below.'
+        )}
+      </Text>
+      <br />
+      <Text>
+        {I18n.t(
+          'Also note that Microsoft Teams is unable to support courses with greater than %{max_enrollments} enrollments or greater than %{max_owners} owners. If your course exceeds these limits, sync will likely be interrupted.',
+          {
+            max_enrollments: ENV.MSFT_SYNC_MAX_ENROLLMENT_MEMBERS,
+            max_owners: ENV.MSFT_SYNC_MAX_ENROLLMENT_OWNERS
+          }
         )}
       </Text>
       <Flex margin="small 0 0 0">

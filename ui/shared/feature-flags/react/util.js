@@ -16,8 +16,10 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import I18n from 'i18n!feature_flags'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import React from 'react'
+
+const I18n = useI18nScope('feature_flags')
 
 export function buildTransitions(flag, allowsDefaults) {
   const ret = {}
@@ -127,12 +129,15 @@ export function transitionMessage(flag, name) {
     message = flag.transitions[name].message
   }
 
-  if (ENV.ACCOUNT?.site_admin) {
-    // It is relatively unlikely that there will ever be another message
-    // But ensure it is displayed if it exists
+  if (ENV.ACCOUNT?.site_admin && ENV.RAILS_ENVIRONMENT !== 'development') {
     message = (
       <div>
-        <p>{I18n.t('This will affect every customer. Are you sure?')}</p>
+        <p>
+          {I18n.t(
+            `You are currently in the %{environment} environment. This will affect every customer. Are you sure?`,
+            {environment: ENV.RAILS_ENVIRONMENT}
+          )}
+        </p>
         <p>{message}</p>
       </div>
     )

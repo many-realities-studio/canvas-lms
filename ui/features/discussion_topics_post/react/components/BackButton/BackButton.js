@@ -18,12 +18,14 @@
 
 import {Button} from '@instructure/ui-buttons'
 import {IconArrowStartLine} from '@instructure/ui-icons'
-import I18n from 'i18n!discussion_posts'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import PropTypes from 'prop-types'
 import React from 'react'
 import {Responsive} from '@instructure/ui-responsive'
 import {responsiveQuerySizes} from '../../utils'
 import {Text} from '@instructure/ui-text'
+
+const I18n = useI18nScope('discussion_posts')
 
 export function BackButton({onClick, ...props}) {
   return (
@@ -39,20 +41,22 @@ export function BackButton({onClick, ...props}) {
         }
       }}
       render={responsiveProps => (
-        <Button
-          onClick={onClick}
-          withBorder={false}
-          withBackground={false}
-          color="primary"
-          renderIcon={<IconArrowStartLine />}
-          theme={{borderWidth: '0'}}
-          data-testid="back-button"
-          {...props}
-        >
-          <Text weight="bold" size={responsiveProps.textSize}>
-            {I18n.t('Back')}
-          </Text>
-        </Button>
+        <span className="discussions-back-button">
+          <Button
+            onClick={onClick}
+            withBorder={false}
+            withBackground={false}
+            color="primary"
+            renderIcon={<IconArrowStartLine />}
+            theme={{borderWidth: '0'}}
+            data-testid="back-button"
+            {...props}
+          >
+            <Text weight="bold" size={responsiveProps.textSize}>
+              {I18n.t('Back')}
+            </Text>
+          </Button>
+        </span>
       )}
     />
   )

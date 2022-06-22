@@ -17,21 +17,37 @@
  */
 
 import React from 'react'
-import I18n from 'i18n!OutcomeManagement'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import PropTypes from 'prop-types'
 import {Text} from '@instructure/ui-text'
 import {View} from '@instructure/ui-view'
 import {PresentationContent, ScreenReaderContent} from '@instructure/ui-a11y-content'
 import {stripHtmlTags} from '@canvas/outcomes/stripHtmlTags'
 import useCanvasContext from '@canvas/outcomes/react/hooks/useCanvasContext'
+import ProficiencyCalculation from '../MasteryCalculation/ProficiencyCalculation'
+import {prepareRatings} from '@canvas/outcomes/react/hooks/useRatings'
+import Ratings from './Ratings'
+import {ratingsShape} from './shapes'
 
-const OutcomeDescription = ({description, friendlyDescription, truncated}) => {
-  const {friendlyDescriptionFF, isStudent} = useCanvasContext()
+const I18n = useI18nScope('OutcomeManagement')
+
+const OutcomeDescription = ({
+  description,
+  friendlyDescription,
+  truncated,
+  calculationMethod,
+  calculationInt,
+  masteryPoints,
+  ratings
+}) => {
+  const {friendlyDescriptionFF, isStudent, accountLevelMasteryScalesFF} = useCanvasContext()
   const shouldShowFriendlyDescription = friendlyDescriptionFF && friendlyDescription
   let fullDescription = description
   let truncatedDescription = stripHtmlTags(fullDescription || '')
+  let fullDescriptionIsFriendlyDescription = false
   if (shouldShowFriendlyDescription && (!description || isStudent)) {
     fullDescription = truncatedDescription = friendlyDescription
+    fullDescriptionIsFriendlyDescription = true
   }
   const shouldShowFriendlyDescriptionSection =
     !truncated &&
@@ -39,7 +55,7 @@ const OutcomeDescription = ({description, friendlyDescription, truncated}) => {
     !isStudent &&
     truncatedDescription !== friendlyDescription
 
-  if (!description && !friendlyDescription) return null
+  if (!description && !friendlyDescription && accountLevelMasteryScalesFF) return null
 
   return (
     <View>
@@ -77,17 +93,42 @@ const OutcomeDescription = ({description, friendlyDescription, truncated}) => {
             background="secondary"
             data-testid="friendly-description-expanded"
           >
-            <Text>{friendlyDescription}</Text>
+            <Text wrap="break-word">{friendlyDescription}</Text>
           </View>
         </>
       )}
-      {!truncated && fullDescription && (
+
+      {!truncated && fullDescription && !fullDescriptionIsFriendlyDescription && (
         <View
           as="div"
           padding="0 small 0 0"
           data-testid="description-expanded"
           dangerouslySetInnerHTML={{__html: fullDescription}}
         />
+      )}
+
+      {!truncated && fullDescription && fullDescriptionIsFriendlyDescription && (
+        <View as="div" padding="0 small 0 0" data-testid="description-expanded">
+          <Text wrap="break-word">{fullDescription}</Text>
+        </View>
+      )}
+
+      {!truncated && !accountLevelMasteryScalesFF && (
+        <View>
+          <Ratings
+            ratings={prepareRatings(ratings)}
+            masteryPoints={{
+              value: masteryPoints,
+              error: null
+            }}
+            canManage={false}
+          />
+          <ProficiencyCalculation
+            method={{calculationMethod, calculationInt}}
+            individualOutcome="display"
+            canManage={false}
+          />
+        </View>
       )}
     </View>
   )
@@ -99,6 +140,10 @@ OutcomeDescription.defaultProps = {
 
 OutcomeDescription.propTypes = {
   description: PropTypes.string,
+  calculationMethod: PropTypes.string,
+  calculationInt: PropTypes.number,
+  masteryPoints: PropTypes.number,
+  ratings: ratingsShape,
   friendlyDescription: PropTypes.string,
   truncated: PropTypes.bool.isRequired
 }

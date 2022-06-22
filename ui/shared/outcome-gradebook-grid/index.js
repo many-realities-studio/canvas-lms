@@ -16,7 +16,7 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import I18n from 'i18n!gradebookOutcomeGradebookGrid'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import $ from 'jquery'
 import _ from 'underscore'
 import HeaderFilterView from './backbone/views/HeaderFilterView'
@@ -27,6 +27,8 @@ import studentCellTemplate from './jst/outcome_gradebook_student_cell.handlebars
 
 import React from 'react'
 import ReactDOM from 'react-dom'
+
+const I18n = useI18nScope('gradebookOutcomeGradebookGrid')
 
 /*
 xsslint safeString.method cellHtml
@@ -392,12 +394,12 @@ const Grid = {
         return ['rating_0', '#127A1B', I18n.t('Exceeds Mastery')]
       }
       if (score >= mastery) {
-        return ['rating_1', ENV.use_high_contrast ? '#127A1B' : '#00AC18', I18n.t('Meets Mastery')]
+        return ['rating_1', ENV.use_high_contrast ? '#127A1B' : '#0B874B', I18n.t('Meets Mastery')]
       }
       if (score >= nearMastery) {
         return ['rating_2', ENV.use_high_contrast ? '#C23C0D' : '#FC5E13', I18n.t('Near Mastery')]
       }
-      return ['rating_3', '#EE0612', I18n.t('Well Below Mastery')]
+      return ['rating_3', '#E0061F', I18n.t('Well Below Mastery')]
     },
     getColumnResults(data, column) {
       return _.chain(data).pluck(column.field).filter(_.isObject).value()

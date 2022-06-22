@@ -16,19 +16,17 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import I18n from 'i18n!discussion_posts'
+import {useScope as useI18nScope} from '@canvas/i18n'
 
 import {AssignmentSingleAvailabilityWindow} from '../AssignmentSingleAvailabilityWindow/AssignmentSingleAvailabilityWindow'
 import {AssignmentMultipleAvailabilityWindows} from '../AssignmentMultipleAvailabilityWindows/AssignmentMultipleAvailabilityWindows'
 import PropTypes from 'prop-types'
 import React, {useState} from 'react'
-
-import {Text} from '@instructure/ui-text'
-import {Flex} from '@instructure/ui-flex'
-import {View} from '@instructure/ui-view'
-import {Tray} from '@instructure/ui-tray'
-import {CloseButton} from '@instructure/ui-buttons'
+import CoursePacingNotice from '@canvas/due-dates/react/CoursePacingNotice'
+import {TrayDisplayer} from '../TrayDisplayer/TrayDisplayer'
 import {DueDateTray} from '../DueDateTray/DueDateTray'
+
+const I18n = useI18nScope('discussion_posts')
 
 export function AssignmentAvailabilityContainer({...props}) {
   const [dueDateTrayOpen, setDueDateTrayOpen] = useState(false)
@@ -62,7 +60,7 @@ export function AssignmentAvailabilityContainer({...props}) {
 
   return (
     <>
-      {props.isAdmin && assignmentOverrides.length > 1 ? (
+      {props.inPacedCourse || (props.isAdmin && assignmentOverrides.length > 1) ? (
         <AssignmentMultipleAvailabilityWindows
           assignmentOverrides={assignmentOverrides}
           onSetDueDateTrayOpen={setDueDateTrayOpen}
@@ -76,33 +74,25 @@ export function AssignmentAvailabilityContainer({...props}) {
           onSetDueDateTrayOpen={setDueDateTrayOpen}
         />
       )}
-      <Tray open={dueDateTrayOpen} size="large" placement="end" label="Due Dates">
-        <View as="div" padding="medium">
-          <Flex direction="column">
-            <Flex.Item>
-              <CloseButton
-                placement="end"
-                offset="small"
-                screenReaderLabel="Close"
-                onClick={() => {
-                  setDueDateTrayOpen(false)
-                }}
-              />
-            </Flex.Item>
-            <Flex.Item padding="none none medium none" shouldGrow shouldShrink>
-              <Text size="x-large" weight="bold" data-testid="due-dates-tray-heading">
-                {I18n.t('Due Dates')}
-              </Text>
-            </Flex.Item>
+      <TrayDisplayer
+        setTrayOpen={setDueDateTrayOpen}
+        trayTitle="Due Dates"
+        isTrayOpen={dueDateTrayOpen}
+        trayComponent={
+          props.inPacedCourse ? (
+            <CoursePacingNotice courseId={props.courseId} />
+          ) : (
             <DueDateTray assignmentOverrides={assignmentOverrides} isAdmin={props.isAdmin} />
-          </Flex>
-        </View>
-      </Tray>
+          )
+        }
+      />
     </>
   )
 }
 
 AssignmentAvailabilityContainer.propTypes = {
   assignment: PropTypes.object,
-  isAdmin: PropTypes.bool
+  isAdmin: PropTypes.bool,
+  inPacedCourse: PropTypes.bool,
+  courseId: PropTypes.string
 }

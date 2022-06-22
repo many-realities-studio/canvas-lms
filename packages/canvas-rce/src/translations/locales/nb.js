@@ -23,12 +23,12 @@ const locale = {
   "access_the_pretty_html_editor_37168efe": {
     "message": "Få tilgang til Elegante HTML-redigering"
   },
-  "accessibility_checker_b3af1f6c": { "message": "Tilgjengelighetstester" },
+  "accessibility_checker_b3af1f6c": { "message": "Tilgjengelighetsquizer" },
   "add_8523c19b": { "message": "Legg til" },
   "add_another_f4e50d57": { "message": "Legg til en annen" },
   "add_cc_subtitles_55f0394e": { "message": "Legg til CC/Undertekst" },
   "add_image_60b2de07": { "message": "Legg til bilde" },
-  "align_11050992": { "message": "Juster" },
+  "align_11050992": { "message": "Tilpass" },
   "align_center_ca078feb": { "message": "Senterjuster" },
   "align_left_e9f1f93b": { "message": "Venstrejuster" },
   "align_right_9bad3ac1": { "message": "Høyrejuster" },
@@ -49,7 +49,12 @@ const locale = {
   "announcement_list_da155734": { "message": "Kunngjøringsliste" },
   "announcements_a4b8ed4a": { "message": "Kunngjøringer" },
   "apply_781a2546": { "message": "Bruk" },
+  "apply_changes_to_all_instances_of_this_icon_maker__2642f466": {
+    "message": "Bruk endringer på alle forekomster av denne Ikonskaper-ikonet i emnet"
+  },
   "apps_54d24a47": { "message": "Apper" },
+  "arrows_464a3e54": { "message": "Piler" },
+  "art_icon_8e1daad": { "message": "Kunstikon" },
   "aspect_ratio_will_be_preserved_cb5fdfb8": {
     "message": "Dimensjonene vil bli bevart"
   },
@@ -58,29 +63,27 @@ const locale = {
   "audio_and_video_recording_not_supported_please_use_5ce3f0d7": {
     "message": "Lyd- og videoopptak støttes ikke, bruk en annen nettleser."
   },
+  "audio_options_feb58e2c": { "message": "Lydalternativer" },
+  "audio_options_tray_33a90711": { "message": "Brett for lydalternativer" },
   "audio_player_for_title_20cc70d": { "message": "Lydspiller for { title }" },
   "auto_saved_content_exists_would_you_like_to_load_t_fee528f2": {
     "message": "Automatisk lagret innhold finnes. Ønsker du å laste det automatisk lagrede innholdet i stedet?"
   },
-  "automatically_open_an_in_line_preview_preview_disp_ed784ffe": {
-    "message": "Automatisk åpne en forhåndsvisning av prosesslinjen. (Forhåndsvisning vises etter lagring)"
-  },
   "available_folders_694d0436": { "message": "Tilgjengelige mapper" },
+  "basic_554cdc0a": { "message": "Grunnleggende" },
   "below_81d4dceb": { "message": "Under" },
+  "black_4cb01371": { "message": "Svart" },
+  "blue_daf8fea9": { "message": "Blå" },
   "bottom_third_5f5fec1d": { "message": "Nedre tredjedel" },
-  "button_color_608a0242": { "message": "Knappefarge" },
-  "button_outline_cf14f071": { "message": "Knappeomriss" },
-  "button_outline_size_cc1d1df7": { "message": "Knappeomriss størrelse" },
-  "button_shape_dbecb573": { "message": "Knappeform" },
-  "button_size_20f5fce1": { "message": "Knappestørrelse" },
-  "buttons_and_icons_e66ee12c": { "message": "Knapper og ikoner" },
+  "brick_f2656265": { "message": "Blokk" },
   "c_2001_acme_inc_283f7f80": { "message": "(c) 2001 Acme Inc." },
   "cancel_caeb1e68": { "message": "Avbryt" },
   "choose_caption_file_9c45bc4e": { "message": "Velg undertekst-fil" },
-  "choose_usage_rights_33683854": { "message": "Velg bruksrettigheter..." },
+  "choose_usage_rights_33683854": { "message": "Velg bruksrettigheter…" },
   "circle_484abe63": { "message": "Sirkel" },
   "circle_unordered_list_9e3a0763": { "message": "sirkel uordnet liste" },
   "clear_2084585f": { "message": "Tøm" },
+  "clear_image_3213fe62": { "message": "Fjern bilde" },
   "clear_selected_file_82388e50": { "message": "Fjern valgt fil" },
   "clear_selected_file_filename_2fe8a58e": {
     "message": "Fjern valgt fil: { filename }"
@@ -104,12 +107,18 @@ const locale = {
     "message": "Lukk en meny eller dialog. Returnerer deg også til redigeringsområdet"
   },
   "close_d634289d": { "message": "Lukk" },
+  "closed_caption_file_must_be_less_than_maxkb_kb_5880f752": {
+    "message": "Fil med teksting må være mindre enn { maxKb } kb"
+  },
   "closed_captions_subtitles_e6aaa016": { "message": "Undertekster" },
   "collaborations_5c56c15f": { "message": "Samarbeid" },
   "collapse_to_hide_types_1ab46d2e": {
     "message": "Kollaps for å skjule { types }"
   },
-  "color_color_eb64b08": { "message": "Farge { color }" },
+  "color_picker_6b359edf": { "message": "Fargevelger" },
+  "color_picker_colorname_selected_ad4cf400": {
+    "message": "Fargevelger ({ colorName } valgt)"
+  },
   "computer_1d7dfa6f": { "message": "Datamaskin" },
   "content_1440204b": { "message": "Innhold" },
   "content_is_still_being_uploaded_if_you_continue_it_8f06d0cb": {
@@ -130,29 +139,35 @@ const locale = {
   "course_images_f8511d04": { "message": "Emnebilder" },
   "course_links_b56959b9": { "message": "Emnelenker" },
   "course_media_ec759ad": { "message": "Emnemedia" },
-  "course_navigation_dd035109": { "message": "Emnenavigering" },
-  "create_button_and_icon_5c089934": { "message": "Opprett knapp og ikon" },
+  "course_navigation_dd035109": { "message": "Emnenavigasjon" },
+  "create_icon_110d6463": { "message": "Opprett ikon" },
+  "create_icon_maker_icon_c716bffe": { "message": "Opprett Ikonskaper-ikon" },
   "creative_commons_license_725584ae": {
     "message": "Creative Commons-lisens:"
   },
+  "crop_image_41bf940c": { "message": "Beskjær bilde" },
+  "crop_image_807ebb08": { "message": "Beskjær bilde" },
+  "current_image_f16c249c": { "message": "Nåværende bilde" },
   "custom_6979cd81": { "message": "Tilpasset" },
+  "cyan_c1d5f68a": { "message": "Cyan" },
   "date_added_ed5ad465": { "message": "Lagt til dato" },
   "decorative_image_3c28aa7d": { "message": "Dekorativt Bilde" },
   "decrease_indent_de6343ab": { "message": "Reduser innrykk" },
+  "deep_purple_bb3e2907": { "message": "Mørkelilla" },
   "default_bulleted_unordered_list_47079da8": {
     "message": "standard punkt-uordnet liste"
   },
   "default_numerical_ordered_list_48dd3548": {
     "message": "standard numerisk-ordnet liste"
   },
+  "delimiters_4db4840d": { "message": "Avgrensninger" },
   "describe_the_image_e65d2e32": { "message": "(Beskriv bildet)" },
   "describe_the_video_2fe8f46a": { "message": "(Beskriv videoen)" },
   "details_98a31b68": { "message": "Detaljer" },
+  "diamond_b8dfe7ae": { "message": "Diamant" },
   "dimensions_45ddb7b7": { "message": "Dimensjoner" },
   "directionality_26ae9e08": { "message": "Retning" },
-  "disable_in_line_preview_2a675175": {
-    "message": "Deaktiver forhåndsvisning av prosesslinjen."
-  },
+  "directly_edit_latex_b7e9235b": { "message": "Rediger LaTex direkte" },
   "discussions_a5f96392": { "message": "Diskusjoner" },
   "discussions_index_6c36ced": { "message": "Diskusjonsindeks" },
   "display_options_315aba85": { "message": "Vis alternativer" },
@@ -176,19 +191,21 @@ const locale = {
   "edit_existing_button_icon_3d0277bd": {
     "message": "Rediger eksisterende knapp/ikon"
   },
+  "edit_icon_2c6b0e91": { "message": "Rediger ikon" },
   "edit_link_7f53bebb": { "message": "Rediger lenke" },
   "editor_statusbar_26ac81fc": { "message": "Redigering Statusbar" },
-  "embed_828fac4a": { "message": "Legg ved" },
+  "embed_828fac4a": { "message": "Innebygd" },
   "embed_code_314f1bd5": { "message": "Integrere kode" },
   "embed_image_1080badc": { "message": "Bygg inn bilde" },
-  "embed_options_tray_901cfd19": { "message": "Legg ved valgbrett" },
-  "embed_preview_2d741e1f": { "message": "Legg ved forhåndsvisning" },
   "embed_video_a97a64af": { "message": "Legg ved video" },
   "embedded_content_aaeb4d3d": { "message": "inkludert innhold" },
+  "engineering_icon_f8f3cf43": { "message": "Ingeniør-ikon" },
+  "english_icon_25bfe845": { "message": "Engelsk-ikon" },
   "enter_at_least_3_characters_to_search_4f037ee0": {
     "message": "Skriv inn minst tre tegn for å søke"
   },
   "equation_1c5ac93c": { "message": "Ligning" },
+  "equation_editor_39fbc3f1": { "message": "Ligningsredigerer" },
   "expand_preview_by_default_2abbf9f8": {
     "message": "Utvid forhåndsvisning som standard"
   },
@@ -197,6 +214,7 @@ const locale = {
   "external_tools_6e77821": { "message": "Eksterne verktøy" },
   "extra_large_b6cdf1ff": { "message": "Ekstra stor" },
   "extra_small_9ae33252": { "message": "Ekstra liten" },
+  "extracurricular_icon_67c8ca42": { "message": "Utenomfaglig-ikon" },
   "file_url_c12b64be": { "message": "Fil URL" },
   "filename_file_icon_602eb5de": { "message": "{ filename } filikon" },
   "filename_image_preview_6cef8f26": {
@@ -220,14 +238,17 @@ const locale = {
     "message": "Fant { count, plural,\n     =0 {# resultater}\n    one {# resultat}\n  other {# resultater}\n}"
   },
   "fullscreen_873bf53f": { "message": "Fullskjerm" },
-  "generating_preview_45b53be0": { "message": "Genererer forhåndsvisning..." },
+  "generating_preview_45b53be0": { "message": "Genererer forhåndsvisning…" },
   "go_to_the_editor_s_menubar_e6674c81": {
     "message": "Gå til redigeringsmenylinjen"
   },
   "go_to_the_editor_s_toolbar_a5cb875f": {
     "message": "Gå til redigeringsverktøylinjen"
   },
-  "grades_a61eba0a": { "message": "Karakterer" },
+  "grades_a61eba0a": { "message": "Vurderinger" },
+  "greek_65c5b3f7": { "message": "Gresk" },
+  "green_15af4778": { "message": "Grønn" },
+  "grey_a55dceff": { "message": "Grå" },
   "group_documents_8bfd6ae6": { "message": "Gruppedokumenter" },
   "group_files_4324f3df": { "message": "Gruppefiler" },
   "group_files_82e5dcdb": { "message": "Gruppefiler" },
@@ -238,6 +259,7 @@ const locale = {
   "heading_2_5b84eed2": { "message": "Overskrift 2" },
   "heading_3_2c83de44": { "message": "Overskrift 3" },
   "heading_4_b2e74be7": { "message": "Overskrift 4" },
+  "health_icon_8d292eb5": { "message": "Helse-ikon" },
   "height_69b03e15": { "message": "Høyde" },
   "hexagon_d8468e0d": { "message": "Sekskant" },
   "hide_description_bfb5502e": { "message": "Skjul beskrivelse" },
@@ -251,14 +273,22 @@ const locale = {
     "message": "Jeg har fått tillatelse til å bruke denne filen."
   },
   "i_hold_the_copyright_71ee91b1": { "message": "Jeg har opphavsretten" },
+  "icon_color_b86dd6d6": { "message": "Ikonfarge" },
+  "icon_maker_icons_cc560f7e": { "message": "Ikonskaper-ikoner" },
+  "icon_outline_e978dc0c": { "message": "Ikonomriss" },
+  "icon_outline_size_33f39b86": { "message": "Ikonomriss størrelse" },
+  "icon_shape_30b61e7": { "message": "Ikonform" },
+  "icon_size_9353edea": { "message": "Ikonstørrelse" },
   "if_you_do_not_select_usage_rights_now_this_file_wi_14e07ab5": {
-    "message": "Dersom du ikke velger brukerrettigheter nå, vil denne filen være upublisert når den lastes opp."
+    "message": "Dersom du ikke velger bruksrettigheter nå, vil denne filen være upublisert når den lastes opp."
   },
   "image_8ad06": { "message": "Bilde" },
   "image_options_5412d02c": { "message": "Bilde-alternativer" },
   "image_options_tray_90a46006": { "message": "Brett for bilde-alternativer" },
+  "image_to_crop_3a34487d": { "message": "Bilde som skal beskjæres" },
   "images_7ce26570": { "message": "Bilder" },
   "increase_indent_6d550a4a": { "message": "Øk innrykk" },
+  "indigo_2035fc55": { "message": "Indigo" },
   "insert_593145ef": { "message": "Sett inn" },
   "insert_equella_links_49a8dacd": { "message": "Sett inn Equella-koblinger" },
   "insert_link_6dc23cae": { "message": "Sett inn lenke" },
@@ -267,31 +297,47 @@ const locale = {
   "invalid_file_type_881cc9b2": { "message": "Ugyldig filtype" },
   "invalid_url_cbde79f": { "message": "Ugyldig URL" },
   "keyboard_shortcuts_ed1844bd": { "message": "Snarveier" },
+  "language_arts_icon_a798b0f8": { "message": "Språkkunst-ikon" },
+  "languages_icon_9d20539": { "message": "Språk-ikon" },
   "large_9c5e80e7": { "message": "Stor" },
   "left_to_right_e9b4fd06": { "message": "Venstre-til-høyre" },
+  "library_icon_ae1e54cf": { "message": "Bibliotek-ikon" },
+  "light_blue_5374f600": { "message": "Lyseblå" },
   "link_7262adec": { "message": "Lenke" },
   "link_options_a16b758b": { "message": "Lenkevalg" },
   "links_14b70841": { "message": "Lenker" },
-  "load_more_35d33c7": { "message": "Last mer" },
+  "load_more_35d33c7": { "message": "Last inn mer" },
   "load_more_results_460f49a9": { "message": "Last flere resultater" },
-  "loading_25990131": { "message": "Laster..." },
+  "loading_25990131": { "message": "Laster…" },
   "loading_bde52856": { "message": "Laster" },
-  "loading_failed_b3524381": { "message": "Lasting mislyktes..." },
+  "loading_failed_b3524381": { "message": "Lasting mislyktes…" },
   "loading_failed_e6a9d8ef": { "message": "Lasting mislyktes." },
   "loading_folders_d8b5869e": { "message": "Laster mapper" },
   "loading_please_wait_d276220a": { "message": "Laster inn, vennligst vent" },
+  "loading_preview_9f077aa1": { "message": "Laster inn forhåndsvisning" },
   "locked_762f138b": { "message": "Låst" },
+  "magenta_4a65993c": { "message": "Magenta" },
+  "math_icon_ad4e9d03": { "message": "Matte-ikon" },
   "media_af190855": { "message": "Medie" },
+  "media_file_is_processing_please_try_again_later_58a6d49": {
+    "message": "Mediefilen behandles. Prøv igjen senere."
+  },
   "medium_5a8e9ead": { "message": "Medium" },
   "middle_27dc1d5": { "message": "Midten" },
+  "misc_3b692ea7": { "message": "Diverse" },
   "miscellaneous_e9818229": { "message": "Diverse" },
   "modules_c4325335": { "message": "Moduler" },
+  "multi_color_image_63d7372f": { "message": "Bilde i flere farger" },
+  "music_icon_4db5c972": { "message": "Musikk-ikon" },
+  "must_be_at_least_percentage_22e373b6": {
+    "message": "Må være minst { percentage }%"
+  },
   "must_be_at_least_width_x_height_px_41dc825e": {
     "message": "Det må være minst { width } x { height }px"
   },
   "my_files_2f621040": { "message": "Mine filer" },
-  "my_images_427f9b0c": { "message": "Mine bilder" },
   "name_1aed4a1b": { "message": "Navn" },
+  "name_color_ceec76ff": { "message": "{ name } ({ color })" },
   "navigate_through_the_menu_or_toolbar_415a4e50": {
     "message": "Navigere gjennom menyen eller verktøylinjen"
   },
@@ -309,14 +355,17 @@ const locale = {
     "message": "Ikke funnet resultater for { term }."
   },
   "none_3b5e34d2": { "message": "Ingen" },
+  "none_selected_b93d56d2": { "message": "Ingen valgt" },
   "octagon_e48be9f": { "message": "Åttekant" },
+  "olive_6a3e4d6b": { "message": "Oliven" },
   "open_this_keyboard_shortcuts_dialog_9658b83a": {
-    "message": "Åpne denne tastatursnarveidialogen"
+    "message": "Åpne denne hurtigtastdialogen"
   },
   "open_title_application_fd624fc5": {
     "message": "Åpne { title }-applikasjon"
   },
-  "options_3ab0ea65": { "message": "Valg" },
+  "operators_a2ef9a93": { "message": "Operatører" },
+  "orange_81386a62": { "message": "Oransje" },
   "ordered_and_unordered_lists_cfadfc38": {
     "message": "Ordnede og uordnede lister"
   },
@@ -328,8 +377,17 @@ const locale = {
   },
   "pages_e5414c2c": { "message": "Sider" },
   "paragraph_5e5ad8eb": { "message": "Avsnitt" },
+  "pentagon_17d82ea3": { "message": "Femkant" },
   "people_b4ebb13c": { "message": "Personer" },
-  "posted_when_a578f5ab": { "message": "Postet: { when }" },
+  "percentage_34ab7c2c": { "message": "Prosent" },
+  "percentage_must_be_a_number_8033c341": {
+    "message": "Prosent må være et tall"
+  },
+  "performing_arts_icon_f3497486": { "message": "Scenekunst-ikon" },
+  "physical_education_icon_d7dffd3e": { "message": "Gymnastikk-ikon" },
+  "pink_68ad45cb": { "message": "Rosa" },
+  "pixels_52ece7d1": { "message": "Piksler" },
+  "posted_when_a578f5ab": { "message": "Publisert: { when }" },
   "preformatted_d0670862": { "message": "Forhåndsformattert" },
   "pretty_html_editor_28748756": { "message": "Elegante HTML-redigering" },
   "preview_53003fd2": { "message": "Forhåndsvisning" },
@@ -341,58 +399,59 @@ const locale = {
   },
   "published_c944a23d": { "message": "publisert" },
   "published_when_302d8e23": { "message": "Publisert: { when }" },
-  "quizzes_7e598f57": { "message": "Tester" },
+  "pumpkin_904428d5": { "message": "Gresskar" },
+  "purple_7678a9fc": { "message": "Lilla" },
+  "quizzes_7e598f57": { "message": "Quizer" },
   "raw_html_editor_e3993e41": { "message": "Rå HTML-redigerer" },
   "record_7c9448b": { "message": "Registrering" },
   "record_upload_media_5fdce166": { "message": "Gjør opptak/last opp media" },
+  "red_8258edf3": { "message": "Rød" },
+  "relationships_6602af70": { "message": "Forbindelser" },
+  "religion_icon_246e0be1": { "message": "Religion-ikon" },
   "remove_link_d1f2f4d0": { "message": "Fjerne lenke" },
   "resize_ec83d538": { "message": "Endre størrelse" },
   "restore_auto_save_deccd84b": {
     "message": "Gjenopprette automatisk lagring?"
   },
-  "rich_content_editor_2708ef21": { "message": "Rich innholdsredigering" },
+  "rich_content_editor_2708ef21": { "message": "Rich teksteditor" },
+  "rich_text_area_press_alt_0_for_rich_content_editor_9d23437f": {
+    "message": "Rikt tekstområde Trykk Alt+0 for Rich teksteditor-snarveier."
+  },
   "right_to_left_9cfb092a": { "message": "Høyre-til-venstre" },
   "sadly_the_pretty_html_editor_is_not_keyboard_acces_50da7665": {
     "message": "Dessverre er Elegante HTML-redigering ikke tilgjengelig med tastaturet. Få tilgang til rå HTML-redigering her."
   },
   "save_11a80ec3": { "message": "Lagre" },
-  "saved_buttons_and_icons_8278eed2": {
-    "message": "Lagrede knapper og ikoner"
-  },
+  "saved_icon_maker_icons_df86e2a1": { "message": "Lagrede Ikonskaper-ikoner" },
   "search_280d00bd": { "message": "Søk" },
   "search_term_b2d2235": { "message": "Søkeord" },
+  "select_crop_shape_d441feeb": { "message": "Velg beskjæringsform" },
   "select_language_7c93a900": { "message": "Velg språk" },
   "selected_274ce24f": { "message": "Valgt" },
   "shift_o_to_open_the_pretty_html_editor_55ff5a31": {
     "message": "Skift-O for å åpne elegante html-redigering."
   },
-  "show_embed_options_ef8d7ef": { "message": "Vis valg for å legge til" },
+  "show_audio_options_b489926b": { "message": "Vis lydalternativer" },
   "show_image_options_1e2ecc6b": { "message": "Vis bildemuligheter" },
   "show_link_options_545338fd": { "message": "Vis lenkevalg" },
   "show_video_options_6ed3721a": { "message": "Vis videovalg" },
+  "single_color_image_4e5d4dbc": { "message": "Enkeltfargebilde" },
+  "single_color_image_color_95fa9a87": { "message": "Enkeltfargebilde-farge" },
   "size_b30e1077": { "message": "Størrelse" },
-  "size_of_file_is_greater_than_the_maximum_max_mb_al_6eb3fa9a": {
-    "message": "Størrelsen på { file } er større enn den maksimale { max } MB tillatte filstørrelsen."
+  "size_of_caption_file_is_greater_than_the_maximum_m_bff5f86e": {
+    "message": "Størrelsen på bildetekstfilen er større en maksimalt tillatt størrelse på { max } kb."
   },
   "small_b070434a": { "message": "Liten" },
   "something_went_wrong_89195131": { "message": "Noe gikk galt." },
   "something_went_wrong_and_i_don_t_know_what_to_show_e0c54ec8": {
     "message": "Noe gikk galt og jeg vet ikke hva jeg skal vise deg."
   },
-  "something_went_wrong_check_your_connection_and_try_2a7b2d13": {
-    "message": "Noe gikk galt, sjekk forbindelsen din og forsøk igjen."
-  },
   "something_went_wrong_d238c551": { "message": "Noe gikk galt" },
-  "something_went_wrong_try_again_after_refreshing_th_e094eb8d": {
-    "message": "Noe gikk galt, prøv igjen etter å ha oppdatert siden"
-  },
-  "something_went_wrong_uploading_check_your_connecti_aa201f15": {
-    "message": "Noe gikk galt under opplasting, sjekk forbindelsen din og forsøk igjen."
-  },
   "sort_by_e75f9e3e": { "message": "Sortert på" },
   "square_511eb3b3": { "message": "Square" },
   "square_unordered_list_b15ce93b": { "message": "firkantet uordnet liste" },
   "star_8d156e09": { "message": "Stjernemerke" },
+  "steel_blue_14296f08": { "message": "Stålblå" },
   "styles_2aa721ef": { "message": "Stiler" },
   "submit_a3cc6859": { "message": "Send inn" },
   "subscript_59744f96": { "message": "Senket skrift" },
@@ -408,6 +467,7 @@ const locale = {
   },
   "syllabus_f191f65b": { "message": "Emneoversikt" },
   "tab_arrows_4cf5abfc": { "message": "TAB/piltaster" },
+  "teal_f729a294": { "message": "Blågrønn" },
   "text_7f4593da": { "message": "Tekst" },
   "text_background_color_16e61c3f": { "message": "Bakgrunnsfarge tekst" },
   "text_color_acf75eb6": { "message": "Tekstfarge" },
@@ -420,7 +480,7 @@ const locale = {
     "message": "Materialet er lisensiert under Creative Commons"
   },
   "the_material_is_subject_to_an_exception_e_g_fair_u_a39c8ca2": {
-    "message": "Dette materialet er underlagt et unntak - f.eks. korrekt brukt, retten til å sitere eller andre i henhold til gjeldende lover for opphavsrett"
+    "message": "Dette materialet er underlagt et unntak - f.eks. fair use, retten til å sitere eller andre i henhold til gjeldende lover for opphavsrett"
   },
   "the_pretty_html_editor_is_not_keyboard_accessible__d6d5d2b": {
     "message": "Elegante HTML-redigering ikke tilgjengelig med tastaturet. Trykk Skift-O for å åpne rå html-redigering."
@@ -429,8 +489,8 @@ const locale = {
     "message": "Selv om videoen din har riktig titten i nettleseren kunne vi ikke oppdatere den i databasen."
   },
   "title_ee03d132": { "message": "Tittel" },
-  "to_be_posted_when_d24bf7dc": { "message": "For å postes: { when }" },
-  "to_do_when_2783d78f": { "message": "Å gjøre: { when }" },
+  "to_be_posted_when_d24bf7dc": { "message": "Skal publiseres: { when }" },
+  "to_do_when_2783d78f": { "message": "Gjøremål: { when }" },
   "toggle_summary_group_413df9ac": { "message": "Veksle { summary }-gruppe" },
   "tools_2fcf772e": { "message": "Verktøy" },
   "totalresults_results_found_numdisplayed_results_cu_a0a44975": {
@@ -447,7 +507,7 @@ const locale = {
   "type_control_f9_to_access_table_options_text_92141329": {
     "message": "Tast Kontroll F9 for å få tilgang til tabell-alternativer. { text }"
   },
-  "unpublished_dfd8801": { "message": "ikke publisert" },
+  "unpublished_dfd8801": { "message": "upublisert" },
   "untitled_efdc2d7d": { "message": "uten navn" },
   "upload_document_253f0478": { "message": "Last opp dokument" },
   "upload_file_fd2361b8": { "message": "Last opp fil" },
@@ -455,9 +515,6 @@ const locale = {
   "upload_media_ce31135a": { "message": "Laste opp medier" },
   "upload_record_media_e4207d72": { "message": "Laste opp/ spille inn medier" },
   "uploading_19e8a4e7": { "message": "Laster opp" },
-  "uploading_closed_captions_subtitles_failed_bc093f3": {
-    "message": "Opplasting at teksting/underteksting mislyktes."
-  },
   "uppercase_alphabetic_ordered_list_3f5aa6b2": {
     "message": "stor bokstav alfabetisert organisert liste"
   },
@@ -465,10 +522,8 @@ const locale = {
     "message": "stor bokstav romertall organisert liste"
   },
   "url_22a5f3b8": { "message": "URL" },
-  "usage_right_ff96f3e2": { "message": "Brukerrettigheter:" },
-  "usage_rights_required_5fe4dd68": {
-    "message": "Brukerrettigheter (påkrevd)"
-  },
+  "usage_right_ff96f3e2": { "message": "Bruksrettigheter:" },
+  "usage_rights_required_5fe4dd68": { "message": "Bruksrettigheter (påkrevd)" },
   "use_arrow_keys_to_navigate_options_2021cc50": {
     "message": "Bruk piltaster for å navigere i valgene."
   },
@@ -510,6 +565,7 @@ const locale = {
     "message": "Vis forhåndsdefinerte farger"
   },
   "view_title_description_67940918": { "message": "Vis { title }-beskrivelse" },
+  "white_87fa64fd": { "message": "Hvit" },
   "width_492fec76": { "message": "Bredd" },
   "width_and_height_must_be_numbers_110ab2e3": {
     "message": "Bredde og høyde må være nummer"
@@ -519,7 +575,9 @@ const locale = {
   "yes_dde87d5": { "message": "Ja" },
   "you_may_not_upload_an_empty_file_11c31eb2": {
     "message": "Du kan ikke laste opp en tom fil."
-  }
+  },
+  "zoom_in_image_bb97d4f": { "message": "Zoom inn bildet" },
+  "zoom_out_image_d0a0a2ec": { "message": "Zoom ut bildet" }
 }
 
 

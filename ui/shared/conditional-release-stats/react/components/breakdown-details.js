@@ -18,13 +18,15 @@
 
 import React from 'react'
 import PropTypes from 'prop-types'
-import {Button} from '@instructure/ui-buttons'
+import {IconButton} from '@instructure/ui-buttons'
 import {Tray} from '@instructure/ui-tray'
 import {IconXSolid} from '@instructure/ui-icons'
-import I18n from 'i18n!cyoe_assignment_sidebar_breakdown_details'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import StudentRangesView from './student-ranges-view'
 import StudentDetailsView from './student-details-view'
 import {assignmentShape, selectedPathShape} from '../shapes/index'
+
+const I18n = useI18nScope('cyoe_assignment_sidebar_breakdown_details')
 
 const {array, object, func, bool} = PropTypes
 
@@ -91,8 +93,9 @@ export default class BreakdownDetails extends React.Component {
         <div className="crs-breakdown-details">
           <div className="crs-breakdown-details__content">
             <span className="crs-breakdown-details__closeButton">
-              <Button
-                variant="icon"
+              <IconButton
+                withBorder={false}
+                withBackground={false}
                 ref={e => {
                   this.closeButton = e
                 }}
@@ -101,7 +104,7 @@ export default class BreakdownDetails extends React.Component {
                 <span className="crs-breakdown-details__closeButtonIcon">
                   <IconXSolid title={I18n.t('Close details sidebar')} />
                 </span>
-              </Button>
+              </IconButton>
             </span>
             <StudentRangesView
               assignment={this.props.assignment}

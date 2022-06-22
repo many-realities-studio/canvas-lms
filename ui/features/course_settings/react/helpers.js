@@ -23,10 +23,8 @@ const Helpers = {
       case 'image/gif':
       case 'image/png':
         return true
-        break
       default:
         return false
-        break
     }
   },
 

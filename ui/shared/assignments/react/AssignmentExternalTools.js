@@ -20,10 +20,12 @@ import $ from 'jquery'
 import React from 'react'
 import PropTypes from 'prop-types'
 import ReactDOM from 'react-dom'
-import I18n from 'i18n!moderated_grading'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import '@canvas/rails-flash-notifications'
 import iframeAllowances from '@canvas/external-apps/iframeAllowances'
 import {asJson, getPrefetchedXHR, defaultFetchOptions} from '@instructure/js-utils'
+
+const I18n = useI18nScope('moderated_grading')
 
 class AssignmentExternalTools extends React.Component {
   constructor(props) {
@@ -93,7 +95,7 @@ class AssignmentExternalTools extends React.Component {
 
   handleAlertFocus = event => {
     const newState = {
-      iframeStyle: {border: '2px solid #008EE2', width: `${this.getMaxIFrameWidth() - 4}px`}
+      iframeStyle: {border: '2px solid #0374B5', width: `${this.getMaxIFrameWidth() - 4}px`}
     }
     if (event.target.className.search('before') > -1) {
       newState.beforeExternalContentAlertClass = ''
@@ -200,7 +202,7 @@ AssignmentExternalTools.defaultProps = {
   assignmentId: undefined
 }
 
-const attach = function(element, placement, courseId, assignmentId) {
+const attach = function (element, placement, courseId, assignmentId) {
   const configTools = (
     <AssignmentExternalTools
       placement={placement}

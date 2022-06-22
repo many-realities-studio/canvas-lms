@@ -30,7 +30,7 @@ export default function getRCSProps() {
   // set in rich_content.rb if user has :manage_files_add right
   // though comment says it may (eventually) be in the jwt
   // TODO: look into that.
-  const canUploadFiles = !ENV.use_rce_enhancements || ENV.RICH_CONTENT_CAN_UPLOAD_FILES
+  const canUploadFiles = ENV.RICH_CONTENT_CAN_UPLOAD_FILES
   if (!canUploadFiles || contextType === 'account') {
     contextId = userId
     contextType = 'user'
@@ -45,6 +45,12 @@ export default function getRCSProps() {
     host: ENV.RICH_CONTENT_APP_HOST,
     jwt: ENV.JWT,
     refreshToken: refreshToken(ENV.JWT),
-    themeUrl: ENV.active_brand_config_json_url
+    themeUrl: ENV.active_brand_config_json_url,
+    canvasUrl: ENV.DEEP_LINKING_POST_MESSAGE_ORIGIN,
+    features: {
+      // This feature was re-named to match the updated name "Buttons and Icons" => "Icon Maker"
+      // But the feature flag was NOT renamed so it's still "buttons_and_icons_cropper"
+      icon_maker_cropper: ENV.FEATURES?.buttons_and_icons_cropper
+    }
   }
 }

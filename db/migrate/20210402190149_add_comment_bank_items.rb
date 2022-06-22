@@ -23,21 +23,21 @@ class AddCommentBankItems < ActiveRecord::Migration[6.0]
 
   def up
     create_table :comment_bank_items do |t|
-      t.references :course, limit: 8, index: false, null: false, foreign_key: true
+      t.references :course, index: false, null: false, foreign_key: true
       t.references :root_account, foreign_key: { to_table: :accounts }, null: false
-      t.references :user, limit: 8, null: false, foreign_key: true, index: false
+      t.references :user, null: false, foreign_key: true, index: false
       t.text :comment, null: false
       t.timestamps null: false
-      t.string :workflow_state, null: false, default: 'active'
+      t.string :workflow_state, null: false, default: "active"
       t.index [:root_account_id, :id], unique: true,
-                                       name: 'index_comment_bank_items_replica_identity'
+                                       name: "index_comment_bank_items_replica_identity"
     end
 
     set_replica_identity(:comment_bank_items, :index_comment_bank_items_replica_identity)
 
     add_index :comment_bank_items,
               [:course_id, :user_id],
-              name: 'index_comment_bank_items_on_course_and_user',
+              name: "index_comment_bank_items_on_course_and_user",
               where: "workflow_state <> 'deleted'"
   end
 

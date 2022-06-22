@@ -27,7 +27,7 @@ module Types
     implements Interfaces::ModuleItemInterface
     implements Interfaces::LegacyIDInterface
 
-    alias assignment object
+    alias_method :assignment, :object
 
     class AssignmentStateType < Types::BaseEnum
       graphql_name "AssignmentState"
@@ -35,11 +35,15 @@ module Types
       value "unpublished"
       value "published"
       value "deleted"
+      value "duplicating"
+      value "failed_to_duplicate"
+      value "importing"
+      value "fail_to_import"
+      value "migrating"
+      value "failed_to_migrate"
     end
 
-    GRADING_TYPES = Hash[
-      Assignment::ALLOWED_GRADING_TYPES.zip(Assignment::ALLOWED_GRADING_TYPES)
-    ]
+    GRADING_TYPES = Assignment::ALLOWED_GRADING_TYPES.zip(Assignment::ALLOWED_GRADING_TYPES).to_h
 
     class AssignmentGradingType < Types::BaseEnum
       graphql_name "GradingType"
@@ -111,12 +115,12 @@ module Types
 
     def self.overridden_field(field_name, description)
       field field_name, DateTimeType, description, null: true do
-        argument :apply_overrides, Boolean, <<~DOC, required: false, default_value: true
+        argument :apply_overrides, Boolean, <<~MD, required: false, default_value: true
           When true, return the overridden dates.
 
           Not all roles have permission to view un-overridden dates (in which
           case the overridden dates will be returned)
-        DOC
+        MD
       end
 
       define_method(field_name) do |apply_overrides:|
@@ -124,7 +128,7 @@ module Types
           if !apply_overrides && course.grants_any_right?(current_user, *RoleOverride::GRANULAR_MANAGE_ASSIGNMENT_PERMISSIONS)
             assignment.send(field_name)
           else
-            OverrideAssignmentLoader.for(current_user).load(assignment).then &field_name
+            OverrideAssignmentLoader.for(current_user).load(assignment).then(&field_name)
           end
         end
       end
@@ -136,6 +140,7 @@ module Types
 
     class OverrideAssignmentLoader < GraphQL::Batch::Loader
       def initialize(current_user)
+        super()
         @current_user = current_user
       end
 
@@ -181,6 +186,7 @@ module Types
     field :grade_group_students_individually, Boolean,
           "If this is a group assignment, boolean flag indicating whether or not students will be graded individually.",
           null: true
+    field :group_category_id, Int, null: true
 
     field :time_zone_edited, String, null: true
     field :in_closed_grading_period, Boolean, method: :in_closed_grading_period?, null: true
@@ -284,7 +290,7 @@ module Types
       Assignments::NeedsGradingCountQuery.new(
         assignment,
         current_user
-        # TODO course proxy stuff
+        # TODO: course proxy stuff
         # (actually for some reason not passing along a course proxy doesn't
         # seem to matter)
       ).count

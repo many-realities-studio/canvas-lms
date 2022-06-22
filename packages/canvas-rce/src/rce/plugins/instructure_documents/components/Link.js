@@ -32,13 +32,16 @@ import {renderLink as renderLinkHtml} from '../../../contentRendering'
 import dragHtml from '../../../../sidebar/dragHtml'
 import {getIconFromType} from '../../shared/fileTypeUtils'
 import {isPreviewable} from '../../shared/Previewable'
+import {applyTimezoneOffsetToDate} from '../../shared/dateUtils'
 
 export default function Link(props) {
   const [isHovering, setIsHovering] = useState(false)
-  const {filename, display_name, title, content_type, published, date} = props
+  const {filename, display_name, title, content_type, published, date, disabled, disabledMessage} =
+    props
   const Icon = getIconFromType(content_type)
   const color = published ? 'success' : 'primary'
-  const dateString = formatMessage.date(Date.parse(date), 'long')
+  // Uses user locale and timezone
+  const dateString = formatMessage.date(applyTimezoneOffsetToDate(date, ENV.TIMEZONE), 'long')
   const publishedMsg = published ? formatMessage('published') : formatMessage('unpublished')
 
   function linkAttrsFromDoc() {
@@ -58,7 +61,8 @@ export default function Link(props) {
       // media_objects have these
       title: props.title,
       type: props.type,
-      embedded_iframe_url: props.embedded_iframe_url
+      embedded_iframe_url: props.embedded_iframe_url,
+      media_entry_id: props.media_entry_id
     }
     if (canPreview) {
       attrs['data-canvas-previewable'] = true
@@ -91,6 +95,34 @@ export default function Link(props) {
     setIsHovering(e.type === 'mouseenter')
   }
 
+  function buildCallback(callback) {
+    if (disabled) return
+
+    return callback
+  }
+
+  function dateOrMessage(dateString) {
+    if (disabled && disabledMessage) {
+      return (
+        <View display="block">
+          <span style={textStyles()}>
+            <Text fontStyle="italic">{disabledMessage}</Text>
+          </span>
+        </View>
+      )
+    }
+
+    if (dateString) {
+      return <View as="div">{dateString}</View>
+    }
+  }
+
+  function textStyles() {
+    if (disabled) return {color: 'gray'}
+
+    return {}
+  }
+
   let elementRef = null
   if (props.focusRef) {
     elementRef = ref => (props.focusRef.current = ref)
@@ -100,10 +132,10 @@ export default function Link(props) {
     <div
       data-testid="instructure_links-Link"
       draggable
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-      onMouseEnter={handleHover}
-      onMouseLeave={handleHover}
+      onDragStart={buildCallback(handleDragStart)}
+      onDragEnd={buildCallback(handleDragEnd)}
+      onMouseEnter={buildCallback(handleHover)}
+      onMouseLeave={buildCallback(handleHover)}
       style={{position: 'relative'}}
     >
       <View
@@ -119,8 +151,9 @@ export default function Link(props) {
         borderWidth="0 0 small 0"
         padding="x-small"
         width="100%"
-        onClick={handleLinkClick}
-        onKeyDown={handleLinkKey}
+        onClick={buildCallback(handleLinkClick)}
+        onKeyDown={buildCallback(handleLinkKey)}
+        aria-disabled={disabled}
       >
         <div style={{pointerEvents: 'none'}}>
           <Flex>
@@ -136,9 +169,9 @@ export default function Link(props) {
                 </Flex.Item>
                 <Flex.Item padding="0 x-small 0 0" grow shrink textAlign="start">
                   <View as="div" margin="0">
-                    {display_name || title || filename}
+                    <span style={textStyles()}>{display_name || title || filename}</span>
                   </View>
-                  {dateString ? <View as="div">{dateString}</View> : null}
+                  {dateOrMessage(dateString)}
                 </Flex.Item>
                 <Flex.Item>
                   <AccessibleContent alt={publishedMsg}>

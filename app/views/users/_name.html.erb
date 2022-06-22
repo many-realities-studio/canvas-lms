@@ -62,7 +62,7 @@
       <% if @context.grants_right? @current_user, :read_email_addresses %>
         <tr>
           <th><%= before_label('default_email', 'Default Email') %></th>
-          <td class="email"><%=h @user.email %></td>
+          <td style="word-break: break-all"><%=h @user.email %></td>
         </tr>
       <% end %>
       <tr>
@@ -93,6 +93,11 @@
             <% if UserMergeData.active.splitable.where(user_id: @user).shard(@user).exists? %>
               | <a class="split_user_link" href="<%= user_admin_split_url(@user) %>"><%= t('Split Merged Users')%></a>
             <% end %>
+          <% end %>
+
+          <% if @user.grants_right?(@current_user, :manage_user_details) %>
+            <%= "|" unless first %><% first = false %>
+            <div style="display: inline;" id="suspend-reactivate-link"></div>
           <% end %>
 
           <% if ((@context.is_a?(User) || @context.is_a?(Account)) && root_account) && @user.allows_user_to_remove_from_account?(root_account, @current_user) %>

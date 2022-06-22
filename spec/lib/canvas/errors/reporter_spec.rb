@@ -17,8 +17,6 @@
 # You should have received a copy of the GNU Affero General Public License along
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 
-require 'spec_helper'
-
 class MyTestError < StandardError
   def response_status
     401
@@ -47,7 +45,7 @@ describe Canvas::Errors::Reporter do
 
   it "has correct backtrace" do
     new_class = error_instance
-    expect(new_class.backtrace[0]).to match /typical_usage/
+    expect(new_class.backtrace[0]).to match(/typical_usage/)
   end
 
   it "does not mess with existing classes" do
@@ -77,11 +75,9 @@ describe Canvas::Errors::Reporter do
   end
 
   def error_instance
-    begin
-      typical_usage
-    rescue MyTestError => err
-      return err
-    end
+    typical_usage
+  rescue MyTestError => e
+    e
   end
 
   def typical_usage

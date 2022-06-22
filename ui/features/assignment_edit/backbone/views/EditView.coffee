@@ -18,7 +18,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
 import INST from 'browser-sniffer'
-import I18n from 'i18n!assignment_editview'
+import {useScope as useI18nScope} from '@canvas/i18n'
 import ValidatedFormView from '@canvas/forms/backbone/views/ValidatedFormView.coffee'
 import _ from 'underscore'
 import $, {param} from 'jquery'
@@ -37,7 +37,6 @@ import MissingDateDialog from '@canvas/due-dates/backbone/views/MissingDateDialo
 import AssignmentGroupSelector from '@canvas/assignments/backbone/views/AssignmentGroupSelector.coffee'
 import GroupCategorySelector from '@canvas/groups/backbone/views/GroupCategorySelector.coffee'
 import toggleAccessibly from '@canvas/assignments/jquery/toggleAccessibly'
-import RCEKeyboardShortcuts from '@canvas/tinymce-keyboard-shortcuts'
 import ConditionalRelease from '@canvas/conditional-release-editor'
 import deparam from 'deparam'
 import SisValidationHelper from '@canvas/sis/SisValidationHelper'
@@ -55,6 +54,8 @@ import '@canvas/util/toJSON'
 import '@canvas/rails-flash-notifications'
 import '../../../../boot/initializers/activateTooltips.js'
 import {AnnotatedDocumentSelector} from '../../react/EditAssignment'
+
+I18n = useI18nScope('assignment_editview')
 
 ###
 xsslint safeString.identifier srOnly
@@ -100,6 +101,8 @@ export default class EditView extends ValidatedFormView
   EXTERNAL_TOOLS_CONTENT_TYPE = '#assignment_external_tool_tag_attributes_content_type'
   EXTERNAL_TOOLS_CONTENT_ID = '#assignment_external_tool_tag_attributes_content_id'
   EXTERNAL_TOOLS_NEW_TAB = '#assignment_external_tool_tag_attributes_new_tab'
+  EXTERNAL_TOOLS_IFRAME_WIDTH = '#assignment_external_tool_tag_attributes_iframe_width'
+  EXTERNAL_TOOLS_IFRAME_HEIGHT = '#assignment_external_tool_tag_attributes_iframe_height'
   EXTERNAL_TOOLS_CUSTOM_PARAMS = '#assignment_external_tool_tag_attributes_custom_params'
   ASSIGNMENT_POINTS_POSSIBLE = '#assignment_points_possible'
   ASSIGNMENT_POINTS_CHANGE_WARN = '#point_change_warning'
@@ -143,6 +146,8 @@ export default class EditView extends ValidatedFormView
     els["#{PEER_REVIEWS_FIELDS}"] = '$peerReviewsFields'
     els["#{EXTERNAL_TOOLS_URL}"] = '$externalToolsUrl'
     els["#{EXTERNAL_TOOLS_NEW_TAB}"] = '$externalToolsNewTab'
+    els["#{EXTERNAL_TOOLS_IFRAME_WIDTH}"] = '$externalToolsIframeWidth'
+    els["#{EXTERNAL_TOOLS_IFRAME_HEIGHT}"] = '$externalToolsIframeHeight'
     els["#{EXTERNAL_TOOLS_CONTENT_TYPE}"] = '$externalToolsContentType'
     els["#{EXTERNAL_TOOLS_CUSTOM_PARAMS}"] = '$externalToolsCustomParams'
     els["#{EXTERNAL_TOOLS_CONTENT_ID}"] = '$externalToolsContentId'
@@ -347,6 +352,27 @@ export default class EditView extends ValidatedFormView
       turnitinDialog.off()
       turnitinDialog.remove()
 
+  handleAssignmentSelectionSubmit: (data) =>
+    @$externalToolsCustomParams.val(data['item[custom_params]'])
+    @$externalToolsContentType.val(data['item[type]'])
+    @$externalToolsContentId.val(data['item[id]'])
+    @$externalToolsUrl.val(data['item[url]'])
+    @$externalToolsNewTab.prop('checked', data['item[new_tab]'] == '1')
+    @$externalToolsIframeWidth.val(data['item[iframe][width]'])
+    @$externalToolsIframeHeight.val(data['item[iframe][height]'])
+
+    # a content item with an assignment_id means that an assignment was already
+    # created on the backend. redirect to that assignment so that user can make
+    # any desired changes, without having to populate this model with extra
+    # data not found in this content item
+    if (data['item[assignment_id]'])
+      message = I18n.t("Loading assignment details from external app")
+      $.flashMessage(message)
+      $.screenReaderFlashMessageExclusive(message)
+      [context_type, context_id] = ENV.context_asset_string.split("_")
+      window.location.href = "/#{context_type}s/#{context_id}/assignments/#{data['item[assignment_id]']}/edit"
+
+  # assignment_selection placement
   showExternalToolsDialog: =>
     # TODO: don't use this dumb thing
     INST.selectContentDialog
@@ -354,11 +380,7 @@ export default class EditView extends ValidatedFormView
       select_button_text: I18n.t('buttons.select_url', 'Select'),
       no_name_input: true,
       submit: (data) =>
-        @$externalToolsCustomParams.val(data['item[custom_params]'])
-        @$externalToolsContentType.val(data['item[type]'])
-        @$externalToolsContentId.val(data['item[id]'])
-        @$externalToolsUrl.val(data['item[url]'])
-        @$externalToolsNewTab.prop('checked', data['item[new_tab]'] == '1')
+       @handleAssignmentSelectionSubmit(data)
 
   toggleRestrictFileUploads: =>
     @$restrictFileUploadsOptions.toggleAccessibly @$allowFileUploads.prop('checked')
@@ -430,7 +452,7 @@ export default class EditView extends ValidatedFormView
     @setAnnotatedDocument(null)
 
   shouldRenderUsageRights: =>
-    ENV?.ANNOTATED_DOCUMENT_SUBMISSIONS and ENV.USAGE_RIGHTS_REQUIRED
+    ENV.USAGE_RIGHTS_REQUIRED
 
   setAnnotatedDocumentUsageRights:(usageRights) =>
     @annotatedDocumentUsageRights = usageRights
@@ -650,30 +672,28 @@ export default class EditView extends ValidatedFormView
           parseInt(@assignment.id))
 
     @_attachEditorToDescription()
-    @addTinyMCEKeyboardShortcuts()
     @togglePeerReviewsAndGroupCategoryEnabled()
     @handleOnlineSubmissionTypeChange()
     @handleSubmissionTypeChange()
     @handleGroupCategoryChange()
     @handleAnonymousGradingChange()
 
-    if ENV.ANNOTATED_DOCUMENT_SUBMISSIONS
-      if ENV.ANNOTATED_DOCUMENT
-        @setAnnotatedDocument({
-          id: ENV.ANNOTATED_DOCUMENT.id,
-          name: ENV.ANNOTATED_DOCUMENT.display_name,
-          contextType: pluralize(ENV.ANNOTATED_DOCUMENT.context_type).toLowerCase(),
-          contextId: ENV.ANNOTATED_DOCUMENT.context_id,
-        })
+    if ENV.ANNOTATED_DOCUMENT
+      @setAnnotatedDocument({
+        id: ENV.ANNOTATED_DOCUMENT.id,
+        name: ENV.ANNOTATED_DOCUMENT.display_name,
+        contextType: pluralize(ENV.ANNOTATED_DOCUMENT.context_type).toLowerCase(),
+        contextId: ENV.ANNOTATED_DOCUMENT.context_id,
+      })
 
-      @renderAnnotatedDocumentSelector() if @$allowAnnotatedDocument.prop('checked')
+    @renderAnnotatedDocumentSelector() if @$allowAnnotatedDocument.prop('checked')
 
-      if @$allowAnnotatedDocument.prop('checked')
-        @$allowAnnotatedDocumentInfo.show()
-      else
-        @$allowAnnotatedDocumentInfo.hide()
+    if @$allowAnnotatedDocument.prop('checked')
+      @$allowAnnotatedDocumentInfo.show()
+    else
+      @$allowAnnotatedDocumentInfo.hide()
 
-      @renderAnnotatedDocumentUsageRightsSelectBox() if @shouldRenderUsageRights()
+    @renderAnnotatedDocumentUsageRightsSelectBox() if @shouldRenderUsageRights()
 
     if ENV.CONDITIONAL_RELEASE_SERVICE_ENABLED
       @conditionalReleaseEditor = ConditionalRelease.attach(
@@ -691,7 +711,6 @@ export default class EditView extends ValidatedFormView
     data = @assignment.toView()
 
     _.extend data,
-      use_rce_enhancements: ENV?.use_rce_enhancements
       assignment_attempts: ENV?.assignment_attempts_enabled
       kalturaEnabled: ENV?.KALTURA_ENABLED or false
       postToSISEnabled: ENV?.POST_TO_SIS or false
@@ -701,23 +720,11 @@ export default class EditView extends ValidatedFormView
       lockedItems: @lockedItems
       anonymousGradingEnabled: ENV?.ANONYMOUS_GRADING_ENABLED or false
       anonymousInstructorAnnotationsEnabled: ENV?.ANONYMOUS_INSTRUCTOR_ANNOTATIONS_ENABLED or false
-      annotatedDocumentSubmissionsEnabled: ENV?.ANNOTATED_DOCUMENT_SUBMISSIONS or false
 
   _attachEditorToDescription: =>
     return if @lockedItems.content
 
-    RichContentEditor.initSidebar()
     RichContentEditor.loadNewEditor(@$description, { focus: true, manageParent: true })
-
-    $('.rte_switch_views_link').click (e) =>
-      e.preventDefault()
-      RichContentEditor.callOnRCE(@$description, 'toggle')
-      # hide the clicked link, and show the other toggle link.
-      $(e.currentTarget).siblings('.rte_switch_views_link').andSelf().toggle().focus()
-
-  addTinyMCEKeyboardShortcuts: =>
-    keyboardShortcutsView = new RCEKeyboardShortcuts()
-    keyboardShortcutsView.render().$el.insertBefore($(".rte_switch_views_link:first"))
 
   # -- Data for Submitting --
   _datesDifferIgnoringSeconds: (newDate, originalDate) =>
@@ -838,12 +845,6 @@ export default class EditView extends ValidatedFormView
     @submit(event)
 
   onSaveFail: (xhr) =>
-    response_text = JSON.parse(xhr.responseText)
-    if response_text.errors
-      subscription_errors = response_text.errors.plagiarism_tool_subscription
-      if subscription_errors && subscription_errors.length > 0
-        $.flashError(subscription_errors[0].message)
-
     @shouldPublish = false
     @disableWhileLoadingOpts = {}
     super(xhr)
@@ -1036,7 +1037,7 @@ export default class EditView extends ValidatedFormView
     window.location = @locationAfterSave(deparam())
 
   locationAfterSave: (params) ->
-    return params['return_to'] if returnToHelper.isValid(params['return_to'])
+    return params['return_to'] if returnToHelper.isValid(params['return_to']) && !@assignment.showBuildButton()
     useCancelLocation = @assignment.showBuildButton() && @preventBuildNavigation
     return @locationAfterCancel(deparam()) if useCancelLocation
     htmlUrl = @model.get 'html_url'

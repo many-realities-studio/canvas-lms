@@ -21,24 +21,25 @@ import {string, func, shape} from 'prop-types'
 import {Tooltip} from '@instructure/ui-tooltip'
 import {Table} from '@instructure/ui-table'
 import {IconMiniArrowUpSolid, IconMiniArrowDownSolid} from '@instructure/ui-icons'
-import {Button} from '@instructure/ui-buttons'
-import preventDefault from 'prevent-default'
-import UsersListRow from './UsersListRow'
+import {CondensedButton} from '@instructure/ui-buttons'
 
 export default function UsersListHeader(props) {
-  const {id, tipAsc, tipDesc, label, onUpdateFilters} = props
+  const {id, tipAsc, tipDesc, label, onUpdateFilters, columnHeaderRef} = props
   const {sort, order, search_term, role_filter_id} = props.searchFilter
   const newOrder = (sort === id && order === 'asc') || (!sort && id === 'username') ? 'desc' : 'asc'
 
+  const handleFilterUpdate = event => {
+    if (event && event.currentTarget) columnHeaderRef(event.currentTarget)
+    onUpdateFilters({search_term, sort: id, order: newOrder, role_filter_id})
+  }
+
   return (
     <Table.ColHeader id={id} data-testid="UsersListHeader">
-      <Tooltip tip={sort === id && order === 'asc' ? tipAsc : tipDesc}>
-        <Button
-          onClick={preventDefault(() => {
-            onUpdateFilters({search_term, sort: id, order: newOrder, role_filter_id})
-          })}
-          variant="link"
-          theme={{fontWeight: '700', mediumPadding: '0', mediumHeight: '1.5rem'}}
+      <Tooltip renderTip={sort === id && order === 'asc' ? tipAsc : tipDesc}>
+        <CondensedButton
+          id={`${id}-button`}
+          onClick={handleFilterUpdate}
+          theme={{fontWeight: '700', mediumPaddingHorizontal: '0', mediumHeight: '1.5rem'}}
         >
           {label}
           {sort === id ? (
@@ -50,7 +51,7 @@ export default function UsersListHeader(props) {
           ) : (
             ''
           )}
-        </Button>
+        </CondensedButton>
       </Tooltip>
     </Table.ColHeader>
   )
@@ -62,6 +63,7 @@ UsersListHeader.propTypes = {
   tipDesc: string.isRequired,
   label: string.isRequired,
   onUpdateFilters: func.isRequired,
+  columnHeaderRef: func.isRequired,
   searchFilter: shape({
     sort: string,
     order: string,
