@@ -9,6 +9,7 @@ services:
       - redis
     environment:
       POSTGRES_PASSWORD: sekret
+      ADDITIONAL_ALLOWED_HOSTS: homer.home.lan
 
   jobs:
     <<: *WEB
