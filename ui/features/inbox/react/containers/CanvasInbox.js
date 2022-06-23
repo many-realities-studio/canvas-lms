@@ -126,6 +126,18 @@ const CanvasInbox = () => {
     setIsSubmissionCommentsType(scope === 'submission_comments')
   }, [scope])
 
+  // clear conversationsManuallyMarkedUnread when
+  // selectedConversations is not the same
+  useEffect(() => {
+    if (
+      !JSON.parse(sessionStorage.getItem('conversationsManuallyMarkedUnread'))?.includes(
+        selectedConversations[0]
+      )
+    ) {
+      sessionStorage.removeItem('conversationsManuallyMarkedUnread')
+    }
+  }, [selectedConversations])
+
   const conversationContext = {
     multiselect,
     setMultiselect,
@@ -158,6 +170,10 @@ const CanvasInbox = () => {
   }
 
   const removeOutOfScopeConversationsFromCache = (cache, result) => {
+    if (scope === 'starred') {
+      return
+    }
+
     if (result.data.updateConversationParticipants.errors) {
       return
     }
@@ -225,8 +241,8 @@ const CanvasInbox = () => {
   const handleArchiveComplete = data => {
     const archiveSuccessMsg = I18n.t(
       {
-        one: 'Message Archived!',
-        other: 'Messages Archived!'
+        one: 'Message archived!',
+        other: 'Messages archived!'
       },
       {count: selectedConversations.length}
     )
@@ -235,16 +251,18 @@ const CanvasInbox = () => {
       setOnFailure(I18n.t('Archive operation failed'))
     } else {
       setArchiveDisabled(true)
-      removeFromSelectedConversations(selectedConversations)
-      setOnSuccess(archiveSuccessMsg) // screenReaderOnly
+      if (scope !== 'Starred') {
+        removeFromSelectedConversations(selectedConversations)
+      }
+      setOnSuccess(archiveSuccessMsg, false)
     }
   }
 
   const handleUnarchiveComplete = data => {
     const unarchiveSuccessMsg = I18n.t(
       {
-        one: 'Message Unarchived!',
-        other: 'Messages Unarchived!'
+        one: 'Message unarchived!',
+        other: 'Messages unarchived!'
       },
       {count: selectedConversations.length}
     )
@@ -253,8 +271,10 @@ const CanvasInbox = () => {
       setOnFailure(I18n.t('Unarchive operation failed'))
     } else {
       setArchiveDisabled(false)
-      removeFromSelectedConversations(selectedConversations)
-      setOnSuccess(unarchiveSuccessMsg) // screenReaderOnly
+      if (scope !== 'Starred') {
+        removeFromSelectedConversations(selectedConversations)
+      }
+      setOnSuccess(unarchiveSuccessMsg, false)
     }
   }
 
@@ -401,6 +421,46 @@ const CanvasInbox = () => {
     })
   }
 
+  const [readStateChangeConversationParticipants] = useMutation(UPDATE_CONVERSATION_PARTICIPANTS, {
+    onCompleted(data) {
+      if (data.updateConversationParticipants.errors) {
+        setOnFailure(I18n.t('Read state change operation failed'))
+      } else {
+        setOnSuccess(
+          I18n.t(
+            {
+              one: 'Read state Changed!',
+              other: 'Read states Changed!'
+            },
+            {count: '1000'}
+          )
+        )
+      }
+    },
+    onError() {
+      setOnFailure(I18n.t('Read state change failed'))
+    }
+  })
+
+  const handleReadState = (markAsRead, conversationIds = null) => {
+    const conversationIdsToChange = conversationIds || selectedConversations.map(convo => convo._id)
+
+    readStateChangeConversationParticipants({
+      variables: {
+        conversationIds: conversationIdsToChange,
+        workflowState: markAsRead
+      }
+    })
+
+    // always change this to whatever was just changed
+    if (markAsRead === 'unread') {
+      sessionStorage.setItem(
+        'conversationsManuallyMarkedUnread',
+        JSON.stringify(conversationIdsToChange)
+      )
+    }
+  }
+
   const onReply = ({conversationMessage = null, replyAll = false} = {}) => {
     conversationMessage = isSubmissionCommentsType ? {} : conversationMessage
     setSelectedConversationMessage(conversationMessage)
@@ -487,6 +547,7 @@ const CanvasInbox = () => {
                   onStar={handleStar}
                   firstConversationIsStarred={firstConversationIsStarred}
                   onDelete={handleDelete}
+                  onReadStateChange={handleReadState}
                   canReply={canReply}
                 />
               </Flex.Item>
@@ -502,6 +563,7 @@ const CanvasInbox = () => {
                       userFilter={userFilter}
                       scope={scope}
                       onSelectConversation={updateSelectedConversations}
+                      onReadStateChange={handleReadState}
                     />
                   </Flex.Item>
                 )}
@@ -564,6 +626,7 @@ const CanvasInbox = () => {
                                 }
                               : null
                           }
+                          onReadStateChange={handleReadState}
                           scope={scope}
                         />
                       </>

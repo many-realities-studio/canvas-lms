@@ -44,6 +44,9 @@ const I18n = useI18nScope('conversations_2')
 export const ConversationListItem = ({...props}) => {
   const [isHovering, setIsHovering] = useState(false)
   const {setMessageOpenEvent, isSubmissionCommentsType} = useContext(ConversationContext)
+  // The TruncateText Component doesn't perform well with more than a few paragraphs of words.
+  // This text length keeps the component working fast
+  const MAX_TEXT_LENGTH = 180
 
   const handleConversationClick = e => {
     e.nativeEvent.stopImmediatePropagation()
@@ -158,12 +161,9 @@ export const ConversationListItem = ({...props}) => {
                       margin="x-small"
                       onClick={e => {
                         e.stopPropagation()
-                        props.readStateChangeConversationParticipants({
-                          variables: {
-                            conversationIds: [props.conversation._id],
-                            workflowState: props.isUnread ? 'read' : 'unread'
-                          }
-                        })
+                        props.isUnread
+                          ? props.onMarkAsRead(props.conversation._id)
+                          : props.onMarkAsUnread(props.conversation._id)
                       }}
                       screenReaderLabel={props.isUnread ? I18n.t('Unread') : I18n.t('Read')}
                       size="small"
@@ -187,7 +187,9 @@ export const ConversationListItem = ({...props}) => {
               </Grid.Col>
               <Grid.Col>
                 <Text weight="normal" size={props.textSize}>
-                  <TruncateText>{props.conversation.subject}</TruncateText>
+                  <TruncateText>
+                    {props.conversation.subject?.slice(0, MAX_TEXT_LENGTH)}
+                  </TruncateText>
                 </Text>
               </Grid.Col>
             </Grid.Row>
@@ -197,7 +199,9 @@ export const ConversationListItem = ({...props}) => {
               </Grid.Col>
               <Grid.Col>
                 <Text color="secondary" size={props.textSize}>
-                  <TruncateText>{props.conversation.lastMessageContent}</TruncateText>
+                  <TruncateText>
+                    {props.conversation.lastMessageContent?.slice(0, MAX_TEXT_LENGTH)}
+                  </TruncateText>
                 </Text>
               </Grid.Col>
               <Grid.Col width="auto">
@@ -269,6 +273,7 @@ ConversationListItem.propTypes = {
   isUnread: PropTypes.bool,
   onSelect: PropTypes.func,
   onStar: PropTypes.func,
-  readStateChangeConversationParticipants: PropTypes.func,
+  onMarkAsRead: PropTypes.func,
+  onMarkAsUnread: PropTypes.func,
   textSize: PropTypes.string
 }
