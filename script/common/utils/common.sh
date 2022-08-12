@@ -156,7 +156,15 @@ function check_dependencies {
     fi
     if [[ ${#dep[@]} -gt 1 ]]; then
       version=$(eval "${dep[0]}" version |grep -oE "[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+")
-      if (( $(echo "$version ${dep[1]}" | awk '{print ($1 < $2)}') )); then
+      OS=$(uname -r |  tr '[:upper:]' '[:lower:]')
+      if [[ $OS == "5.10.102.1-microsoft-standard-wsl2" ]]; then
+        echo ${dep[1]}
+        first=(${version[0]})
+        echo ${first[0]}
+        if (( $(echo "$first ${dep[1]}" | awk '{print ($1 < $2)}') )); then
+          wrong_version+=("$dependency or higher. Found: ${dep[0]} $first.")
+        fi
+      elif (( $(echo "$version ${dep[1]}" | awk '{print ($1 < $2)}') )); then
         wrong_version+=("$dependency or higher. Found: ${dep[0]} $version.")
       fi
     fi

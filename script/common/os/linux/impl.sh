@@ -15,6 +15,11 @@ function set_service_util {
 }
 
 function start_docker_daemon {
+
+  OS=$(uname -r |  tr '[:upper:]' '[:lower:]')
+  if [[ $OS == "5.10.102.1-microsoft-standard-wsl2" ]]; then
+    return 0
+  fi
   eval "$service_manager docker status &> /dev/null" && return 0
   prompt 'The docker daemon is not running. Start it? [y/n]' confirm
   [[ ${confirm:-n} == 'y' ]] || return 1
